@@ -571,10 +571,10 @@ export default function WizardPage(p){
                           {reqs.skills.map(function(sk){return (
                             <div key={sk.s} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.ac+"12",border:"1px solid "+T.ac+"20",fontSize:10,color:T.ac}}>
                               {sk.s}
-                              {/* Level pips — click to set level 1-3 */}
+                              {/* Level pips — click to set level 1-5 */}
                               <div style={{display:"inline-flex",gap:2,marginLeft:2}}>
-                                {[1,2,3].map(function(lv){return (
-                                  <div key={lv} onClick={function(e){e.stopPropagation();setAreaSkillLvl(area.aid,sk.s,lv);}} style={{width:6,height:6,borderRadius:3,background:lv<=sk.lvl?T.ac:T.ac+"25",cursor:"pointer",transition:"background 0.2s"}}/>
+                                {[1,2,3,4,5].map(function(lv){return (
+                                  <div key={lv} onClick={function(e){e.stopPropagation();setAreaSkillLvl(area.aid,sk.s,lv);}} style={{width:5,height:5,borderRadius:3,background:lv<=sk.lvl?T.ac:T.ac+"25",cursor:"pointer",transition:"background 0.2s"}}/>
                                 );})}
                               </div>
                               <span onClick={function(e){e.stopPropagation();remAreaSkill(area.aid,sk.s);}} style={{cursor:"pointer",opacity:0.5,fontSize:11}}>{CROSS}</span>
