@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useT } from "@/lib/theme";
 import { fD, rc, cc2, cw, pv } from "@/lib/utils";
 import { LIBRARY, JOB_PROFILE_SKILLS, ALL_SKILLS, ALL_CERTS, LAYOUT_TEMPLATES } from "@/lib/data";
@@ -155,6 +155,18 @@ export default function WizardPage(p){
   function doNC(){if(!ncNm.trim())return;var id=(roleSrc==="circle"?"c_":"jp_")+Date.now();var nc={id:id,nm:ncNm.trim()};if(roleSrc==="circle"){p.setCL(function(pr){return pr.concat([nc]);});}else{p.setJP(function(pr){return pr.concat([nc]);});}if(ncDp)addC(ncDp,nc);sMNC(false);sNcNm("");sNcDp(null);}
   function calcRd(){var tw=0,fw=0;var keys=Object.keys(dCirc);for(var i=0;i<keys.length;i++){var cs=dCirc[keys[i]];for(var j=0;j<cs.length;j++){var w=cw(cs[j].cr);tw+=cs[j].rq*w;if(!isProj)fw+=Math.min(cs[j].rq,Math.floor(cs[j].rq*0.8))*w;}}return tw>0?Math.round(fw/tw*100):0;}
   function countTotals(){var totalRoles=0,totalPeople=0,essRoles=0,essPeople=0,impRoles=0;var keys=Object.keys(dCirc);for(var i=0;i<keys.length;i++){var cs=dCirc[keys[i]];totalRoles+=cs.length;for(var j=0;j<cs.length;j++){totalPeople+=cs[j].rq;if(cs[j].cr==="Essential"){essRoles++;essPeople+=cs[j].rq;}if(cs[j].cr==="Important")impRoles++;}}return {totalRoles:totalRoles,totalPeople:totalPeople,totalDepts:selD.length,essRoles:essRoles,essPeople:essPeople,impRoles:impRoles};}
+
+  /* ===== Keyboard & autofocus ===== */
+  var wizRef=useRef(null);
+  useEffect(function(){
+    /* Focus first input/select in current step after step change */
+    var t=setTimeout(function(){
+      if(!wizRef.current)return;
+      var el=wizRef.current.querySelector("input:not([type=hidden]),select,textarea");
+      if(el&&typeof el.focus==="function"){el.focus();}
+    },80);
+    return function(){clearTimeout(t);};
+  },[step]);
 
   /* ===== Dynamic stepper ===== */
   var allStps=[{n:1,l:"Basics"},{n:2,l:"Locations"},{n:25,l:"Store Layout"},{n:3,l:"Roles"},{n:4,l:"Define Targets",cond:"jobprofile"},{n:5,l:"Timeline"},{n:6,l:"Analysis"}];
@@ -416,8 +428,23 @@ export default function WizardPage(p){
   var TRI_D=String.fromCharCode(9660);var TRI_R=String.fromCharCode(9654);var DOT=String.fromCharCode(8226);var ELLIP=String.fromCharCode(8230);
   var hintText=getHint();
 
+  function handleWizKey(e){
+    if(e.key==="Enter"){
+      /* Don't intercept Enter inside textareas, selects, or buttons */
+      var tag=e.target.tagName;
+      if(tag==="TEXTAREA"||tag==="BUTTON"||tag==="SELECT")return;
+      /* Don't intercept Enter if inside a modal overlay (new dept / new circle dialogs) */
+      if(mND||mNC)return;
+      e.preventDefault();
+      if(canNext()){
+        var nxt=nxtStep(step);
+        if(nxt!==null)goToStep(nxt);else doComplete();
+      }
+    }
+  }
+
   return (
-    <div style={{padding:"24px 32px",maxWidth:900,margin:"0 auto"}}>
+    <div ref={wizRef} onKeyDown={handleWizKey} style={{padding:"24px 32px",maxWidth:900,margin:"0 auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{fontSize:22,fontWeight:700,margin:0}}>Create Initiative</h1>
         <button onClick={p.onClose} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:18,fontFamily:"inherit"}}>{CROSS}</button>

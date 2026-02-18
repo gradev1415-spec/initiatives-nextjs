@@ -20,6 +20,7 @@ export default function DetailPage(p){
   var aState=useState([]);var assigned=aState[0],sAssigned=aState[1];
   var eaState=useState(null);var enabledActs=eaState[0],sEnabledActs=eaState[1];
   var _sloc=useState(null);var selLoc=_sloc[0],sSelLoc=_sloc[1];
+  var _sarea=useState(null);var selArea=_sarea[0],sSelArea=_sarea[1];
 
   var ar=allRoles(ini);var trq=0,tql=0;
   ar.forEach(function(r){trq+=r.rq;tql+=r.ql;});
@@ -310,157 +311,124 @@ export default function DetailPage(p){
               var dR=deptRd(dept);
               var totalReq=0,totalFill=0;
               dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){totalReq+=r.rq;totalFill+=r.ql;});});
-              var areaCount=dept.areas.length;
+              /* Auto-select first area with gaps, or first area */
+              var activeArea=selArea||(function(){var g=dept.areas.find(function(a){var gap=0;(a.roles||[]).forEach(function(r){gap+=r.gp;});return gap>0;});return g?g.aid:dept.areas[0]?dept.areas[0].aid:null;})();
 
               return (
                 <div style={{marginBottom:20}}>
-                  <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",background:bpBg}}>
-                    {/* Header */}
-                    <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10}}>
-                        <div style={{width:8,height:8,borderRadius:4,background:statusClr(dR),boxShadow:"0 0 6px "+statusClr(dR)+"80"}}/>
-                        <span style={{fontSize:14,fontWeight:600,letterSpacing:0.5}}>{dept.dn}</span>
-                        <span style={{fontSize:10,color:bpText,fontFamily:"monospace",letterSpacing:1}}>FLOOR PLAN</span>
-                      </div>
-                      <div style={{display:"flex",alignItems:"center",gap:12}}>
-                        <span style={{fontSize:10,color:bpLabel,fontFamily:"monospace"}}>{totalFill}/{totalReq} STAFF</span>
-                        <span style={{fontSize:10,color:bpLabel,fontFamily:"monospace"}}>{String.fromCharCode(183)}</span>
-                        <span style={{fontSize:10,color:statusClr(dR),fontFamily:"monospace",fontWeight:600}}>{dR}% RDY</span>
-                      </div>
-                    </div>
+                  {/* Location summary bar */}
+                  <div style={{display:"flex",alignItems:"center",gap:14,padding:"10px 16px",borderRadius:12,border:"1px solid "+T.bd,background:T.cd,marginBottom:12}}>
+                    <div style={{width:8,height:8,borderRadius:4,background:statusClr(dR),boxShadow:"0 0 6px "+statusClr(dR)+"80"}}/>
+                    <span style={{fontSize:13,fontWeight:600}}>{dept.dn}</span>
+                    <span style={{fontSize:10,color:bpText,fontFamily:"monospace"}}>{totalFill}/{totalReq} staff</span>
+                    <span style={{fontSize:10,color:statusClr(dR),fontFamily:"monospace",fontWeight:600}}>{dR}%</span>
+                    <div style={{flex:1}}/>
+                    <span style={{fontSize:10,color:bpLabel,fontFamily:"monospace"}}>{dept.areas.length} AREAS</span>
+                  </div>
 
-                    {/* Blueprint body — grid background + tree */}
-                    <div style={{padding:"28px 24px",backgroundImage:"radial-gradient("+bpGrid+" 1px, transparent 1px)",backgroundSize:"20px 20px"}}>
+                  {/* Compact area rows — click to expand */}
+                  <div style={{borderRadius:12,border:"1px solid "+T.bd,overflow:"hidden",background:bpBg}}>
+                    {dept.areas.map(function(area,ai){
+                      var aR=areaRd(area);
+                      var aSk=areaSkillRd(area);
+                      var aCt=areaCertRd(area);
+                      var aSt=areaStaff(area);
+                      var aReq2=0,aFill2=0;
+                      (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
+                      var aGap=aReq2-aFill2;
+                      var stClr=statusClr(aR);
+                      var isExpanded=activeArea===area.aid;
 
-                      {/* Area nodes — each row has a left connector gutter */}
-                      <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                        {dept.areas.map(function(area,ai){
-                          var aR=areaRd(area);
-                          var aSk=areaSkillRd(area);
-                          var aCt=areaCertRd(area);
-                          var aSt=areaStaff(area);
-                          var aReq2=0,aFill2=0;
-                          (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
-                          var aGap=aReq2-aFill2;
-                          var stClr=statusClr(aR);
-                          var isLast=ai===areaCount-1;
-
-                          return (
-                            <div key={ai} style={{display:"flex",alignItems:"stretch"}}>
-                              {/* Tree connector column — vertical line + branch + dot */}
-                              <div style={{width:32,flexShrink:0,position:"relative"}}>
-                                {/* Vertical line segment — top half (hidden for first node) */}
-                                {ai>0&&<div style={{position:"absolute",left:11,top:0,height:"50%",width:0,borderLeft:"1.5px dashed "+bpLineSolid}}/>}
-                                {/* Vertical line segment — bottom half (hidden for last node) */}
-                                {!isLast&&<div style={{position:"absolute",left:11,top:"50%",bottom:0,width:0,borderLeft:"1.5px dashed "+bpLineSolid}}/>}
-                                {/* Horizontal branch to card */}
-                                <div style={{position:"absolute",left:11,top:"50%",width:15,height:0,borderTop:"1.5px dashed "+bpLineSolid}}/>
-                                {/* Junction dot */}
-                                <div style={{position:"absolute",left:22,top:"50%",transform:"translate(-50%, -50%)",width:8,height:8,borderRadius:4,background:stClr,boxShadow:"0 0 5px "+stClr+"60",zIndex:1}}/>
-                              </div>
-                              {/* Area card */}
-                              <div style={{flex:1,marginBottom:ai<areaCount-1?8:0}}>
-                                <div style={{border:"1px solid "+stClr+"30",borderRadius:10,background:T.cd,overflow:"hidden"}}>
-                                  {/* Thin readiness bar */}
-                                  <div style={{height:2,background:T.sa}}>
-                                    <div style={{height:"100%",width:aR+"%",background:stClr,transition:"width 0.6s ease"}}/>
-                                  </div>
-                                  <div style={{padding:"10px 16px"}}>
-                                    {/* Area header row */}
-                                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                                      <div>
-                                        <div style={{fontSize:13,fontWeight:600,color:T.tx}}>{area.anm}</div>
-                                        <div style={{fontSize:9,color:bpText,fontFamily:"monospace",marginTop:1}}>{aFill2}/{aReq2} POSITIONS {String.fromCharCode(183)} {aR}% READY</div>
-                                      </div>
-                                      <div style={{display:"flex",alignItems:"center",gap:6}}>
-                                        {aGap>0&&<span style={{fontSize:9,color:T.rd,fontFamily:"monospace",fontWeight:600,padding:"2px 8px",borderRadius:4,border:"1px solid "+T.rd+"30",background:T.rdd}}>{String.fromCharCode(9888)} {aGap} GAP{aGap>1?"S":""}</span>}
-                                        {aGap===0&&<span style={{fontSize:9,color:T.gn,fontFamily:"monospace",padding:"2px 8px",borderRadius:4,border:"1px solid "+T.gn+"30",background:T.gd}}>{String.fromCharCode(10003)} FULL</span>}
-                                        {aGap<0&&<span style={{fontSize:9,color:T.ac,fontFamily:"monospace",padding:"2px 8px",borderRadius:4,border:"1px solid "+T.ac+"30",background:T.ad}}>+{Math.abs(aGap)} OVER</span>}
-                                      </div>
-                                    </div>
-                                    {/* Readiness breakdown — Staff / Skills / Certs */}
-                                    <div style={{display:"flex",gap:10,marginBottom:8}}>
-                                      {[{lb:"Staff",v:aSt},{lb:"Skills",v:aSk},{lb:"Certs",v:aCt}].map(function(m){
-                                        var mClr=statusClr(m.v);
-                                        return (
-                                          <div key={m.lb} style={{flex:1}}>
-                                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                                              <span style={{fontSize:8,color:bpText,fontFamily:"monospace",letterSpacing:0.3}}>{m.lb.toUpperCase()}</span>
-                                              <span style={{fontSize:8,color:mClr,fontFamily:"monospace",fontWeight:600}}>{m.v}%</span>
-                                            </div>
-                                            <div style={{height:3,borderRadius:1.5,background:T.sa,overflow:"hidden"}}>
-                                              <div style={{height:"100%",width:m.v+"%",borderRadius:1.5,background:mClr,transition:"width 0.6s ease"}}/>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                    {/* Roles — compact table with progress bars */}
-                                    <div style={{display:"flex",flexDirection:"column",gap:0}}>
-                                      {(area.roles||[]).map(function(r,ri){
-                                        var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
-                                        var rClr=statusClr(rPct);
-                                        var rGap=r.rq-r.ql;
-                                        return (
-                                          <div key={ri} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0",borderBottom:ri<(area.roles||[]).length-1?"1px solid "+T.bd+"10":"none"}}>
-                                            <div style={{width:3,height:14,borderRadius:1.5,background:rClr,flexShrink:0}}/>
-                                            <span style={{fontSize:11,color:T.tx,fontWeight:500,width:130,flexShrink:0}}>{r.cn}</span>
-                                            <div style={{flex:1,display:"flex",alignItems:"center",gap:6}}>
-                                              <div style={{flex:1,height:4,borderRadius:2,background:T.sa,overflow:"hidden"}}>
-                                                <div style={{height:"100%",width:Math.min(rPct,100)+"%",borderRadius:2,background:rClr,transition:"width 0.6s ease"}}/>
-                                              </div>
-                                            </div>
-                                            <span style={{fontSize:9,fontFamily:"monospace",color:T.tm,minWidth:36,textAlign:"right"}}>{r.ql}/{r.rq}</span>
-                                            <span style={{fontSize:9,fontFamily:"monospace",color:rClr,fontWeight:600,minWidth:28,textAlign:"right"}}>{rPct}%</span>
-                                            {rGap>0&&<span style={{fontSize:8,fontFamily:"monospace",color:T.rd,minWidth:18,textAlign:"right"}}>-{rGap}</span>}
-                                            {rGap<=0&&<span style={{minWidth:18}}/>}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                    {/* Area requirements — skills & certs */}
-                                    {((area.skillReqs&&area.skillReqs.length>0)||(area.certReqs&&area.certReqs.length>0))&&(
-                                      <div style={{marginTop:8,paddingTop:6,borderTop:"1px dashed "+T.bd+"40"}}>
-                                        <div style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5,marginBottom:4}}>AREA REQUIRES:</div>
-                                        <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
-                                          {(area.skillReqs||[]).map(function(sk){
-                                            var skName=typeof sk==="string"?sk:sk.s;
-                                            var skLvl=typeof sk==="string"?null:sk.lvl;
-                                            return (
-                                            <span key={skName} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.ac+"12",border:"1px solid "+T.ac+"25",color:T.ac,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
-                                              {skName}
-                                              {skLvl&&<span style={{display:"inline-flex",gap:1}}>{[1,2,3,4,5].map(function(lv){return <span key={lv} style={{width:3,height:3,borderRadius:2,background:lv<=skLvl?T.ac:T.ac+"30"}}/>;})}</span>}
-                                            </span>
-                                          );})}
-                                          {(area.certReqs||[]).map(function(ct){return (
-                                            <span key={ct} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.am+"12",border:"1px solid "+T.am+"25",color:T.am,fontFamily:"monospace"}}>{ct}</span>
-                                          );})}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
+                      return (
+                        <div key={ai}>
+                          {/* Compact row — always visible */}
+                          <div onClick={function(){sSelArea(isExpanded?null:area.aid);}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",borderBottom:"1px solid "+T.bd+"20",background:isExpanded?T.sa+"80":"transparent",transition:"background 0.2s"}}>
+                            {/* Status indicator + readiness bar */}
+                            <div style={{width:4,height:28,borderRadius:2,background:stClr,flexShrink:0}}/>
+                            {/* Area name */}
+                            <div style={{width:160,flexShrink:0}}>
+                              <div style={{fontSize:12,fontWeight:isExpanded?600:500,color:isExpanded?T.tx:T.tm}}>{area.anm}</div>
+                            </div>
+                            {/* Inline readiness gauge */}
+                            <div style={{flex:1,display:"flex",alignItems:"center",gap:2}}>
+                              <div style={{flex:1,height:6,borderRadius:3,background:T.sa,overflow:"hidden"}}>
+                                <div style={{height:"100%",width:aR+"%",borderRadius:3,background:stClr,transition:"width 0.4s ease"}}/>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                            {/* Key metrics */}
+                            <span style={{fontSize:10,fontFamily:"monospace",color:stClr,fontWeight:700,minWidth:32,textAlign:"right"}}>{aR}%</span>
+                            <span style={{fontSize:10,fontFamily:"monospace",color:T.tm,minWidth:40,textAlign:"right"}}>{aFill2}/{aReq2}</span>
+                            {aGap>0?<span style={{fontSize:9,fontFamily:"monospace",color:T.rd,fontWeight:600,minWidth:40,textAlign:"right"}}>-{aGap} gap</span>:<span style={{fontSize:9,fontFamily:"monospace",color:T.gn,minWidth:40,textAlign:"right"}}>{String.fromCharCode(10003)}</span>}
+                            {/* Expand indicator */}
+                            <span style={{fontSize:8,color:T.tm,transform:isExpanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>{String.fromCharCode(9660)}</span>
+                          </div>
 
-                    {/* Footer legend */}
-                    <div style={{padding:"8px 20px",borderTop:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:16}}>
-                      <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5}}>LEGEND:</span>
-                      <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.gn}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>&ge;85%</span></div>
-                      <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.am}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>60-84%</span></div>
-                      <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.rd}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>&lt;60%</span></div>
-                      <div style={{flex:1}}/>
-                      <div style={{display:"flex",alignItems:"center",gap:4}}>
-                        <div style={{display:"flex",gap:3}}>
-                          <div style={{width:6,height:6,borderRadius:3,background:T.ac+"90",border:"1.5px solid "+T.ac}}/><div style={{width:6,height:6,borderRadius:3,border:"1.5px solid "+T.bd,background:"transparent"}}/>
+                          {/* Expanded detail panel */}
+                          {isExpanded&&(
+                            <div style={{padding:"12px 16px 16px",background:T.cd,borderBottom:"1px solid "+T.bd+"30"}}>
+                              {/* Three mini metric bars */}
+                              <div style={{display:"flex",gap:16,marginBottom:12}}>
+                                {[{lb:"Staff",v:aSt},{lb:"Skills",v:aSk},{lb:"Certs",v:aCt}].map(function(m){
+                                  var mClr=statusClr(m.v);
+                                  return (
+                                    <div key={m.lb} style={{flex:1}}>
+                                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                                        <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.3}}>{m.lb.toUpperCase()}</span>
+                                        <span style={{fontSize:9,color:mClr,fontFamily:"monospace",fontWeight:600}}>{m.v}%</span>
+                                      </div>
+                                      <div style={{height:4,borderRadius:2,background:T.sa,overflow:"hidden"}}>
+                                        <div style={{height:"100%",width:m.v+"%",borderRadius:2,background:mClr,transition:"width 0.4s ease"}}/>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {/* Roles table */}
+                              <div style={{marginBottom:10}}>
+                                {(area.roles||[]).map(function(r,ri){
+                                  var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                                  var rClr=statusClr(rPct);
+                                  var rGap=r.rq-r.ql;
+                                  return (
+                                    <div key={ri} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:ri<(area.roles||[]).length-1?"1px solid "+T.bd+"10":"none"}}>
+                                      <div style={{width:3,height:14,borderRadius:1.5,background:rClr,flexShrink:0}}/>
+                                      <span style={{fontSize:11,color:T.tx,fontWeight:500,width:130,flexShrink:0}}>{r.cn}</span>
+                                      <div style={{flex:1,height:4,borderRadius:2,background:T.sa,overflow:"hidden"}}>
+                                        <div style={{height:"100%",width:Math.min(rPct,100)+"%",borderRadius:2,background:rClr,transition:"width 0.4s"}}/>
+                                      </div>
+                                      <span style={{fontSize:9,fontFamily:"monospace",color:T.tm,minWidth:36,textAlign:"right"}}>{r.ql}/{r.rq}</span>
+                                      <span style={{fontSize:9,fontFamily:"monospace",color:rClr,fontWeight:600,minWidth:28,textAlign:"right"}}>{rPct}%</span>
+                                      {rGap>0?<span style={{fontSize:8,fontFamily:"monospace",color:T.rd,minWidth:18,textAlign:"right"}}>-{rGap}</span>:<span style={{minWidth:18}}/>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {/* Requirements pills */}
+                              {((area.skillReqs&&area.skillReqs.length>0)||(area.certReqs&&area.certReqs.length>0))&&(
+                                <div style={{paddingTop:8,borderTop:"1px dashed "+T.bd+"30"}}>
+                                  <div style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5,marginBottom:4}}>REQUIRES:</div>
+                                  <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+                                    {(area.skillReqs||[]).map(function(sk){
+                                      var skName=typeof sk==="string"?sk:sk.s;
+                                      var skLvl=typeof sk==="string"?null:sk.lvl;
+                                      return (
+                                        <span key={skName} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.ac+"12",border:"1px solid "+T.ac+"25",color:T.ac,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
+                                          {skName}
+                                          {skLvl&&<span style={{display:"inline-flex",gap:1}}>{[1,2,3,4,5].map(function(lv){return <span key={lv} style={{width:3,height:3,borderRadius:2,background:lv<=skLvl?T.ac:T.ac+"30"}}/>;})}</span>}
+                                        </span>
+                                      );
+                                    })}
+                                    {(area.certReqs||[]).map(function(ct){return (
+                                      <span key={ct} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.am+"12",border:"1px solid "+T.am+"25",color:T.am,fontFamily:"monospace"}}>{ct}</span>
+                                    );})}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>FILLED / VACANT</span>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -739,13 +707,47 @@ export default function DetailPage(p){
       )}
 
             {/* --- SIMULATION TAB --- */}
-      {tab==="Simulation"&&(
+      {tab==="Simulation"&&(function(){
+        var hasAreas3=ini.depts.some(function(d){return d.areas;});
+        var areaDepts3=ini.depts.filter(function(d){return d.areas;});
+        var simDept=(function(){
+          if(!hasAreas3)return null;
+          var locId=selLoc||areaDepts3[0]&&areaDepts3[0].did;
+          return areaDepts3.find(function(d){return d.did===locId;})||areaDepts3[0]||null;
+        })();
+        /* Filter actions to selected location context */
+        var simFilteredActs=acts;
+        if(simDept){
+          var deptRoleNames={};
+          (simDept.areas||[]).forEach(function(a){(a.roles||[]).forEach(function(r){deptRoleNames[r.cn]=true;});});
+          simFilteredActs=acts.filter(function(a){
+            if(a.desc.indexOf(simDept.dn)!==-1)return true;
+            for(var k in deptRoleNames){if(a.desc.indexOf(k)!==-1)return true;}
+            return !hasAreas3;
+          });
+          if(simFilteredActs.length===0)simFilteredActs=acts;
+        }
+        return (
         <div>
+          {/* Location selector for area-based */}
+          {hasAreas3&&areaDepts3.length>0&&(
+            <div style={{marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+              <div style={{position:"relative",flex:1,maxWidth:320}}>
+                <select value={simDept?simDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
+                  {areaDepts3.map(function(d){
+                    var dr=deptRd(d);
+                    return <option key={d.did} value={d.did}>{d.dn+" "+String.fromCharCode(183)+" "+dr+"% ready"}</option>;
+                  })}
+                </select>
+                <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:T.tm}}>{String.fromCharCode(9660)}</div>
+              </div>
+            </div>
+          )}
           {/* Simulation header with gauge */}
           <div style={{padding:20,borderRadius:14,border:"1px solid "+T.ac+"30",background:T.ad,marginBottom:16}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
               <div>
-                <div style={{fontSize:11,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Readiness Simulator</div>
+                <div style={{fontSize:11,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Readiness Simulator{simDept?" \u2014 "+simDept.dn:""}</div>
                 <div style={{fontSize:13,color:T.tm}}>Toggle actions on/off to see projected readiness change in real-time</div>
               </div>
               <div style={{display:"flex",gap:8}}>
@@ -787,10 +789,11 @@ export default function DetailPage(p){
           {/* Action items with toggles */}
           <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
             <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Action Plan ({acts.length} recommendations)</h3>
-              <span style={{fontSize:11,color:T.tm}}>{simActs.length} selected</span>
+              <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Action Plan ({simFilteredActs.length} recommendations{simDept?" for "+simDept.dn:""})</h3>
+              <span style={{fontSize:11,color:T.tm}}>{simActs.filter(function(idx){return simFilteredActs.indexOf(acts[idx])!==-1;}).length} selected</span>
             </div>
-            {acts.map(function(a,i){
+            {simFilteredActs.map(function(a){
+              var i=acts.indexOf(a);
               var isOn=simActs.indexOf(i)!==-1;
               var icon=a.tp==="hire"?"H":a.tp==="train"?"T":a.tp==="recert"?"R":"C";
               var color=a.tp==="hire"?T.pu:a.tp==="train"?T.ac:a.tp==="recert"?T.gn:T.am;
@@ -827,10 +830,11 @@ export default function DetailPage(p){
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* --- COST IMPACT TAB --- */}
-      {tab==="Risk & Actions"&&<RiskActionsTab ini={ini} acts={acts} crd={crd}/>}
+      {tab==="Risk & Actions"&&<RiskActionsTab ini={ini} acts={acts} crd={crd} selLoc={selLoc} sSelLoc={sSelLoc}/>}
 
       {/* â”€â”€â”€ CERT PIPELINE TAB â”€â”€â”€ */}
       {tab==="Cert Pipeline"&&(

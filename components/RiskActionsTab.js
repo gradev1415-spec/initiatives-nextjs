@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useT } from "@/lib/theme";
 import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
-import { allRoles, wRd, staffRd, skillRd, certRd } from "@/lib/readiness";
+import { allRoles, wRd, staffRd, skillRd, certRd, deptRd } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
 import { LIBRARY, FITS } from "@/lib/data";
 import Badge from "./Badge";
@@ -14,10 +14,27 @@ import Overlay from "./Overlay";
 
 export default function RiskActionsTab(p){
   var T=useT();
-  var ini=p.ini,acts=p.acts,crd=p.crd;
+  var ini=p.ini,acts=p.acts,crd=p.crd,selLoc=p.selLoc,sSelLoc=p.sSelLoc;
+
+  /* Location-aware filtering */
+  var hasAreas=ini.depts.some(function(d){return d.areas;});
+  var areaDepts=ini.depts.filter(function(d){return d.areas;});
+  var riskDept=(function(){
+    if(!hasAreas)return null;
+    var locId=selLoc||areaDepts[0]&&areaDepts[0].did;
+    return areaDepts.find(function(d){return d.did===locId;})||areaDepts[0]||null;
+  })();
 
   /* === RISK FORECAST DATA === */
-  var ar=allRoles(ini);
+  var ar;
+  if(riskDept&&riskDept.areas){
+    ar=[];
+    riskDept.areas.forEach(function(a){
+      (a.roles||[]).forEach(function(r){ar.push({cn:r.cn,cr:r.cr,rq:r.rq,ql:r.ql,gp:r.gp,area:a.anm});});
+    });
+  }else{
+    ar=allRoles(ini);
+  }
   var totalRequired=0,totalGaps=0;
   var essentialGaps=[],importantGaps=[];
   ar.forEach(function(r){
@@ -74,6 +91,20 @@ export default function RiskActionsTab(p){
 
   return (
     <div>
+      {/* Location selector for area-based */}
+      {hasAreas&&areaDepts.length>0&&(
+        <div style={{marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{position:"relative",flex:1,maxWidth:320}}>
+            <select value={riskDept?riskDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
+              {areaDepts.map(function(d){
+                var dr=deptRd(d);
+                return <option key={d.did} value={d.did}>{d.dn+" "+String.fromCharCode(183)+" "+dr+"% ready"}</option>;
+              })}
+            </select>
+            <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:T.tm}}>{String.fromCharCode(9660)}</div>
+          </div>
+        </div>
+      )}
       {/* Risk level banner */}
       <div style={{padding:16,borderRadius:14,border:"1px solid "+riskColor+"30",background:riskColor+"10",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
         <div style={{width:56,height:56,borderRadius:14,background:riskColor+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -140,7 +171,7 @@ export default function RiskActionsTab(p){
         {/* Essential role exposure */}
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
-            <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Staffing Exposure</h4>
+            <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Staffing Exposure{riskDept?" \u2014 "+riskDept.dn:""}</h4>
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Unfilled positions by criticality</p>
           </div>
           {totalGaps===0?(
@@ -154,7 +185,7 @@ export default function RiskActionsTab(p){
                     var pct=r.rq>0?Math.round(r.ql/r.rq*100):100;
                     return (
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}</span>
+                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}{r.area?<span style={{fontSize:10,color:T.tm,fontWeight:400,marginLeft:4}}>{r.area}</span>:null}</span>
                         <span style={{fontSize:11,color:T.rd,fontWeight:600}}>{r.gp} missing</span>
                         <span style={{fontSize:10,color:T.td}}>{r.ql}/{r.rq}</span>
                         <div style={{width:40}}><ProgressBar v={pct} h={3}/></div>
@@ -170,7 +201,7 @@ export default function RiskActionsTab(p){
                     var pct=r.rq>0?Math.round(r.ql/r.rq*100):100;
                     return (
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}</span>
+                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}{r.area?<span style={{fontSize:10,color:T.tm,fontWeight:400,marginLeft:4}}>{r.area}</span>:null}</span>
                         <span style={{fontSize:11,color:T.am,fontWeight:600}}>{r.gp} missing</span>
                         <span style={{fontSize:10,color:T.td}}>{r.ql}/{r.rq}</span>
                         <div style={{width:40}}><ProgressBar v={pct} h={3}/></div>
