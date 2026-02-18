@@ -283,31 +283,15 @@ export default function DetailPage(p){
         var bpLabel=T.tm;
         /* Status dot color */
         function statusClr(rd){return rd>=85?T.gn:rd>=60?T.am:T.rd;}
-        /* Alternating area position offsets for organic mind-map feel */
-        var nodePositions=[
-          {col:"1 / 2",row:"1 / 2",align:"flex-start"},
-          {col:"2 / 3",row:"1 / 2",align:"flex-end"},
-          {col:"1 / 2",row:"2 / 3",align:"flex-start"},
-          {col:"2 / 3",row:"2 / 3",align:"flex-end"},
-          {col:"1 / 3",row:"3 / 4",align:"center"}
-        ];
 
         return (
           <div>
-            {/* Blueprint per location */}
+            {/* Blueprint per location — horizontal tree layout */}
             {areaDepts.map(function(dept,dIdx){
               var dR=deptRd(dept);
               var totalReq=0,totalFill=0;
               dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){totalReq+=r.rq;totalFill+=r.ql;});});
               var areaCount=dept.areas.length;
-              /* Compute SVG connector lines from center hub to each area node */
-              var hubX=50;var hubY=50;
-              /* Distribute area nodes in a circle around center hub */
-              var nodeCoords=dept.areas.map(function(_,i){
-                var angle=-Math.PI/2+i*(2*Math.PI/areaCount);
-                var radius=36;
-                return {x:hubX+Math.cos(angle)*radius,y:hubY+Math.sin(angle)*radius};
-              });
 
               return (
                 <div key={dept.did} style={{marginBottom:32}}>
@@ -327,97 +311,96 @@ export default function DetailPage(p){
                       </div>
                     </div>
 
-                    {/* Blueprint canvas with grid background */}
-                    <div style={{position:"relative",padding:"40px 32px",backgroundImage:"radial-gradient("+bpGrid+" 1px, transparent 1px)",backgroundSize:"20px 20px",minHeight:380}}>
+                    {/* Blueprint canvas with grid background — horizontal tree */}
+                    <div style={{padding:"32px 28px",backgroundImage:"radial-gradient("+bpGrid+" 1px, transparent 1px)",backgroundSize:"20px 20px"}}>
+                      <div style={{display:"flex",alignItems:"stretch",gap:0}}>
 
-                      {/* SVG connector lines — drawn underneath nodes */}
-                      <svg style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:0}} viewBox="0 0 100 100" preserveAspectRatio="none">
-                        {/* Connector lines from hub to each node */}
-                        {nodeCoords.map(function(nc,i){
-                          return <line key={i} x1={hubX} y1={hubY} x2={nc.x} y2={nc.y} stroke={bpLineSolid} strokeWidth="0.15" strokeDasharray="0.8,0.4"/>;
-                        })}
-                        {/* Hub circle */}
-                        <circle cx={hubX} cy={hubY} r="3" fill="none" stroke={bpLineSolid} strokeWidth="0.15" strokeDasharray="0.5,0.3"/>
-                        <circle cx={hubX} cy={hubY} r="1.2" fill={T.ac+"30"} stroke={bpLineSolid} strokeWidth="0.1"/>
-                      </svg>
+                        {/* Left: Hub node */}
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minWidth:100,flexShrink:0}}>
+                          <div style={{width:80,height:80,borderRadius:"50%",border:"1.5px dashed "+bpLineSolid,background:T.cd,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",boxShadow:"0 0 24px "+T.ac+"12",position:"relative",zIndex:2}}>
+                            <div style={{fontSize:11,fontWeight:700,color:T.ac,letterSpacing:0.5,textAlign:"center",lineHeight:"1.2"}}>{dept.dn}</div>
+                            <div style={{fontSize:8,color:bpText,fontFamily:"monospace",marginTop:2}}>{areaCount} AREAS</div>
+                          </div>
+                          <div style={{marginTop:8,textAlign:"center"}}>
+                            <div style={{fontSize:18,fontWeight:700,color:statusClr(dR),fontFamily:"monospace"}}>{dR}%</div>
+                            <div style={{fontSize:8,color:bpText,fontFamily:"monospace",letterSpacing:0.5}}>READINESS</div>
+                          </div>
+                        </div>
 
-                      {/* Center hub — location name */}
-                      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%, -50%)",zIndex:2,textAlign:"center"}}>
-                        <div style={{width:72,height:72,borderRadius:"50%",border:"1.5px dashed "+bpLineSolid,background:T.cd,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",boxShadow:"0 0 20px "+T.ac+"10"}}>
-                          <div style={{fontSize:10,fontWeight:700,color:T.ac,letterSpacing:0.5}}>{dept.dn.substring(0,8)}</div>
-                          <div style={{fontSize:8,color:bpText,fontFamily:"monospace",marginTop:1}}>{areaCount} AREAS</div>
+                        {/* Middle: Connector trunk line + branches */}
+                        <div style={{display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",width:48,flexShrink:0,position:"relative"}}>
+                          {/* Horizontal trunk from hub */}
+                          <div style={{position:"absolute",top:"50%",left:0,width:20,height:0,borderTop:"1.5px dashed "+bpLineSolid}}/>
+                          {/* Vertical spine */}
+                          <div style={{position:"absolute",left:20,top:24,bottom:24,width:0,borderLeft:"1.5px dashed "+bpLineSolid}}/>
+                          {/* Branch lines to each area node */}
+                          {dept.areas.map(function(_,ai){
+                            var topPct=areaCount===1?50:(ai/(areaCount-1))*100;
+                            return <div key={ai} style={{position:"absolute",left:20,right:0,top:"calc("+topPct+"% + "+(24-24*topPct/50)+"px - 0px)",height:0,borderTop:"1px dashed "+bpLineSolid+"80"}}/>;
+                          })}
+                        </div>
+
+                        {/* Right: Area node list */}
+                        <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
+                          {dept.areas.map(function(area,ai){
+                            var aR=areaRd(area);
+                            var aReq2=0,aFill2=0;
+                            (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
+                            var aGap=aReq2-aFill2;
+                            var stClr=statusClr(aR);
+
+                            return (
+                              <div key={ai} style={{display:"flex",alignItems:"stretch",gap:0}}>
+                                {/* Connection dot */}
+                                <div style={{width:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                  <div style={{width:7,height:7,borderRadius:4,background:stClr,boxShadow:"0 0 6px "+stClr+"50"}}/>
+                                </div>
+                                {/* Area node card — blueprint style */}
+                                <div style={{flex:1,border:"1px solid "+stClr+"35",borderRadius:10,background:T.cd,overflow:"hidden",boxShadow:"0 0 8px "+stClr+"06"}}>
+                                  {/* Thin status strip at top */}
+                                  <div style={{height:2,background:T.sa}}>
+                                    <div style={{height:"100%",width:aR+"%",background:stClr,transition:"width 0.6s ease"}}/>
+                                  </div>
+                                  {/* Area content — horizontal layout */}
+                                  <div style={{display:"flex",alignItems:"center",padding:"8px 14px",gap:16}}>
+                                    {/* Area name + stats */}
+                                    <div style={{width:170,flexShrink:0}}>
+                                      <div style={{fontSize:12,fontWeight:600,color:T.tx,letterSpacing:0.3}}>{area.anm}</div>
+                                      <div style={{fontSize:9,color:bpText,fontFamily:"monospace",marginTop:2}}>{aFill2}/{aReq2} STAFF {String.fromCharCode(183)} {aR}% RDY</div>
+                                    </div>
+                                    {/* Roles with people dots */}
+                                    <div style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
+                                      {(area.roles||[]).map(function(r,ri){
+                                        var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                                        var rClr=statusClr(rPct);
+                                        return (
+                                          <div key={ri} style={{display:"flex",alignItems:"center",gap:6,fontSize:10}}>
+                                            <div style={{width:10,height:1.5,borderRadius:1,background:rClr,flexShrink:0,opacity:0.8}}/>
+                                            <span style={{color:T.tx,fontWeight:500,minWidth:90,fontSize:10}}>{r.cn}</span>
+                                            <div style={{display:"flex",gap:2,flexShrink:0}}>
+                                              {Array.from({length:Math.min(r.rq,10)}).map(function(_,di){
+                                                var filled=di<r.ql;
+                                                return <div key={di} style={{width:5,height:5,borderRadius:3,background:filled?rClr:"transparent",border:"1px solid "+(filled?rClr:T.bd)}}/>;
+                                              })}
+                                              {r.rq>10&&<span style={{fontSize:8,color:bpText,marginLeft:1}}>+{r.rq-10}</span>}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                    {/* Gap/status indicator */}
+                                    <div style={{width:60,textAlign:"right",flexShrink:0}}>
+                                      {aGap>0&&<span style={{fontSize:9,color:T.rd,fontFamily:"monospace",fontWeight:600}}>{String.fromCharCode(9888)} -{aGap}</span>}
+                                      {aGap===0&&<span style={{fontSize:9,color:T.gn,fontFamily:"monospace"}}>{String.fromCharCode(10003)} FULL</span>}
+                                      {aGap<0&&<span style={{fontSize:9,color:T.ac,fontFamily:"monospace"}}>+{Math.abs(aGap)}</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
-
-                      {/* Area nodes — positioned around the hub */}
-                      {dept.areas.map(function(area,ai){
-                        var aR=areaRd(area);
-                        var aSt=areaStaff(area);
-                        var aReq2=0,aFill2=0;
-                        (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
-                        var aGap=aReq2-aFill2;
-                        var nc=nodeCoords[ai];
-                        var stClr=statusClr(aR);
-                        /* Convert viewBox coords to percentage positioning */
-                        var leftPct=nc.x;
-                        var topPct=nc.y;
-                        /* Node width based on role count */
-                        var nodeW=220;
-
-                        return (
-                          <div key={ai} style={{position:"absolute",left:leftPct+"%",top:topPct+"%",transform:"translate(-50%, -50%)",zIndex:1,width:nodeW}}>
-                            {/* Area node — blueprint block */}
-                            <div style={{border:"1px solid "+stClr+"50",borderRadius:10,background:T.cd,overflow:"hidden",boxShadow:"0 0 12px "+stClr+"08"}}>
-                              {/* Thin status strip at top */}
-                              <div style={{height:2,background:T.sa}}>
-                                <div style={{height:"100%",width:aR+"%",background:stClr,transition:"width 0.6s ease"}}/>
-                              </div>
-                              {/* Area label */}
-                              <div style={{padding:"8px 12px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                                <div>
-                                  <div style={{fontSize:11,fontWeight:600,color:T.tx,letterSpacing:0.3}}>{area.anm}</div>
-                                  <div style={{fontSize:9,color:bpText,fontFamily:"monospace",marginTop:1}}>{aFill2}/{aReq2} STAFF {String.fromCharCode(183)} {aR}%</div>
-                                </div>
-                                <div style={{width:8,height:8,borderRadius:4,background:stClr,boxShadow:"0 0 4px "+stClr+"60",flexShrink:0}}/>
-                              </div>
-                              {/* Roles as compact schematic rows */}
-                              <div style={{borderTop:"1px dashed "+T.bd+"60",padding:"4px 0"}}>
-                                {(area.roles||[]).map(function(r,ri){
-                                  var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
-                                  var rGap=r.rq-r.ql;
-                                  var rClr=statusClr(rPct);
-                                  return (
-                                    <div key={ri} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 12px",fontSize:10}}>
-                                      {/* Status indicator line */}
-                                      <div style={{width:12,height:1.5,borderRadius:1,background:rClr,flexShrink:0,opacity:0.8}}/>
-                                      <span style={{flex:1,color:T.tx,fontWeight:500,fontSize:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.cn}</span>
-                                      {/* People dots — filled vs empty */}
-                                      <div style={{display:"flex",gap:2,flexShrink:0}}>
-                                        {Array.from({length:Math.min(r.rq,8)}).map(function(_,di){
-                                          var filled=di<r.ql;
-                                          return <div key={di} style={{width:5,height:5,borderRadius:3,background:filled?rClr:T.bd,border:filled?"none":"1px solid "+T.bd}}/>;
-                                        })}
-                                        {r.rq>8&&<span style={{fontSize:8,color:bpText,marginLeft:1}}>+{r.rq-8}</span>}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              {/* Gap annotation — only when gaps exist */}
-                              {aGap>0&&(
-                                <div style={{padding:"3px 12px 6px",fontSize:9,color:T.rd,fontFamily:"monospace",borderTop:"1px dashed "+T.rd+"25"}}>
-                                  {String.fromCharCode(9888)} {aGap} position{aGap>1?"s":""} unfilled
-                                </div>
-                              )}
-                              {aGap<=0&&aGap<0&&(
-                                <div style={{padding:"3px 12px 6px",fontSize:9,color:T.ac,fontFamily:"monospace",borderTop:"1px dashed "+T.ac+"25"}}>
-                                  +{Math.abs(aGap)} over capacity
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
                     </div>
 
                     {/* Blueprint footer with legend */}
