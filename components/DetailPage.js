@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useT } from "@/lib/theme";
 import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
-import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff, areaRd, areaStaff } from "@/lib/readiness";
+import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff, areaRd, areaStaff, areaSkillRd, areaCertRd } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
 import { LIBRARY, FITS } from "@/lib/data";
 import Badge from "./Badge";
@@ -342,6 +342,9 @@ export default function DetailPage(p){
                       <div style={{display:"flex",flexDirection:"column",gap:0}}>
                         {dept.areas.map(function(area,ai){
                           var aR=areaRd(area);
+                          var aSk=areaSkillRd(area);
+                          var aCt=areaCertRd(area);
+                          var aSt=areaStaff(area);
                           var aReq2=0,aFill2=0;
                           (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
                           var aGap=aReq2-aFill2;
@@ -370,7 +373,7 @@ export default function DetailPage(p){
                                   </div>
                                   <div style={{padding:"10px 16px"}}>
                                     {/* Area header row */}
-                                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
                                       <div>
                                         <div style={{fontSize:13,fontWeight:600,color:T.tx}}>{area.anm}</div>
                                         <div style={{fontSize:9,color:bpText,fontFamily:"monospace",marginTop:1}}>{aFill2}/{aReq2} POSITIONS {String.fromCharCode(183)} {aR}% READY</div>
@@ -380,6 +383,23 @@ export default function DetailPage(p){
                                         {aGap===0&&<span style={{fontSize:9,color:T.gn,fontFamily:"monospace",padding:"2px 8px",borderRadius:4,border:"1px solid "+T.gn+"30",background:T.gd}}>{String.fromCharCode(10003)} FULL</span>}
                                         {aGap<0&&<span style={{fontSize:9,color:T.ac,fontFamily:"monospace",padding:"2px 8px",borderRadius:4,border:"1px solid "+T.ac+"30",background:T.ad}}>+{Math.abs(aGap)} OVER</span>}
                                       </div>
+                                    </div>
+                                    {/* Readiness breakdown — Staff / Skills / Certs */}
+                                    <div style={{display:"flex",gap:10,marginBottom:8}}>
+                                      {[{lb:"Staff",v:aSt},{lb:"Skills",v:aSk},{lb:"Certs",v:aCt}].map(function(m){
+                                        var mClr=statusClr(m.v);
+                                        return (
+                                          <div key={m.lb} style={{flex:1}}>
+                                            <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                                              <span style={{fontSize:8,color:bpText,fontFamily:"monospace",letterSpacing:0.3}}>{m.lb.toUpperCase()}</span>
+                                              <span style={{fontSize:8,color:mClr,fontFamily:"monospace",fontWeight:600}}>{m.v}%</span>
+                                            </div>
+                                            <div style={{height:3,borderRadius:1.5,background:T.sa,overflow:"hidden"}}>
+                                              <div style={{height:"100%",width:m.v+"%",borderRadius:1.5,background:mClr,transition:"width 0.6s ease"}}/>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                     {/* Roles — schematic rows with people dots */}
                                     <div style={{display:"flex",flexDirection:"column",gap:4}}>
@@ -784,25 +804,41 @@ export default function DetailPage(p){
       )}
 
       {/* â”€â”€â”€ MOBILITY TAB â”€â”€â”€ */}
-      {tab==="Mobility"&&(
+      {tab==="Mobility"&&(function(){
+        var iniFits=FITS.filter(function(f){return f.from===ini.id;});
+        var hasAreas=ini.depts.some(function(d){return d.areas;});
+        return (
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-          <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Internal Mobility Suggestions</h3><p style={{fontSize:11,color:T.tm,margin:"2px 0 0"}}>Cross-location candidates with skill overlap. Shows tradeoff impact.</p></div>
-          {FITS.map(function(f,fi){
+          <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
+            <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Internal Mobility Suggestions</h3>
+            <p style={{fontSize:11,color:T.tm,margin:"2px 0 0"}}>{hasAreas?"Cross-location and cross-area candidates with skill overlap. Shows tradeoff impact per area.":"Cross-location candidates with skill overlap. Shows tradeoff impact."}</p>
+          </div>
+          {iniFits.length===0&&<div style={{padding:32,textAlign:"center",color:T.td,fontSize:12}}>No mobility suggestions for this initiative yet.</div>}
+          {iniFits.map(function(f,fi){
             var initials=f.nm.split(" ").map(function(w){return w[0];}).join("");
+            var destLabel=f.loc+(f.area?" \u203A "+f.area:"");
             return (
               <div key={fi} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
                 <div style={{width:36,height:36,borderRadius:18,background:T.ac+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:T.ac,flexShrink:0}}>{initials}</div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:500}}>{f.nm}</div>
-                  <div style={{fontSize:11,color:T.td}}>{f.cur} --&gt; <span style={{color:T.ac,fontWeight:500}}>{f.tgt}</span></div>
+                  <div style={{fontSize:11,color:T.td,marginTop:1}}>{f.cur}</div>
+                  <div style={{fontSize:11,marginTop:2,display:"flex",alignItems:"center",gap:4}}>
+                    <span style={{color:T.tm}}>{String.fromCharCode(8594)}</span>
+                    <span style={{fontWeight:500,color:T.ac}}>{f.tgt}</span>
+                    <span style={{color:T.tm}}>at</span>
+                    <span style={{fontWeight:500,color:T.tx}}>{destLabel}</span>
+                  </div>
                 </div>
                 <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
                   <MiniGauge v={f.mp} sz={36} sw={2}/>
                   <span style={{fontSize:10,color:rc(f.mp,T)}}>{f.mp}%</span>
                 </div>
                 <div style={{flexShrink:0,width:180}}>
-                  <div style={{fontSize:10,color:T.td,textTransform:"uppercase",marginBottom:3}}>Needs Training</div>
-                  <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{f.ms.map(function(s,si){return <Badge key={si} c={T.am} b={T.amd}>{s}</Badge>;})}{f.mc.map(function(c,ci){return <Badge key={ci} c={T.rd} b={T.rdd}>{c}</Badge>;})}</div>
+                  {(f.ms.length>0||f.mc.length>0)?(<div>
+                    <div style={{fontSize:10,color:T.td,textTransform:"uppercase",marginBottom:3}}>Needs Training</div>
+                    <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{f.ms.map(function(s,si){return <Badge key={si} c={T.am} b={T.amd}>{s}</Badge>;})}{f.mc.map(function(c,ci){return <Badge key={ci} c={T.rd} b={T.rdd}>{c}</Badge>;})}</div>
+                  </div>):(<div style={{fontSize:10,color:T.gn,fontWeight:500}}>Ready {String.fromCharCode(10003)} No gaps</div>)}
                 </div>
                 <div style={{flexShrink:0,width:100,textAlign:"center"}}>
                   <div style={{fontSize:10,color:T.td,textTransform:"uppercase",marginBottom:2}}>Tradeoff</div>
@@ -815,7 +851,8 @@ export default function DetailPage(p){
             );
           })}
         </div>
-      )}
+        );
+      })()}
 
       {/* â”€â”€â”€ HISTORY TAB â”€â”€â”€ */}
       {tab==="History"&&(
