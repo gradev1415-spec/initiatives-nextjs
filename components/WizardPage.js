@@ -45,12 +45,27 @@ export default function WizardPage(p){
   /* Area requirements: keyed by area aid -> {skills:[], certs:[]} */
   var _areq=useState({});var areaReqs=_areq[0],sAreaReqs=_areq[1];
   var _areqExp=useState({});var areaReqExp=_areqExp[0],sAreaReqExp=_areqExp[1];
+  /* Roles step: dept expand/collapse — first dept open by default */
+  var _rdx=useState({});var roleDeptExp=_rdx[0],sRoleDeptExp=_rdx[1];
 
   useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}50%{box-shadow:0 0 12px 2px rgba(34,211,238,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
 
   function togExp(id){sExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
   function togTgtExp(id){sTgtExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
+  function togRoleDeptExp(id){sRoleDeptExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=!pr[id];return n;});}
   function togDept(d2){sSelD(function(pr){return pr.find(function(x){return x.id===d2.id;})?pr.filter(function(x){return x.id!==d2.id;}):pr.concat([d2]);});}
+  function togRegion(region){
+    var allSel=region.ch.every(function(d2){return selD.find(function(x){return x.id===d2.id;});});
+    sSelD(function(pr){
+      if(allSel){/* Deselect all in region */
+        return pr.filter(function(x){return !region.ch.find(function(d2){return d2.id===x.id;});});
+      }else{/* Select all in region */
+        var merged=pr.slice();
+        region.ch.forEach(function(d2){if(!merged.find(function(x){return x.id===d2.id;}))merged.push(d2);});
+        return merged;
+      }
+    });
+  }
   /* Layout helpers */
   function getLayoutAreas(){
     if(!selLayout)return [];
@@ -430,8 +445,23 @@ export default function WizardPage(p){
         </div>)}
         {step===2&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><p style={{fontSize:12,color:T.tm,margin:0}}>Select locations for this initiative.</p><button onClick={function(){sMND(true);}} style={{padding:"5px 12px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>+ New Dept</button></div>
-          {p.deptTree.map(function(region){return (<div key={region.id} style={{marginBottom:6}}>
-            <div onClick={function(){togExp(region.id);}} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",cursor:"pointer",borderRadius:8,background:T.sa}}><span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{exp[region.id]===false?TRI_R:TRI_D}</span><span style={{fontSize:13,fontWeight:600,color:T.tx}}>{region.nm}</span><span style={{fontSize:10,color:T.td}}>({region.ch.length})</span></div>
+          {p.deptTree.map(function(region){
+            var allSel=region.ch.length>0&&region.ch.every(function(d2){return selD.find(function(x){return x.id===d2.id;});});
+            var someSel=region.ch.some(function(d2){return selD.find(function(x){return x.id===d2.id;});});
+            var selCount=region.ch.filter(function(d2){return selD.find(function(x){return x.id===d2.id;});}).length;
+            return (<div key={region.id} style={{marginBottom:6}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",cursor:"pointer",borderRadius:8,background:T.sa}}>
+              <div onClick={function(e){e.stopPropagation();togRegion(region);}} style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(allSel?T.ac:someSel?T.ac+"60":T.bl),background:allSel?T.ac:someSel?T.ac+"30":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",cursor:"pointer"}}>
+                {allSel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700}}>{CHK}</span>}
+                {someSel&&!allSel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700}}>{String.fromCharCode(8722)}</span>}
+              </div>
+              <div onClick={function(){togExp(region.id);}} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
+                <span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{exp[region.id]===false?TRI_R:TRI_D}</span>
+                <span style={{fontSize:13,fontWeight:600,color:T.tx}}>{region.nm}</span>
+                <span style={{fontSize:10,color:T.td}}>({region.ch.length})</span>
+                {selCount>0&&selCount<region.ch.length&&<span style={{fontSize:10,color:T.ac}}>{selCount} selected</span>}
+              </div>
+            </div>
             {exp[region.id]!==false&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
           </div>);})}
           {selD.length>0&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizFadeUp 0.3s ease"}}><span style={{fontWeight:600}}>{selD.length} location{selD.length>1?"s":""}</span>{" "+DOT+" "+selD.map(function(d){return d.nm;}).join(", ")}</div>}
@@ -624,28 +654,36 @@ export default function WizardPage(p){
               deptGroups[slot.dId].push(slot);
             });
             var srcList=roleSrc==="circle"?p.circlesList:p.jobProfilesList;
-            return deptOrder.map(function(dId){
+            return deptOrder.map(function(dId,dIdx){
               var slots=deptGroups[dId];
               var deptName=slots[0].label;
               var hasAreas=slots[0].aId!==null;
               /* Check if this dept has any roles configured */
               var deptHasRoles=false;
-              slots.forEach(function(sl){if((dCirc[sl.key]||[]).length>0)deptHasRoles=true;});
+              var deptTotalPos=0;
+              slots.forEach(function(sl){var rs=dCirc[sl.key]||[];if(rs.length>0)deptHasRoles=true;rs.forEach(function(r){deptTotalPos+=r.rq;});});
               var showApply=deptOrder.length>1&&deptHasRoles;
-              return (<div key={dId} style={{marginBottom:12,borderRadius:10,border:"1px solid "+T.bd}}>
-                {hasAreas&&(<div style={{padding:"8px 14px",borderBottom:"1px solid "+T.bd,background:T.sa,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <span style={{fontSize:13,fontWeight:600}}>{deptName}</span>
-                  {showApply&&<button onClick={function(){applyToAll(dId);}} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>Apply to all locations</button>}
-                </div>)}
-                {slots.map(function(slot){
+              /* Collapse: first dept open by default, rest collapsed */
+              var isDeptOpen=roleDeptExp[dId]===undefined?dIdx===0:roleDeptExp[dId];
+              return (<div key={dId} style={{marginBottom:8,borderRadius:10,border:"1px solid "+T.bd,overflow:"hidden"}}>
+                {/* Dept header — always visible, clickable to expand/collapse */}
+                <div onClick={function(){togRoleDeptExp(dId);}} style={{padding:"8px 14px",background:T.sa,display:"flex",alignItems:"center",gap:8,cursor:"pointer",borderBottom:isDeptOpen?"1px solid "+T.bd:"none"}}>
+                  <span style={{fontSize:10,color:T.td,width:12,textAlign:"center",transition:"transform 0.2s",transform:isDeptOpen?"rotate(90deg)":"none"}}>{TRI_R}</span>
+                  <span style={{fontSize:13,fontWeight:600,flex:1}}>{deptName}</span>
+                  {/* Summary badges when collapsed */}
+                  {deptTotalPos>0&&<span style={{fontSize:10,color:T.ac,padding:"1px 8px",borderRadius:4,background:T.ad}}>{deptTotalPos} positions</span>}
+                  {!deptHasRoles&&<span style={{fontSize:10,color:T.td,opacity:0.6}}>not configured</span>}
+                  {showApply&&<button onClick={function(e){e.stopPropagation();applyToAll(dId);}} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>Apply to all</button>}
+                </div>
+                {/* Expanded content */}
+                {isDeptOpen&&slots.map(function(slot){
                   var roles=dCirc[slot.key]||[];
                   return (<div key={slot.key} style={{borderBottom:hasAreas?"1px solid "+T.bd+"15":"none"}}>
-                    <div style={{padding:hasAreas?"6px 14px 6px 28px":"8px 14px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center",background:hasAreas?"transparent":T.sa}}>
+                    <div style={{padding:hasAreas?"6px 14px 6px 28px":"6px 14px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                       <div style={{display:"flex",alignItems:"center",gap:8}}>
                         {hasAreas&&<span style={{fontSize:10,color:T.ac}}>{TRI_R}</span>}
-                        <span style={{fontSize:hasAreas?12:13,fontWeight:hasAreas?500:600,color:hasAreas?T.tm:T.tx}}>{hasAreas?slot.areaLabel:slot.label}</span>
+                        <span style={{fontSize:hasAreas?12:12,fontWeight:500,color:hasAreas?T.tm:T.tx}}>{hasAreas?slot.areaLabel:slot.label}</span>
                         {roles.length>0&&<span style={{fontSize:10,color:T.ac,animation:"wizFadeUp 0.3s ease"}}>{roles.reduce(function(s,r){return s+r.rq;},0)} positions</span>}
-                        {!hasAreas&&showApply&&<button onClick={function(e){e.stopPropagation();applyToAll(dId);}} style={{padding:"2px 8px",borderRadius:5,border:"1px solid "+T.ac+"30",background:T.ad,color:T.ac,fontSize:9,cursor:"pointer",fontFamily:"inherit",fontWeight:500,marginLeft:4}}>Apply to all</button>}
                       </div>
                       <div style={{display:"flex",gap:6}}>
                         <select value="" onChange={function(e){var cid=e.target.value;if(!cid)return;var found=srcList.find(function(x){return x.id===cid;});if(found)addC(slot.key,found);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+(roleSrc==="circle"?T.ac:T.pu)+"40",background:roleSrc==="circle"?T.ad:T.pd,color:roleSrc==="circle"?T.ac:T.pu,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:120}}>
