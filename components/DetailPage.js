@@ -2,9 +2,9 @@
 import { useState } from "react";
 import { useT } from "@/lib/theme";
 import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
-import { allRoles, wRd, staffRd, skillRd, certRd, iRd } from "@/lib/readiness";
+import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
-import { LIBRARY } from "@/lib/data";
+import { LIBRARY, FITS } from "@/lib/data";
 import Badge from "./Badge";
 import ProgressBar from "./ProgressBar";
 import Gauge from "./Gauge";
@@ -30,7 +30,7 @@ export default function DetailPage(p){
   var projRd=Math.min(100,crd+acts.reduce(function(s,a){return s+a.lift;},0));
   var simActs=enabledActs||acts.map(function(_,i){return i;});
   var simLift=simActs.reduce(function(s,idx){return s+(acts[idx]?acts[idx].lift:0);},0);
-  var simRd=Math.min(100,crd+simLift);
+  var simRd=crd+simLift;
 
   function doAssign(contentId){
     sAssigned(function(pr){return pr.concat([contentId]);});
@@ -81,7 +81,7 @@ export default function DetailPage(p){
         <KPICard l="Timeline" v={ini.sd+" - "+ini.td}/>
       </div>
 
-      <div style={{marginBottom:20}}><TabBar tabs={["Overview","Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","History"]} a={tab} on={sTab}/></div>
+      <div style={{marginBottom:20}}><TabBar tabs={["Overview","Locations","Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","History"]} a={tab} on={sTab}/></div>
 
       {/* â”€â”€â”€ OVERVIEW TAB â”€â”€â”€ */}
       {tab==="Overview"&&(
@@ -89,17 +89,18 @@ export default function DetailPage(p){
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between"}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Role Requirements</h3><span style={{fontSize:12,color:T.td}}>{tql}/{trq} filled</span></div>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
-              {["Role","Criticality","Required","Qualified","Gap","Readiness"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
+              {["Role","Criticality","Required","Qualified","Surplus / Gap","Readiness"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
             </tr></thead>
             <tbody>{ar.map(function(r,idx){
               var rd2=r.rq>0?Math.round(r.ql/r.rq*100):100;
+              var diff=r.ql-r.rq;
               return (
                 <tr key={idx} style={{borderBottom:"1px solid "+T.bd+"08"}}>
                   <td style={{padding:"8px 14px",fontSize:13,fontWeight:500}}>{r.cn}</td>
                   <td style={{padding:"8px 14px"}}><Badge c={cc2(r.cr,T)} b={cc2(r.cr,T)+"15"}>{r.cr}</Badge></td>
                   <td style={{padding:"8px 14px",fontSize:12}}>{r.rq}</td>
                   <td style={{padding:"8px 14px",fontSize:12}}>{r.ql}</td>
-                  <td style={{padding:"8px 14px",fontSize:12,color:r.gp>0?T.rd:T.gn}}>{r.gp>0?"-"+r.gp:"-"}</td>
+                  <td style={{padding:"8px 14px",fontSize:12,fontWeight:diff!==0?600:400,color:diff>0?T.ac:diff<0?T.rd:T.gn}}>{diff>0?"+"+diff:diff<0?diff:"-"}</td>
                   <td style={{padding:"8px 14px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:60}}><ProgressBar v={rd2} h={4}/></div><span style={{fontSize:11,color:rc(rd2,T)}}>{rd2}%</span></div></td>
                 </tr>
               );
@@ -108,7 +109,119 @@ export default function DetailPage(p){
         </div>
       )}
 
-      {/* â”€â”€â”€ GAPS TAB â”€â”€â”€ */}
+      {/* ─── LOCATIONS TAB ─── */}
+      {tab==="Locations"&&(function(){
+        if(ini.depts.length<=1){
+          return (
+            <div style={{padding:40,textAlign:"center",borderRadius:14,border:"1px solid "+T.bd}}>
+              <div style={{fontSize:40,marginBottom:12,opacity:0.3}}>&#128205;</div>
+              <div style={{fontSize:14,fontWeight:600,color:T.tx,marginBottom:6}}>Single Location Initiative</div>
+              <div style={{fontSize:12,color:T.td,maxWidth:340,margin:"0 auto"}}>This initiative covers a single location. When multiple locations are added, you can compare staffing and readiness across them here.</div>
+            </div>
+          );
+        }
+        /* Compute per-dept stats */
+        var deptStats=ini.depts.map(function(dept){
+          var dR=deptRd(dept);
+          var dS=deptStaff(dept);
+          var dReq=0,dFill=0;
+          (dept.roles||[]).forEach(function(r){dReq+=r.rq;dFill+=r.ql;});
+          var surplus=dFill-dReq;
+          return {dept:dept,rd:dR,staff:dS,req:dReq,filled:dFill,surplus:surplus};
+        });
+        var totalReq=deptStats.reduce(function(s,d){return s+d.req;},0);
+        var totalFill=deptStats.reduce(function(s,d){return s+d.filled;},0);
+        /* Sort by readiness ascending (worst first) for ranking */
+        var ranked=deptStats.slice().sort(function(a,b){return a.rd-b.rd;});
+        return (
+          <div>
+            {/* Overall initiative summary */}
+            <div style={{padding:16,borderRadius:14,border:"1px solid "+T.bd,background:T.cd,marginBottom:16}}>
+              <div style={{display:"flex",alignItems:"center",gap:16}}>
+                <Gauge v={crd} sz={60} sw={5}/>
+                <div>
+                  <div style={{fontSize:10,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>Overall Initiative</div>
+                  <div style={{fontSize:14,fontWeight:600,color:T.tx}}>{ini.depts.length} locations &middot; {totalReq} positions &middot; {totalFill} filled</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Location cards side-by-side */}
+            <div style={{display:"grid",gridTemplateColumns:ini.depts.length<=3?"repeat("+ini.depts.length+",1fr)":"repeat(2,1fr)",gap:14,marginBottom:16}}>
+              {deptStats.map(function(ds){
+                var surpColor=ds.surplus>0?T.ac:ds.surplus===0?T.gn:T.rd;
+                var surpLabel=ds.surplus>0?"Over capacity":ds.surplus===0?"Fully staffed":"Understaffed";
+                return (
+                  <div key={ds.dept.did} style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
+                    {/* Card header */}
+                    <div style={{padding:"14px 16px",borderBottom:"1px solid "+T.bd,display:"flex",alignItems:"center",justifyContent:"space-between",background:T.sa}}>
+                      <div style={{fontSize:14,fontWeight:600}}>{ds.dept.dn}</div>
+                      <Badge c={surpColor} b={surpColor+"15"}>{surpLabel}</Badge>
+                    </div>
+                    {/* Gauge + summary */}
+                    <div style={{padding:16,display:"flex",alignItems:"center",gap:14}}>
+                      <Gauge v={ds.rd} sz={64} sw={5}/>
+                      <div>
+                        <div style={{fontSize:10,color:T.td,textTransform:"uppercase",marginBottom:4}}>Staffing</div>
+                        <div style={{fontSize:18,fontWeight:700,color:rc(ds.staff,T)}}>{ds.staff}%</div>
+                        <div style={{fontSize:11,color:T.tm}}>{ds.filled}/{ds.req} filled <span style={{color:surpColor,fontWeight:600}}>({ds.surplus>0?"+":""}{ds.surplus})</span></div>
+                      </div>
+                    </div>
+                    {/* Per-role breakdown */}
+                    <div style={{borderTop:"1px solid "+T.bd}}>
+                      <div style={{padding:"6px 16px",borderBottom:"1px solid "+T.bd+"08",fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,display:"flex"}}>
+                        <span style={{flex:1}}>Role</span>
+                        <span style={{width:60,textAlign:"center"}}>Filled</span>
+                        <span style={{width:50,textAlign:"right"}}>Readiness</span>
+                      </div>
+                      {(ds.dept.roles||[]).map(function(r,ri){
+                        var rrd=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                        var rsurp=r.ql-r.rq;
+                        return (
+                          <div key={ri} style={{display:"flex",alignItems:"center",padding:"5px 16px",borderBottom:"1px solid "+T.bd+"05",fontSize:12}}>
+                            <span style={{flex:1,fontWeight:500}}>{r.cn}</span>
+                            <span style={{width:60,textAlign:"center",color:T.tm}}>{r.ql}/{r.rq}{rsurp!==0&&<span style={{fontSize:10,color:rsurp>0?T.ac:T.rd,marginLeft:3}}>({rsurp>0?"+":""}{rsurp})</span>}</span>
+                            <span style={{width:50,textAlign:"right",fontWeight:600,color:rc(rrd,T)}}>{rrd}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Ranking table */}
+            <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
+              <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Location Ranking</h3>
+                <span style={{fontSize:11,color:T.td}}>Sorted by readiness (lowest first)</span>
+              </div>
+              <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
+                  {["#","Location","Readiness","Staffing","Required","Filled","Surplus / Gap"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
+                </tr></thead>
+                <tbody>{ranked.map(function(ds,i){
+                  var surpColor2=ds.surplus>0?T.ac:ds.surplus===0?T.gn:T.rd;
+                  return (
+                    <tr key={ds.dept.did} style={{borderBottom:"1px solid "+T.bd+"08"}}>
+                      <td style={{padding:"8px 14px"}}><div style={{width:22,height:22,borderRadius:6,background:T.ac+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:T.ac}}>{i+1}</div></td>
+                      <td style={{padding:"8px 14px",fontSize:13,fontWeight:500}}>{ds.dept.dn}</td>
+                      <td style={{padding:"8px 14px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:60}}><ProgressBar v={ds.rd} h={4}/></div><span style={{fontSize:12,fontWeight:600,color:rc(ds.rd,T)}}>{ds.rd}%</span></div></td>
+                      <td style={{padding:"8px 14px",fontSize:12,color:rc(ds.staff,T),fontWeight:500}}>{ds.staff}%</td>
+                      <td style={{padding:"8px 14px",fontSize:12,color:T.tm}}>{ds.req}</td>
+                      <td style={{padding:"8px 14px",fontSize:12,color:T.tm}}>{ds.filled}</td>
+                      <td style={{padding:"8px 14px",fontSize:13,fontWeight:600,color:surpColor2}}>{ds.surplus>0?"+"+ds.surplus:ds.surplus===0?"-":ds.surplus}</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* â"€â"€â"€ GAPS TAB â"€â"€â"€ */}
       {tab==="Gaps & Bottlenecks"&&(
         <div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>

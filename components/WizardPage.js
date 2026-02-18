@@ -248,7 +248,7 @@ export default function WizardPage(p){
     return true;
   }
   function doComplete(){
-    var rd=calcRd();var deps=selD.map(function(dept){return {did:dept.id,dn:dept.nm,roles:(dCirc[dept.id]||[]).map(function(dc){var q=isProj?0:Math.min(dc.rq,Math.floor(dc.rq*0.8));return {cid:dc.cid,cn:dc.cnm,cr:dc.cr,rq:dc.rq,ql:q,gp:dc.rq-q};})};});
+    var rd=calcRd();var deps=selD.map(function(dept){return {did:dept.id,dn:dept.nm,roles:(dCirc[dept.id]||[]).map(function(dc){var q=isProj?0:Math.floor(dc.rq*0.8);return {cid:dc.cid,cn:dc.cnm,cr:dc.cr,rq:dc.rq,ql:q,gp:Math.max(0,dc.rq-q)};})};});
     var sg,cg,skillRdVal,certRdVal;
     if(roleSrc==="jobprofile"){
       sg=computeSkillGaps();cg=computeCertGaps();skillRdVal=isProj?0:computeSkillRd();certRdVal=isProj?0:computeCertRd();
