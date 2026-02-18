@@ -19,6 +19,7 @@ export default function DetailPage(p){
   var tState=useState("Overview");var tab=tState[0],sTab=tState[1];
   var aState=useState([]);var assigned=aState[0],sAssigned=aState[1];
   var eaState=useState(null);var enabledActs=eaState[0],sEnabledActs=eaState[1];
+  var _sloc=useState(null);var selLoc=_sloc[0],sSelLoc=_sloc[1];
 
   var ar=allRoles(ini);var trq=0,tql=0;
   ar.forEach(function(r){trq+=r.rq;tql+=r.ql;});
@@ -284,17 +285,41 @@ export default function DetailPage(p){
         /* Status dot color */
         function statusClr(rd){return rd>=85?T.gn:rd>=60?T.am:T.rd;}
 
+        /* Auto-select first location if none selected or selected not in list */
+        var selDept=(function(){
+          var locId=selLoc||areaDepts[0]&&areaDepts[0].did;
+          var found=areaDepts.find(function(d){return d.did===locId;});
+          return found||areaDepts[0]||null;
+        })();
+
         return (
           <div>
-            {/* Blueprint per location */}
-            {areaDepts.map(function(dept,dIdx){
+            {/* Location selector dropdown */}
+            {areaDepts.length>0&&(
+              <div style={{marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
+                <div style={{position:"relative",flex:1,maxWidth:320}}>
+                  <select value={selDept?selDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
+                    {areaDepts.map(function(d){
+                      var dr=deptRd(d);
+                      return <option key={d.did} value={d.did}>{d.dn+" "+String.fromCharCode(183)+" "+dr+"% ready"}</option>;
+                    })}
+                  </select>
+                  <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:T.tm}}>{String.fromCharCode(9660)}</div>
+                </div>
+                <span style={{fontSize:10,color:T.td,fontFamily:"monospace"}}>{areaDepts.length} LOCATION{areaDepts.length!==1?"S":""}</span>
+              </div>
+            )}
+
+            {/* Blueprint for selected location */}
+            {selDept&&(function(){
+              var dept=selDept;
               var dR=deptRd(dept);
               var totalReq=0,totalFill=0;
               dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){totalReq+=r.rq;totalFill+=r.ql;});});
               var areaCount=dept.areas.length;
 
               return (
-                <div key={dept.did} style={{marginBottom:32}}>
+                <div style={{marginBottom:20}}>
                   <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",background:bpBg}}>
                     {/* Header */}
                     <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
@@ -429,7 +454,7 @@ export default function DetailPage(p){
                   </div>
                 </div>
               );
-            })}
+            })()}
 
             {/* Cross-location area comparison — schematic style */}
             {areaDepts.length>1&&allAreaNames.length>0&&(
