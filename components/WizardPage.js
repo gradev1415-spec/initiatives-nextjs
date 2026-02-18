@@ -1,0 +1,472 @@
+"use client";
+import { useState } from "react";
+import { useT } from "@/lib/theme";
+import { fD, rc, cc2, cw, pv } from "@/lib/utils";
+import { LIBRARY, JOB_PROFILE_SKILLS, ALL_SKILLS, ALL_CERTS } from "@/lib/data";
+import Badge from "./Badge";
+import ProgressBar from "./ProgressBar";
+import Gauge from "./Gauge";
+import Overlay from "./Overlay";
+
+export default function WizardPage(p){
+  var T=useT();
+  var st=useState(1);var step=st[0],sStep=st[1];
+  var _n=useState("");var name=_n[0],sName=_n[1];
+  var _d=useState("");var desc=_d[0],sDesc=_d[1];
+  var _tp=useState("Operational");var type=_tp[0],sType=_tp[1];
+  var _proj=useState(false);var isProj=_proj[0],sProj=_proj[1];
+  var _sd2=useState([]);var selD=_sd2[0],sSelD=_sd2[1];
+  var _dc=useState({});var dCirc=_dc[0],sDCirc=_dc[1];
+  var _rsrc=useState("circle");var roleSrc=_rsrc[0],sRoleSrc=_rsrc[1];
+  var _rv=useState("");var rev=_rv[0],sRev=_rv[1];
+  var _inv=useState("");var inv=_inv[0],sInv=_inv[1];
+  var _sq=useState("");var sq=_sq[0],sSq=_sq[1];
+  var _tq=useState("");var tq=_tq[0],sTq=_tq[1];
+  var _ex=useState({});var exp=_ex[0],sExp=_ex[1];
+  var _mnd=useState(false);var mND=_mnd[0],sMND=_mnd[1];
+  var _mnc=useState(false);var mNC=_mnc[0],sMNC=_mnc[1];
+  var _ndn=useState("");var ndNm=_ndn[0],sNdNm=_ndn[1];
+  var _ndp=useState("");var ndPr=_ndp[0],sNdPr=_ndp[1];
+  var _ncn=useState("");var ncNm=_ncn[0],sNcNm=_ncn[1];
+  var _ncd=useState(null);var ncDp=_ncd[0],sNcDp=_ncd[1];
+  var _analyzing=useState(false);var analyzing=_analyzing[0],sAnalyzing=_analyzing[1];
+  var _analysisDone=useState(false);var analysisDone=_analysisDone[0],sAnalysisDone=_analysisDone[1];
+  var _scanPhase=useState(0);var scanPhase=_scanPhase[0],sScanPhase=_scanPhase[1];
+  var _insights=useState([]);var insights=_insights[0],sInsights=_insights[1];
+  /* New state for job profile targets */
+  var _tgts=useState({});var jpTargets=_tgts[0],sJpTargets=_tgts[1];
+  var _tge=useState({});var tgtExp=_tge[0],sTgtExp=_tge[1];
+
+  useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}50%{box-shadow:0 0 12px 2px rgba(34,211,238,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
+
+  function togExp(id){sExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
+  function togTgtExp(id){sTgtExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
+  function togDept(d2){sSelD(function(pr){return pr.find(function(x){return x.id===d2.id;})?pr.filter(function(x){return x.id!==d2.id;}):pr.concat([d2]);});}
+  function addC(did,c){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];var e=pr[did]||[];if(e.find(function(x){return x.cid===c.id;}))return pr;n[did]=e.concat([{cid:c.id,cnm:c.nm,cr:"Essential",rq:1}]);return n;});}
+  function remC(did,cid){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[did]=(pr[did]||[]).filter(function(x){return x.cid!==cid;});return n;});}
+  function updC(did,cid,f,v){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[did]=(pr[did]||[]).map(function(x){if(x.cid===cid){return {cid:x.cid,cnm:x.cnm,cr:f==="cr"?v:x.cr,rq:f==="rq"?v:x.rq};}return x;});return n;});}
+  function doND(){if(!ndNm.trim())return;var id="d_"+Date.now();p.setDT(function(pr){if(ndPr){return pr.map(function(r){return r.id===ndPr?{id:r.id,nm:r.nm,ch:r.ch.concat([{id:id,nm:ndNm.trim(),tp:"Op"}])}:r;});}return pr.concat([{id:id,nm:ndNm.trim(),ch:[]}]);});sMND(false);sNdNm("");sNdPr("");}
+  function doNC(){if(!ncNm.trim())return;var id=(roleSrc==="circle"?"c_":"jp_")+Date.now();var nc={id:id,nm:ncNm.trim()};if(roleSrc==="circle"){p.setCL(function(pr){return pr.concat([nc]);});}else{p.setJP(function(pr){return pr.concat([nc]);});}if(ncDp)addC(ncDp,nc);sMNC(false);sNcNm("");sNcDp(null);}
+  function calcRd(){var tw=0,fw=0;var keys=Object.keys(dCirc);for(var i=0;i<keys.length;i++){var cs=dCirc[keys[i]];for(var j=0;j<cs.length;j++){var w=cw(cs[j].cr);tw+=cs[j].rq*w;if(!isProj)fw+=Math.min(cs[j].rq,Math.floor(cs[j].rq*0.8))*w;}}return tw>0?Math.round(fw/tw*100):0;}
+  function countTotals(){var totalRoles=0,totalPeople=0,essRoles=0,essPeople=0,impRoles=0;var keys=Object.keys(dCirc);for(var i=0;i<keys.length;i++){var cs=dCirc[keys[i]];totalRoles+=cs.length;for(var j=0;j<cs.length;j++){totalPeople+=cs[j].rq;if(cs[j].cr==="Essential"){essRoles++;essPeople+=cs[j].rq;}if(cs[j].cr==="Important")impRoles++;}}return {totalRoles:totalRoles,totalPeople:totalPeople,totalDepts:selD.length,essRoles:essRoles,essPeople:essPeople,impRoles:impRoles};}
+
+  /* ===== Dynamic stepper ===== */
+  var allStps=[{n:1,l:"Basics"},{n:2,l:"Locations"},{n:3,l:"Roles"},{n:4,l:"Define Targets",cond:"jobprofile"},{n:5,l:"Timeline"},{n:6,l:"Analysis"}];
+  var stps=allStps.filter(function(s){return !s.cond||roleSrc===s.cond;});
+  /* Remap step numbers for display when circles (no step 4) */
+  function stpIdx(sn){for(var i=0;i<stps.length;i++){if(stps[i].n===sn)return i;}return -1;}
+  function nxtStep(cur){var idx=stpIdx(cur);return idx<stps.length-1?stps[idx+1].n:null;}
+  function prvStep(cur){var idx=stpIdx(cur);return idx>0?stps[idx-1].n:null;}
+  function isLast(cur){return stpIdx(cur)===stps.length-1;}
+  var analysisN=roleSrc==="jobprofile"?6:5;
+  var timelineN=roleSrc==="jobprofile"?5:4;
+
+  /* ===== Job Profile Targets helpers ===== */
+  function getUniqueProfiles(){
+    var seen={};var result=[];
+    var keys=Object.keys(dCirc);
+    for(var i=0;i<keys.length;i++){
+      var roles=dCirc[keys[i]]||[];
+      for(var j=0;j<roles.length;j++){
+        if(!seen[roles[j].cid]){seen[roles[j].cid]=true;result.push({id:roles[j].cid,nm:roles[j].cnm});}
+      }
+    }
+    return result;
+  }
+  function getProfileHc(pid){
+    var total=0;var keys=Object.keys(dCirc);
+    for(var i=0;i<keys.length;i++){var roles=dCirc[keys[i]]||[];for(var j=0;j<roles.length;j++){if(roles[j].cid===pid)total+=roles[j].rq;}}
+    return total;
+  }
+  function initTargets(){
+    var tgts={};var profiles=getUniqueProfiles();
+    for(var i=0;i<profiles.length;i++){
+      var pid=profiles[i].id;
+      if(jpTargets[pid])continue; /* preserve existing edits */
+      var data=JOB_PROFILE_SKILLS[pid];
+      if(!data){tgts[pid]={skills:[],certs:[]};continue;}
+      var threshold=0.5;
+      tgts[pid]={
+        skills:data.skills.map(function(sk){return {s:sk.s,on:(sk.have/data.hc)>=threshold,tgtLvl:sk.lvl};}),
+        certs:data.certs.map(function(ct){return {c:ct.c,on:(ct.have/data.hc)>=threshold};})
+      };
+    }
+    /* Merge: keep existing edits, add new profiles */
+    if(Object.keys(tgts).length>0){
+      sJpTargets(function(prev){
+        var merged={};for(var k in prev)merged[k]=prev[k];for(var k2 in tgts){if(!merged[k2])merged[k2]=tgts[k2];}
+        /* Remove profiles no longer selected */
+        var activeIds={};for(var pi=0;pi<profiles.length;pi++)activeIds[profiles[pi].id]=true;
+        var cleaned={};for(var ck in merged){if(activeIds[ck])cleaned[ck]=merged[ck];}
+        return cleaned;
+      });
+    }
+  }
+  function togSkill(pid,sn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[pid]={skills:pr[pid].skills.map(function(s){return s.s===sn?{s:s.s,on:!s.on,tgtLvl:s.tgtLvl}:s;}),certs:pr[pid].certs};return n;});}
+  function setSkLvl(pid,sn,lvl){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[pid]={skills:pr[pid].skills.map(function(s){return s.s===sn?{s:s.s,on:s.on,tgtLvl:lvl}:s;}),certs:pr[pid].certs};return n;});}
+  function togCert(pid,cn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[pid]={skills:pr[pid].skills,certs:pr[pid].certs.map(function(c){return c.c===cn?{c:c.c,on:!c.on}:c;})};return n;});}
+  function addSkProf(pid,sn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];var ex=pr[pid].skills;if(ex.some(function(s){return s.s===sn;}))return pr;n[pid]={skills:ex.concat([{s:sn,on:true,tgtLvl:1}]),certs:pr[pid].certs};return n;});}
+  function addCtProf(pid,cn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];var ex=pr[pid].certs;if(ex.some(function(c){return c.c===cn;}))return pr;n[pid]={skills:pr[pid].skills,certs:ex.concat([{c:cn,on:true}])};return n;});}
+  function remSkProf(pid,sn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[pid]={skills:pr[pid].skills.filter(function(s){return s.s!==sn;}),certs:pr[pid].certs};return n;});}
+  function remCtProf(pid,cn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[pid]={skills:pr[pid].skills,certs:pr[pid].certs.filter(function(c){return c.c!==cn;})};return n;});}
+
+  /* ===== Gap computation for job profiles ===== */
+  function computeSkillGaps(){
+    var gaps={};var keys=Object.keys(jpTargets);
+    for(var i=0;i<keys.length;i++){
+      var pid=keys[i];var tgt=jpTargets[pid];var data=JOB_PROFILE_SKILLS[pid];
+      if(!tgt||!data)continue;
+      var phc=getProfileHc(pid);
+      for(var j=0;j<tgt.skills.length;j++){
+        var sk=tgt.skills[j];if(!sk.on)continue;
+        var dist=null;for(var di=0;di<data.skills.length;di++){if(data.skills[di].s===sk.s){dist=data.skills[di];break;}}
+        var haveAtLvl=0;
+        if(dist){
+          if(dist.lvl>=sk.tgtLvl){haveAtLvl=Math.round(dist.have*(phc/data.hc));}
+          else{haveAtLvl=Math.round(dist.have*0.5*(phc/data.hc));}
+        }
+        var gap=Math.max(0,phc-haveAtLvl);
+        if(gap>0){if(!gaps[sk.s])gaps[sk.s]=0;gaps[sk.s]+=gap;}
+      }
+    }
+    return Object.keys(gaps).map(function(s){
+      var n=gaps[s];var impact=n>=20?"Critical":n>=10?"High":n>=3?"Medium":"Low";
+      return {s:s,n:n,i:impact};
+    }).sort(function(a,b){var o={Critical:4,High:3,Medium:2,Low:1};return (o[b.i]||0)-(o[a.i]||0);});
+  }
+  function computeCertGaps(){
+    var gaps={};var keys=Object.keys(jpTargets);
+    for(var i=0;i<keys.length;i++){
+      var pid=keys[i];var tgt=jpTargets[pid];var data=JOB_PROFILE_SKILLS[pid];
+      if(!tgt||!data)continue;
+      var phc=getProfileHc(pid);
+      for(var j=0;j<tgt.certs.length;j++){
+        var ct=tgt.certs[j];if(!ct.on)continue;
+        var dist=null;for(var di=0;di<data.certs.length;di++){if(data.certs[di].c===ct.c){dist=data.certs[di];break;}}
+        var haveIt=dist?Math.round(dist.have*(phc/data.hc)):0;
+        var gap=Math.max(0,phc-haveIt);
+        if(gap>0){if(!gaps[ct.c])gaps[ct.c]=0;gaps[ct.c]+=gap;}
+      }
+    }
+    return Object.keys(gaps).map(function(c){
+      var n=gaps[c];var impact=n>=20?"Critical":n>=10?"High":n>=3?"Medium":"Low";
+      return {c:c,n:n,i:impact};
+    });
+  }
+  function computeSkillRd(){
+    var totalN=0,totalM=0;var keys=Object.keys(jpTargets);
+    for(var i=0;i<keys.length;i++){
+      var pid=keys[i];var tgt=jpTargets[pid];var data=JOB_PROFILE_SKILLS[pid];
+      if(!tgt||!data)continue;var phc=getProfileHc(pid);
+      for(var j=0;j<tgt.skills.length;j++){
+        var sk=tgt.skills[j];if(!sk.on)continue;
+        totalN+=phc;
+        var dist=null;for(var di=0;di<data.skills.length;di++){if(data.skills[di].s===sk.s){dist=data.skills[di];break;}}
+        if(dist){var met=dist.lvl>=sk.tgtLvl?Math.round(dist.have*(phc/data.hc)):Math.round(dist.have*0.5*(phc/data.hc));totalM+=Math.min(met,phc);}
+      }
+    }
+    return totalN>0?Math.round(totalM/totalN*100):100;
+  }
+  function computeCertRd(){
+    var totalN=0,totalM=0;var keys=Object.keys(jpTargets);
+    for(var i=0;i<keys.length;i++){
+      var pid=keys[i];var tgt=jpTargets[pid];var data=JOB_PROFILE_SKILLS[pid];
+      if(!tgt||!data)continue;var phc=getProfileHc(pid);
+      for(var j=0;j<tgt.certs.length;j++){
+        var ct=tgt.certs[j];if(!ct.on)continue;
+        totalN+=phc;
+        var dist=null;for(var di=0;di<data.certs.length;di++){if(data.certs[di].c===ct.c){dist=data.certs[di];break;}}
+        if(dist){totalM+=Math.min(Math.round(dist.have*(phc/data.hc)),phc);}
+      }
+    }
+    return totalN>0?Math.round(totalM/totalN*100):100;
+  }
+  function targetSummary(){
+    var tsk=0,tct=0;var keys=Object.keys(jpTargets);
+    for(var i=0;i<keys.length;i++){
+      var t=jpTargets[keys[i]];if(!t)continue;
+      for(var j=0;j<t.skills.length;j++){if(t.skills[j].on)tsk++;}
+      for(var j2=0;j2<t.certs.length;j2++){if(t.certs[j2].on)tct++;}
+    }
+    return {skills:tsk,certs:tct};
+  }
+
+  function getHint(){
+    if(step===1){if(!name.trim())return "Name your initiative to begin workforce analysis.";if(!desc.trim())return "A description helps stakeholders understand the objective.";return "The system will connect "+type.toLowerCase()+" workforce data to this initiative.";}
+    if(step===2){if(selD.length===0)return "Select locations to scan their employee records.";return "~"+(selD.length*22)+" employee records across "+selD.length+" location"+(selD.length>1?"s":"")+" will be cross-referenced.";}
+    if(step===3){var t=countTotals();if(t.totalPeople===0)return "Add roles to define workforce requirements.";if(roleSrc==="jobprofile")return "Tracking "+t.totalPeople+" positions. Next step: define skill & certificate targets.";return "Tracking "+t.totalPeople+" positions. Estimated readiness: "+calcRd()+"%.";}
+    if(step===4&&roleSrc==="jobprofile"){var ts=targetSummary();if(ts.skills===0&&ts.certs===0)return "Select skills and certificates to define what readiness means for each profile.";return ts.skills+" skill"+(ts.skills!==1?"s":"")+" and "+ts.certs+" certificate"+(ts.certs!==1?"s":"")+" targeted. Adjust levels and coverage as needed.";}
+    if(step===timelineN){if(!sq&&!tq)return "Set a timeline to enable progress tracking and deadline alerts.";if(sq&&tq&&rev)return "Financial context linked. Opportunity cost will track against readiness.";if(sq&&tq)return "Timeline locked. Quarterly snapshots will track progress.";return "Select both quarters to define the tracking window.";}
+    return "";
+  }
+
+  function generateInsights(){
+    var arr=[];var rd=calcRd();var tots=countTotals();var gapCount=Math.round(tots.totalPeople*0.2);var MDH=String.fromCharCode(8212);
+    arr.push({tp:"info",tx:"Scanned "+tots.totalPeople+" positions across "+tots.totalDepts+" location"+(tots.totalDepts>1?"s":"")+" and "+tots.totalRoles+" role type"+(tots.totalRoles>1?"s":"")+"."});
+    arr.push({tp:isProj?"warn":"info",tx:isProj?"Projection mode: all "+tots.totalPeople+" positions need filling.":"Cross-referenced "+tots.totalPeople+" positions against employee records. "+gapCount+" gap"+(gapCount!==1?"s":"")+" identified."});
+    if(tots.essRoles>0) arr.push({tp:rd<60?"critical":"warn",tx:tots.essPeople+" people across "+tots.essRoles+" Essential role"+(tots.essRoles>1?"s":"")+". 2x weight in readiness."});
+    /* Job profile specific insights */
+    if(roleSrc==="jobprofile"){
+      var skg=computeSkillGaps();var ckg=computeCertGaps();var skRd=computeSkillRd();var ctRd=computeCertRd();
+      arr.push({tp:"info",tx:"Job Profile targets defined. Measuring against "+targetSummary().skills+" skill"+(targetSummary().skills!==1?"s":"")+" and "+targetSummary().certs+" certificate"+(targetSummary().certs!==1?"s":"")+"."});
+      if(skg.length>0){var critSk=skg.filter(function(g){return g.i==="Critical"||g.i==="High";});arr.push({tp:critSk.length>0?"critical":"warn",tx:skg.length+" skill gap"+(skg.length!==1?"s":"")+". "+skg.reduce(function(s,g){return s+g.n;},0)+" people need upskilling."});}
+      else arr.push({tp:"success",tx:"No skill gaps detected. All positions meet target levels."});
+      if(ckg.length>0){arr.push({tp:ckg.some(function(g){return g.i==="Critical";})?
+        "critical":"warn",tx:ckg.length+" certificate gap"+(ckg.length!==1?"s":"")+". "+ckg.reduce(function(s,g){return s+g.n;},0)+" certifications needed."});}
+      else arr.push({tp:"success",tx:"All certificate requirements met across targeted profiles."});
+      arr.push({tp:skRd>=85?"success":skRd>=60?"warn":"critical",tx:"Skill readiness: "+skRd+"%. Certificate readiness: "+ctRd+"%."});
+    } else {
+      var skillHits=LIBRARY.filter(function(l){return l.sk;}).length;
+      arr.push({tp:"success",tx:"Content library: "+skillHits+" items checked. "+(skillHits>3?Math.floor(skillHits*0.6)+" potential matches":"Limited matches")+" for gaps."});
+      if(!isProj) arr.push({tp:rd>=85?"success":"warn",tx:"Compliance: "+(rd>=85?"No critical certificate risks.":"Gaps in "+Math.ceil(gapCount*0.4)+" certificate type"+(Math.ceil(gapCount*0.4)>1?"s":"")+". Review recommended.")});
+    }
+    if(rev&&pv(rev)>0){var oc=Math.round(pv(rev)*(1-rd/100));arr.push({tp:oc>pv(rev)*0.3?"warn":"info",tx:"Value at stake: "+fD(pv(rev))+". Opportunity cost from gaps: "+fD(oc)+"."});}
+    if(inv&&pv(inv)>0&&rev&&pv(rev)>0){var roi=Math.round((pv(rev)-pv(inv))/pv(inv)*100);arr.push({tp:roi>100?"success":"info",tx:"Projected ROI: "+roi+"% ("+fD(pv(inv))+" investment vs "+fD(pv(rev))+" revenue)."});}
+    if(rd<60&&!isProj) arr.push({tp:"critical",tx:"Readiness at "+rd+"% "+MDH+" below threshold. Action plan will be generated."});
+    else if(rd<85&&!isProj) arr.push({tp:"warn",tx:"Readiness at "+rd+"%. Targeted actions can reach 85%+ within one quarter."});
+    else if(!isProj) arr.push({tp:"success",tx:"Strong readiness at "+rd+"%. Minor optimizations available."});
+    return arr;
+  }
+  function runAnalysis(){
+    sAnalyzing(true);sAnalysisDone(false);sScanPhase(0);sInsights([]);
+    var generated=generateInsights();var seq=[];var tp=6;
+    for(var pi=0;pi<tp;pi++){(function(idx){seq.push(function(){sScanPhase(idx+1);});})(pi);}
+    for(var ii=0;ii<generated.length;ii++){(function(item){seq.push(function(){sInsights(function(prev){return prev.concat([item]);});});})(generated[ii]);}
+    seq.push(function(){sAnalyzing(false);sAnalysisDone(true);});
+    var delay=0;for(var si=0;si<seq.length;si++){(function(fn,d){setTimeout(fn,d);})(seq[si],delay);delay+=(si<tp?320:260);}
+  }
+  function canNext(){
+    if(step===1)return name.trim().length>0;
+    if(step===2)return selD.length>0;
+    if(step===3){var v2=Object.values(dCirc);for(var i=0;i<v2.length;i++){if(v2[i].length>0)return true;}return false;}
+    if(step===4&&roleSrc==="jobprofile"){
+      var keys=Object.keys(jpTargets);
+      for(var i=0;i<keys.length;i++){var t=jpTargets[keys[i]];if(t&&t.skills.some(function(s){return s.on;}))return true;}
+      return false;
+    }
+    if(step===analysisN)return analysisDone;
+    return true;
+  }
+  function doComplete(){
+    var rd=calcRd();var deps=selD.map(function(dept){return {did:dept.id,dn:dept.nm,roles:(dCirc[dept.id]||[]).map(function(dc){var q=isProj?0:Math.min(dc.rq,Math.floor(dc.rq*0.8));return {cid:dc.cid,cn:dc.cnm,cr:dc.cr,rq:dc.rq,ql:q,gp:dc.rq-q};})};});
+    var sg,cg,skillRdVal,certRdVal;
+    if(roleSrc==="jobprofile"){
+      sg=computeSkillGaps();cg=computeCertGaps();skillRdVal=isProj?0:computeSkillRd();certRdVal=isProj?0:computeCertRd();
+    } else {
+      sg=rd<100?[{s:"Gaps detected",n:Math.ceil((100-rd)/10),i:rd<40?"Critical":"High"}]:[];
+      cg=rd<100?[{c:"Cert gaps",n:Math.ceil((100-rd)/15),i:rd<40?"Critical":"High"}]:[];
+      skillRdVal=isProj?0:Math.floor(rd*0.95);certRdVal=isProj?0:Math.floor(rd*0.85);
+    }
+    p.onDone({id:"i_"+Date.now(),nm:name.trim(),ds:desc.trim()||"No description.",tp:type,st:isProj?"projection":"active",roleSrc:roleSrc,depts:deps,rev:pv(rev),inv:pv(inv),sd:sq||"TBD",td:tq||"TBD",_skillRd:skillRdVal,_certRd:certRdVal,sg:sg,cg:cg,jpTargets:roleSrc==="jobprofile"?jpTargets:undefined,certs:[],hist:[]});
+  }
+  function goToStep(n){
+    if(n===4&&roleSrc==="jobprofile"){sStep(4);initTargets();}
+    else if(n===analysisN&&step!==analysisN){sStep(n);setTimeout(runAnalysis,300);}
+    else{sStep(n);if(n!==analysisN){sAnalyzing(false);sAnalysisDone(false);sInsights([]);sScanPhase(0);}}
+  }
+
+  var iS={width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box",transition:"border-color 0.3s"};
+  var qs=["Q1 2025","Q2 2025","Q3 2025","Q4 2025","Q1 2026","Q2 2026"];
+  var scanLabels=["Scanning employee records","Cross-referencing skill profiles","Checking certificate compliance","Matching content library","Calculating weighted readiness","Generating insights"];
+  var tots=countTotals();
+  var CHK=String.fromCharCode(10003);var CROSS=String.fromCharCode(215);var ARROW=String.fromCharCode(8594);
+  var TRI_D=String.fromCharCode(9660);var TRI_R=String.fromCharCode(9654);var DOT=String.fromCharCode(8226);var ELLIP=String.fromCharCode(8230);
+  var hintText=getHint();
+
+  return (
+    <div style={{padding:"24px 32px",maxWidth:900,margin:"0 auto"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <h1 style={{fontSize:22,fontWeight:700,margin:0}}>Create Initiative</h1>
+        <button onClick={p.onClose} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:18,fontFamily:"inherit"}}>{CROSS}</button>
+      </div>
+      {/* Stepper */}
+      <div style={{display:"flex",alignItems:"center",marginBottom:8}}>
+        {stps.map(function(s,idx){var isActive=step===s.n;var isDone=stpIdx(step)>idx;return (
+          <div key={s.n} style={{display:"flex",alignItems:"center",flex:idx<stps.length-1?1:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:26,height:26,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,background:isActive?T.ac:isDone?T.gn:T.sa,color:isActive||isDone?"#0B0F1A":T.td,transition:"all 0.4s ease",animation:isActive?"wizGlow 2.5s ease infinite":"none"}}>{isDone?<span style={{animation:"wizPop 0.3s ease"}}>{CHK}</span>:idx+1}</div>
+              <span style={{fontSize:11,fontWeight:isActive?600:400,color:isActive?T.tx:T.td,whiteSpace:"nowrap",transition:"color 0.3s"}}>{s.l}</span>
+            </div>
+            {idx<stps.length-1&&<div style={{flex:1,height:2,margin:"0 8px",background:T.bd,position:"relative",overflow:"hidden",borderRadius:1}}><div style={{position:"absolute",top:0,left:0,height:"100%",background:isDone?T.gn:isActive?T.ac:"transparent",width:isDone?"100%":isActive?"50%":"0%",transition:"width 0.6s ease",borderRadius:1}}/></div>}
+          </div>
+        );})}
+      </div>
+      {/* Smart hint */}
+      {step!==analysisN&&hintText&&(<div style={{marginBottom:16,padding:"7px 14px",borderRadius:8,background:"linear-gradient(90deg,"+T.ad+","+T.sa+")",border:"1px solid "+T.ac+"15",display:"flex",alignItems:"center",gap:8,animation:"wizSlideIn 0.4s ease"}}><div style={{width:6,height:6,borderRadius:3,background:T.ac,animation:"wizPulse 2s ease infinite",flexShrink:0}}/><span style={{fontSize:11,color:T.ac,lineHeight:"1.3"}}>{hintText}</span></div>)}
+      <div style={{minHeight:340}}>
+        {step===1&&(<div style={{display:"flex",flexDirection:"column",gap:18,animation:"wizFadeUp 0.4s ease"}}>
+          <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Initiative Name *</label><input value={name} onChange={function(e){sName(e.target.value);}} placeholder="e.g. Helsingor - New Opening" style={iS}/></div>
+          <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Description</label><textarea value={desc} onChange={function(e){sDesc(e.target.value);}} placeholder="What is this initiative for?" rows={2} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:13,fontFamily:"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/></div>
+          <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Type</label><div style={{display:"flex",gap:10}}>{["Operational","Administrative"].map(function(t){return (<button key={t} onClick={function(){sType(t);}} style={{flex:1,padding:"12px 16px",borderRadius:12,border:"2px solid "+(type===t?T.ac:T.bd),background:type===t?T.ad:"transparent",color:type===t?T.ac:T.tm,fontSize:13,cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all 0.3s ease"}}><div style={{fontWeight:600,marginBottom:2}}>{t}</div><div style={{fontSize:11,opacity:0.7}}>{t==="Operational"?"Stores, warehouses, locations":"HQ, corporate, back-office"}</div></button>);})}</div></div>
+          <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"10px 14px",borderRadius:10,border:"1px solid "+(isProj?T.pu+"50":T.bd),background:isProj?T.pd:"transparent",transition:"all 0.3s ease"}} onClick={function(){sProj(!isProj);}}><div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(isProj?T.pu:T.bl),background:isProj?T.pu:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{isProj&&<span style={{color:"white",fontSize:10,fontWeight:700,animation:"wizPop 0.3s ease"}}>{CHK}</span>}</div><div><span style={{fontSize:13,color:isProj?T.pu:T.tm,fontWeight:isProj?600:400}}>This is a projection</span><span style={{fontSize:11,color:T.td,display:"block"}}>Future-state planning, no current employees matched</span></div></label>
+        </div>)}
+        {step===2&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><p style={{fontSize:12,color:T.tm,margin:0}}>Select locations for this initiative.</p><button onClick={function(){sMND(true);}} style={{padding:"5px 12px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>+ New Dept</button></div>
+          {p.deptTree.map(function(region){return (<div key={region.id} style={{marginBottom:6}}>
+            <div onClick={function(){togExp(region.id);}} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",cursor:"pointer",borderRadius:8,background:T.sa}}><span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{exp[region.id]===false?TRI_R:TRI_D}</span><span style={{fontSize:13,fontWeight:600,color:T.tx}}>{region.nm}</span><span style={{fontSize:10,color:T.td}}>({region.ch.length})</span></div>
+            {exp[region.id]!==false&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
+          </div>);})}
+          {selD.length>0&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizFadeUp 0.3s ease"}}><span style={{fontWeight:600}}>{selD.length} location{selD.length>1?"s":""}</span>{" "+DOT+" "+selD.map(function(d){return d.nm;}).join(", ")}</div>}
+        </div>)}
+        {step===3&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
+          {/* Source selector */}
+          <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:14}}>
+            <p style={{fontSize:12,color:T.tm,margin:0,flex:1}}>Define roles and headcount per location.</p>
+            <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid "+T.bd}}>
+              {[{k:"circle",l:"Circles"},{k:"jobprofile",l:"Job Profiles"}].map(function(s){var sel=roleSrc===s.k;return (<button key={s.k} onClick={function(){sRoleSrc(s.k);}} style={{padding:"5px 14px",fontSize:11,fontWeight:sel?600:400,background:sel?T.ad:"transparent",color:sel?T.ac:T.td,border:"none",cursor:"pointer",fontFamily:"inherit",transition:"all 0.3s ease"}}>{s.l}</button>);})}
+            </div>
+          </div>
+          {/* Source context hint */}
+          <div style={{marginBottom:12,padding:"6px 12px",borderRadius:8,background:roleSrc==="circle"?T.ad:T.pd,fontSize:11,color:roleSrc==="circle"?T.ac:T.pu,display:"flex",alignItems:"center",gap:6,animation:"wizSlideIn 0.3s ease"}}>
+            <div style={{width:5,height:5,borderRadius:3,background:roleSrc==="circle"?T.ac:T.pu,animation:"wizPulse 2s ease infinite",flexShrink:0}}/>
+            {roleSrc==="circle"?"Using Circles as role source. Skills and certificates linked automatically.":"Using Job Profiles as role source. You will define skill & certificate targets in the next step."}
+          </div>
+          {tots.totalPeople>0&&(<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:12,borderRadius:8,overflow:"hidden",border:"1px solid "+T.bd,fontSize:11,animation:"wizGlow 3s ease infinite"}}>
+            <div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.ac,fontSize:13}}>{tots.totalPeople}</span> people</div><div style={{width:1,height:22,background:T.bd}}/>
+            <div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.ac,fontSize:13}}>{tots.totalRoles}</span> roles</div><div style={{width:1,height:22,background:T.bd}}/>
+            <div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.rd,fontSize:13}}>{tots.essRoles}</span> essential</div>
+            {tots.impRoles>0&&<><div style={{width:1,height:22,background:T.bd}}/><div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.am,fontSize:13}}>{tots.impRoles}</span> important</div></>}
+            <div style={{flex:1}}/><div style={{padding:"5px 10px",background:T.ad,color:T.ac,fontWeight:600,fontSize:10}}>Weight: {tots.essPeople*2+tots.impRoles*1}</div>
+          </div>)}
+          {selD.map(function(dept){var roles=dCirc[dept.id]||[];var srcList=roleSrc==="circle"?p.circlesList:p.jobProfilesList;return (<div key={dept.id} style={{marginBottom:12,borderRadius:10,border:"1px solid "+T.bd}}>
+            <div style={{padding:"8px 14px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center",background:T.sa}}>
+              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:600}}>{dept.nm}</span>{roles.length>0&&<span style={{fontSize:10,color:T.ac,animation:"wizFadeUp 0.3s ease"}}>{roles.reduce(function(s,r){return s+r.rq;},0)} positions</span>}</div>
+              <div style={{display:"flex",gap:6}}><select value="" onChange={function(e){var cid=e.target.value;if(!cid)return;var found=srcList.find(function(x){return x.id===cid;});if(found)addC(dept.id,found);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+(roleSrc==="circle"?T.ac:T.pu)+"40",background:roleSrc==="circle"?T.ad:T.pd,color:roleSrc==="circle"?T.ac:T.pu,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:120}}><option value="">{"+ Add "+(roleSrc==="circle"?"circle":"profile")+"..."}</option>{srcList.filter(function(c){return !(dCirc[dept.id]||[]).find(function(x){return x.cid===c.id;});}).map(function(c){return (<option key={c.id} value={c.id}>{c.nm}</option>);})}</select><button onClick={function(){sNcDp(dept.id);sMNC(true);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>New</button></div>
+            </div>
+            {roles.length===0&&<div style={{padding:10,textAlign:"center",color:T.td,fontSize:11}}>{"No "+(roleSrc==="circle"?"circles":"profiles")+" added"}</div>}
+            {roles.map(function(r,ri){return (<div key={r.cid} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px",borderBottom:"1px solid "+T.bd+"08",animation:"wizSlideIn 0.3s ease",animationDelay:(ri*60)+"ms",animationFillMode:"backwards"}}>
+              <span style={{fontSize:12,fontWeight:500,minWidth:110}}>{r.cnm}</span>
+              <select value={r.cr} onChange={function(e){updC(dept.id,r.cid,"cr",e.target.value);}} style={{padding:"3px 6px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:11,fontFamily:"inherit"}}><option>Essential</option><option>Important</option><option>Nice to have</option></select>
+              <span style={{fontSize:10,color:T.td}}>Qty:</span>
+              <input type="number" min={1} value={r.rq} onChange={function(e){updC(dept.id,r.cid,"rq",Math.max(1,parseInt(e.target.value)||1));}} style={{width:42,padding:"3px 4px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:12,textAlign:"center"}}/>
+              <div style={{flex:1}}/><button onClick={function(){remC(dept.id,r.cid);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:13,fontFamily:"inherit",padding:"2px 6px"}}>{CROSS}</button>
+            </div>);})}
+          </div>);})}
+        </div>)}
+
+        {/* ===== NEW: Define Targets step (job profiles only) ===== */}
+        {step===4&&roleSrc==="jobprofile"&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
+          <p style={{fontSize:12,color:T.tm,marginBottom:4,marginTop:0}}>Define skill and certificate targets for each job profile.</p>
+          <div style={{marginBottom:14,padding:"6px 12px",borderRadius:8,background:T.pd,fontSize:11,color:T.pu,display:"flex",alignItems:"center",gap:6,animation:"wizSlideIn 0.3s ease"}}>
+            <div style={{width:5,height:5,borderRadius:3,background:T.pu,animation:"wizPulse 2s ease infinite",flexShrink:0}}/>
+            Pre-populated from employee data. Common skills are checked; rare skills shown as suggestions.
+          </div>
+          {getUniqueProfiles().map(function(prof,pi){
+            var tgt=jpTargets[prof.id];if(!tgt)return null;
+            var data=JOB_PROFILE_SKILLS[prof.id];
+            var phc=getProfileHc(prof.id);
+            var onSk=tgt.skills.filter(function(s){return s.on;}).length;
+            var onCt=tgt.certs.filter(function(c){return c.on;}).length;
+            var isExpanded=tgtExp[prof.id]!==false;
+            return (<div key={prof.id} style={{marginBottom:10,borderRadius:10,border:"1px solid "+T.bd,animation:"wizSlideIn 0.3s ease",animationDelay:(pi*80)+"ms",animationFillMode:"backwards"}}>
+              {/* Profile header */}
+              <div onClick={function(){togTgtExp(prof.id);}} style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:10,cursor:"pointer",background:T.sa,borderRadius:isExpanded?"10px 10px 0 0":"10px",borderBottom:isExpanded?"1px solid "+T.bd:"none",transition:"all 0.2s"}}>
+                <span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{isExpanded?TRI_D:TRI_R}</span>
+                <span style={{fontSize:13,fontWeight:600,color:T.tx}}>{prof.nm}</span>
+                <Badge c={T.pu} b={T.pd}>{phc} people</Badge>
+                <div style={{flex:1}}/>
+                <span style={{fontSize:10,color:T.td}}>{onSk} skill{onSk!==1?"s":""}, {onCt} cert{onCt!==1?"s":""}</span>
+              </div>
+              {isExpanded&&(<div style={{padding:"12px 14px"}}>
+                {/* Skills section */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                  <span style={{fontSize:11,fontWeight:600,color:T.tm,textTransform:"uppercase",letterSpacing:0.5}}>Skills</span>
+                  <select value="" onChange={function(e){if(e.target.value)addSkProf(prof.id,e.target.value);}} style={{padding:"3px 8px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
+                    <option value="">+ Add skill...</option>
+                    {ALL_SKILLS.filter(function(sk){return !tgt.skills.some(function(s){return s.s===sk;});}).map(function(sk){return <option key={sk} value={sk}>{sk}</option>;})}
+                  </select>
+                </div>
+                {tgt.skills.length===0&&<div style={{padding:8,textAlign:"center",color:T.td,fontSize:11,borderRadius:6,border:"1px dashed "+T.bd}}>No skills added. Use the dropdown above to add skills.</div>}
+                {tgt.skills.map(function(sk,si){
+                  var dist=data?data.skills.find(function(x){return x.s===sk.s;}):null;
+                  var coverage=dist&&data?Math.round(dist.have/data.hc*100):0;
+                  return (<div key={sk.s} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid "+T.bd+"08",opacity:sk.on?1:0.45,transition:"opacity 0.2s",animation:"wizSlideIn 0.25s ease",animationDelay:(si*40)+"ms",animationFillMode:"backwards"}}>
+                    {/* Checkbox */}
+                    <div onClick={function(){togSkill(prof.id,sk.s);}} style={{width:16,height:16,borderRadius:3,border:"1.5px solid "+(sk.on?T.ac:T.bl),background:sk.on?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.2s"}}>{sk.on&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700}}>{CHK}</span>}</div>
+                    {/* Skill name */}
+                    <span style={{fontSize:12,fontWeight:500,minWidth:120,color:sk.on?T.tx:T.td}}>{sk.s}</span>
+                    {/* Coverage bar */}
+                    <div style={{flex:1,maxWidth:100,display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{flex:1}}><ProgressBar v={coverage} h={3}/></div>
+                      <span style={{fontSize:9,color:T.td,whiteSpace:"nowrap",minWidth:42}}>{coverage}% have</span>
+                    </div>
+                    {/* Target level selector */}
+                    <div style={{display:"flex",gap:2}}>
+                      {[1,2,3,4].map(function(lvl){var sel2=sk.tgtLvl===lvl;return (
+                        <button key={lvl} onClick={function(){if(sk.on)setSkLvl(prof.id,sk.s,lvl);}} style={{width:22,height:22,borderRadius:4,border:"1px solid "+(sel2?T.ac:T.bd),background:sel2?T.ac:"transparent",color:sel2?"#0B0F1A":sk.on?T.tm:T.td,fontSize:10,fontWeight:sel2?700:400,cursor:sk.on?"pointer":"default",fontFamily:"inherit",padding:0,transition:"all 0.2s"}}>{lvl}</button>
+                      );})}
+                    </div>
+                    {/* Remove */}
+                    <button onClick={function(){remSkProf(prof.id,sk.s);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:12,fontFamily:"inherit",padding:"2px 4px"}}>{CROSS}</button>
+                  </div>);
+                })}
+                {/* Certificates section */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,marginBottom:8}}>
+                  <span style={{fontSize:11,fontWeight:600,color:T.tm,textTransform:"uppercase",letterSpacing:0.5}}>Certificates</span>
+                  <select value="" onChange={function(e){if(e.target.value)addCtProf(prof.id,e.target.value);}} style={{padding:"3px 8px",borderRadius:6,border:"1px solid "+T.pu+"40",background:T.pd,color:T.pu,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
+                    <option value="">+ Add certificate...</option>
+                    {ALL_CERTS.filter(function(ct){return !tgt.certs.some(function(c){return c.c===ct;});}).map(function(ct){return <option key={ct} value={ct}>{ct}</option>;})}
+                  </select>
+                </div>
+                {tgt.certs.length===0&&<div style={{padding:8,textAlign:"center",color:T.td,fontSize:11,borderRadius:6,border:"1px dashed "+T.bd}}>No certificates added. Use the dropdown above to add certificates.</div>}
+                {tgt.certs.map(function(ct,ci){
+                  var dist2=data?data.certs.find(function(x){return x.c===ct.c;}):null;
+                  var coverage2=dist2&&data?Math.round(dist2.have/data.hc*100):0;
+                  return (<div key={ct.c} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid "+T.bd+"08",opacity:ct.on?1:0.45,transition:"opacity 0.2s",animation:"wizSlideIn 0.25s ease",animationDelay:(ci*40)+"ms",animationFillMode:"backwards"}}>
+                    <div onClick={function(){togCert(prof.id,ct.c);}} style={{width:16,height:16,borderRadius:3,border:"1.5px solid "+(ct.on?T.pu:T.bl),background:ct.on?T.pu:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.2s"}}>{ct.on&&<span style={{color:"white",fontSize:9,fontWeight:700}}>{CHK}</span>}</div>
+                    <span style={{fontSize:12,fontWeight:500,minWidth:150,color:ct.on?T.tx:T.td}}>{ct.c}</span>
+                    <div style={{flex:1,maxWidth:100,display:"flex",alignItems:"center",gap:6}}>
+                      <div style={{flex:1}}><ProgressBar v={coverage2} h={3}/></div>
+                      <span style={{fontSize:9,color:T.td,whiteSpace:"nowrap",minWidth:42}}>{coverage2}% have</span>
+                    </div>
+                    <button onClick={function(){remCtProf(prof.id,ct.c);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:12,fontFamily:"inherit",padding:"2px 4px"}}>{CROSS}</button>
+                  </div>);
+                })}
+              </div>)}
+            </div>);
+          })}
+        </div>)}
+
+        {step===timelineN&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
+          <p style={{fontSize:12,color:T.tm,marginBottom:14}}>Set timeline and financial context to enable impact tracking.</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Start Quarter</label><select value={sq} onChange={function(e){sSq(e.target.value);}} style={iS}><option value="">Select...</option>{qs.map(function(q){return <option key={q} value={q}>{q}</option>;})}</select></div>
+            <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Target Quarter</label><select value={tq} onChange={function(e){sTq(e.target.value);}} style={iS}><option value="">Select...</option>{qs.map(function(q){return <option key={q} value={q}>{q}</option>;})}</select></div>
+          </div>
+          {sq&&tq&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizSlideIn 0.3s ease"}}>{"Timeline: "+sq+" "+ARROW+" "+tq+". Quarterly readiness snapshots enabled."}</div>}
+          <div style={{marginTop:18,padding:14,borderRadius:10,border:"1px solid "+T.bd,background:T.sa+"80"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{fontSize:12,fontWeight:600,color:T.tm}}>Financial context</span><span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.amd,color:T.am}}>Optional</span></div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+              <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Revenue Potential (DKK)</label><input value={rev} onChange={function(e){sRev(e.target.value);}} placeholder="e.g. 16M or 4500K" style={iS}/></div>
+              <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Investment Required (DKK)</label><input value={inv} onChange={function(e){sInv(e.target.value);}} placeholder="e.g. 2.5M or 800K" style={iS}/></div>
+            </div>
+            {(pv(rev)>0||pv(inv)>0)&&(<div style={{marginTop:10,display:"flex",gap:10,animation:"wizFadeUp 0.3s ease"}}>
+              {pv(rev)>0&&<div style={{flex:1,padding:"8px 12px",borderRadius:8,background:T.gd,textAlign:"center"}}><div style={{fontSize:10,color:T.gn,textTransform:"uppercase",marginBottom:2}}>Revenue</div><div style={{fontSize:14,fontWeight:700,color:T.gn}}>{fD(pv(rev))}</div></div>}
+              {pv(inv)>0&&<div style={{flex:1,padding:"8px 12px",borderRadius:8,background:T.amd,textAlign:"center"}}><div style={{fontSize:10,color:T.am,textTransform:"uppercase",marginBottom:2}}>Investment</div><div style={{fontSize:14,fontWeight:700,color:T.am}}>{fD(pv(inv))}</div></div>}
+              {pv(rev)>0&&pv(inv)>0&&<div style={{flex:1,padding:"8px 12px",borderRadius:8,background:T.ad,textAlign:"center"}}><div style={{fontSize:10,color:T.ac,textTransform:"uppercase",marginBottom:2}}>Projected ROI</div><div style={{fontSize:14,fontWeight:700,color:T.ac}}>{Math.round((pv(rev)-pv(inv))/pv(inv)*100)}%</div></div>}
+            </div>)}
+          </div>
+        </div>)}
+        {step===analysisN&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
+          <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:14,padding:"10px 14px",borderRadius:10,background:T.sa,border:"1px solid "+T.bd}}>
+            <Gauge v={analysisDone?calcRd():0} sz={52} sw={4}/>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:700,marginBottom:4,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{name||"Untitled"}</div><div style={{display:"flex",gap:4,flexWrap:"wrap"}}><Badge c={T.tm}>{type}</Badge><Badge c={T.ac} b={T.ad}>{selD.length} loc.</Badge><Badge c={T.ac} b={T.ad}>{tots.totalPeople} ppl</Badge>{isProj&&<Badge c={T.pu} b={T.pd}>Projection</Badge>}{rev&&<Badge c={T.gn} b={T.gd}>{fD(pv(rev))}</Badge>}{inv&&pv(inv)>0&&<Badge c={T.am} b={T.amd}>{fD(pv(inv))+" inv."}</Badge>}{sq&&tq&&<Badge c={T.tm} b={T.sa}>{sq+" "+ARROW+" "+tq}</Badge>}</div></div>
+          </div>
+          {(analyzing||analysisDone)&&(<div style={{marginBottom:10}}>
+            {!analysisDone?(<div style={{borderRadius:8,border:"1px solid "+T.bd,padding:"8px 12px",position:"relative",overflow:"hidden"}}><div style={{position:"absolute",top:0,left:0,height:2,background:T.ac,width:((scanPhase/6)*100)+"%",transition:"width 0.3s ease"}}/><div style={{fontSize:12,fontWeight:600,marginBottom:4,color:T.ac}}>{"Analyzing workforce"+ELLIP}</div>{scanLabels.map(function(label,i){var done=scanPhase>i;var active=scanPhase===i&&!analysisDone;if(!done&&!active)return null;return (<div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"2px 0",fontSize:11,color:done?T.gn:T.ac,animation:active?"wizPulse 1s ease infinite":"none"}}><span style={{fontSize:10,animation:done?"wizPop 0.3s ease":"none"}}>{done?CHK:ELLIP}</span><span>{label}</span></div>);})}</div>
+            ):(<div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 12px",borderRadius:8,background:T.gd,border:"1px solid "+T.gn+"30",animation:"wizFadeUp 0.3s ease"}}><span style={{color:T.gn,fontSize:12,fontWeight:700,animation:"wizPop 0.4s ease"}}>{CHK}</span><span style={{fontSize:12,color:T.gn,fontWeight:600}}>Analysis complete</span><span style={{fontSize:11,color:T.gn+"90"}}>{DOT+" "+scanLabels.length+" checks passed"}</span></div>)}
+          </div>)}
+          {insights.length>0&&(<div style={{display:"flex",flexDirection:"column",gap:5,marginBottom:12}}>{insights.map(function(ins,i){var bg=ins.tp==="critical"?T.rdd:ins.tp==="warn"?T.amd:ins.tp==="success"?T.gd:T.ad;var fg=ins.tp==="critical"?T.rd:ins.tp==="warn"?T.am:ins.tp==="success"?T.gn:T.ac;return (<div key={i} style={{padding:"6px 12px",borderRadius:8,background:bg,border:"1px solid "+fg+"20",display:"flex",alignItems:"center",gap:8,animation:"wizSlideIn 0.3s ease"}}><div style={{width:6,height:6,borderRadius:3,background:fg,flexShrink:0}}/><span style={{fontSize:11,color:fg,lineHeight:"1.3"}}>{ins.tx}</span></div>);})}</div>)}
+          {analysisDone&&(<div style={{borderRadius:10,border:"1px solid "+T.bd,overflow:"hidden",animation:"wizFadeUp 0.4s ease"}}><div style={{padding:"6px 14px",background:T.sa,borderBottom:"1px solid "+T.bd,fontSize:10,fontWeight:600,color:T.td,textTransform:"uppercase",letterSpacing:0.5}}>Workforce Breakdown</div>{selD.map(function(dept){var cs=dCirc[dept.id]||[];return cs.map(function(dc,di){var have=isProj?0:Math.min(dc.rq,Math.floor(dc.rq*0.8));var pct=dc.rq>0?Math.round(have/dc.rq*100):100;return (<div key={dept.id+dc.cid} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 14px",borderBottom:"1px solid "+T.bd+"08",fontSize:11,animation:"wizSlideIn 0.3s ease",animationDelay:(di*80)+"ms",animationFillMode:"backwards"}}><span style={{color:T.td,width:65,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{dept.nm}</span><span style={{fontWeight:500,width:100}}>{dc.cnm}</span><Badge c={cc2(dc.cr,T)} b={cc2(dc.cr,T)+"15"}>{dc.cr}</Badge><span style={{color:T.tm,width:35}}>{have}/{dc.rq}</span><div style={{flex:1,maxWidth:70}}><ProgressBar v={pct} h={3}/></div><span style={{color:rc(pct,T),width:28,textAlign:"right",fontWeight:600}}>{pct}%</span></div>);});})}</div>)}
+          {!analyzing&&!analysisDone&&(<div style={{padding:30,textAlign:"center",borderRadius:10,border:"1px dashed "+T.bd}}><p style={{color:T.td,fontSize:12,margin:0}}>{"Preparing analysis"+ELLIP}</p></div>)}
+        </div>)}
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:24,paddingTop:14,borderTop:"1px solid "+T.bd}}>
+        <button onClick={function(){var prev=prvStep(step);if(prev!==null)goToStep(prev);else p.onClose();}} style={{padding:"8px 16px",borderRadius:10,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit",transition:"all 0.2s"}}>{prvStep(step)!==null?"Back":"Cancel"}</button>
+        <button disabled={!canNext()} onClick={function(){var nxt=nxtStep(step);if(nxt!==null)goToStep(nxt);else doComplete();}} style={{padding:"8px 22px",borderRadius:10,border:"none",cursor:canNext()?"pointer":"default",background:canNext()?"linear-gradient(135deg,"+T.ac+",#06B6D4)":T.sa,color:canNext()?"#0B0F1A":T.td,fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:canNext()?1:0.5,transition:"all 0.3s ease",animation:canNext()&&!isLast(step)?"wizGlow 2s ease infinite":"none"}}>{step===analysisN?(analysisDone?"Create Initiative":"Analyzing"+ELLIP):"Continue"}</button>
+      </div>
+      {mND&&(<Overlay x={function(){sMND(false);}}><h3 style={{fontSize:16,fontWeight:700,margin:"0 0 16px"}}>New Department</h3><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Name *</label><input value={ndNm} onChange={function(e){sNdNm(e.target.value);}} style={iS}/></div><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Parent Region</label><select value={ndPr} onChange={function(e){sNdPr(e.target.value);}} style={iS}><option value="">None (new region)</option>{p.deptTree.map(function(r){return <option key={r.id} value={r.id}>{r.nm}</option>;})}</select></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={function(){sMND(false);}} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Cancel</button><button onClick={doND} style={{padding:"7px 16px",borderRadius:8,border:"none",background:T.ac,color:"#0B0F1A",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>Create</button></div></Overlay>)}
+      {mNC&&(<Overlay x={function(){sMNC(false);}}><h3 style={{fontSize:16,fontWeight:700,margin:"0 0 16px"}}>{"New "+(roleSrc==="circle"?"Circle":"Job Profile")}</h3><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Name *</label><input value={ncNm} onChange={function(e){sNcNm(e.target.value);}} placeholder={roleSrc==="circle"?"e.g. Crew Trainer":"e.g. Team Leader"} style={iS}/></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={function(){sMNC(false);}} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Cancel</button><button onClick={doNC} style={{padding:"7px 16px",borderRadius:8,border:"none",background:T.ac,color:"#0B0F1A",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>Create</button></div></Overlay>)}
+    </div>
+  );
+}
