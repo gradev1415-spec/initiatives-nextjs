@@ -252,7 +252,7 @@ export default function WizardPage(p){
   function getHint(){
     if(step===1){if(!name.trim())return "Name your initiative to begin workforce analysis.";if(!desc.trim())return "A description helps stakeholders understand the objective.";return "The system will connect "+type.toLowerCase()+" workforce data to this initiative.";}
     if(step===2){if(selD.length===0)return "Select locations to scan their employee records.";return "~"+(selD.length*22)+" employee records across "+selD.length+" location"+(selD.length>1?"s":"")+" will be cross-referenced.";}
-    if(step===25){if(!useLayout)return "Uniform structure selected. All roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose an existing layout template or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";var reqCount=0;la.forEach(function(a){var r=getAreaReqs(a.aid);reqCount+=r.skills.length+r.certs.length;});return la.length+" area"+(la.length!==1?"s":"")+" defined"+(reqCount>0?", "+reqCount+" area requirement"+(reqCount!==1?"s":""):"")+". Customize per location below.";}
+    if(step===25){if(!useLayout)return "Uniform structure. Roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose a saved layout or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";var reqCount=0;la.forEach(function(a){var r=getAreaReqs(a.aid);reqCount+=r.skills.length+r.certs.length;});return la.length+" area"+(la.length!==1?"s":"")+" ready"+(reqCount>0?" with "+reqCount+" requirement"+(reqCount!==1?"s":"")+". Expand any area to configure.":".");}
     if(step===3){var t=countTotals();if(t.totalPeople===0)return "Add roles to define workforce requirements.";if(roleSrc==="jobprofile")return "Tracking "+t.totalPeople+" positions. Next step: define skill & certificate targets.";return "Tracking "+t.totalPeople+" positions. Estimated readiness: "+calcRd()+"%.";}
     if(step===4&&roleSrc==="jobprofile"){var ts=targetSummary();if(ts.skills===0&&ts.certs===0)return "Select skills and certificates to define what readiness means for each profile.";return ts.skills+" skill"+(ts.skills!==1?"s":"")+" and "+ts.certs+" certificate"+(ts.certs!==1?"s":"")+" targeted. Adjust levels and coverage as needed.";}
     if(step===timelineN){if(!sq&&!tq)return "Set a timeline to enable progress tracking and deadline alerts.";if(sq&&tq&&rev)return "Financial context linked. Opportunity cost will track against readiness.";if(sq&&tq)return "Timeline locked. Quarterly snapshots will track progress.";return "Select both quarters to define the tracking window.";}
@@ -405,7 +405,7 @@ export default function WizardPage(p){
         </div>)}
         {/* ===== Step 25: Store Layout ===== */}
         {step===25&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          <p style={{fontSize:12,color:T.tm,marginBottom:14,marginTop:0}}>Your locations may have internal areas that need different skills and training. Define a layout, or skip if roles are uniform across each location.</p>
+          <p style={{fontSize:12,color:T.tm,marginBottom:14,marginTop:0}}>Do your locations have distinct areas, departments, or zones with different teams? Define them here, or skip if roles are the same everywhere.</p>
           {/* Decision cards */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
             <div onClick={function(){sUseLayout(false);sSelLayout(null);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(!useLayout?T.ac:T.bd),background:!useLayout?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
@@ -431,7 +431,7 @@ export default function WizardPage(p){
               {/* Detected context hint */}
               <div style={{marginBottom:14,padding:"8px 14px",borderRadius:8,background:"linear-gradient(90deg,"+T.ad+","+T.sa+")",border:"1px solid "+T.ac+"15",display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:6,height:6,borderRadius:3,background:T.ac,animation:"wizPulse 2s ease infinite",flexShrink:0}}/>
-                <span style={{fontSize:11,color:T.ac}}>{selD.length} location{selD.length!==1?"s":""} selected. Define areas that repeat across locations {DOT} staff will be assigned per area in the next step.</span>
+                <span style={{fontSize:11,color:T.ac}}>Define your layout once {DOT} assign staff per area in the next step.</span>
               </div>
               {hasTemplates&&(<div style={{marginBottom:14}}>
                 <label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Choose a Layout</label>
@@ -464,84 +464,77 @@ export default function WizardPage(p){
                   </div>
                 );})}
               </div>)}
-              {/* Area Requirements — skills & certs per area (optional) */}
-              {selLayout&&getLayoutAreas().length>0&&(<div style={{marginBottom:14,animation:"wizFadeUp 0.3s ease"}}>
-                <label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Area Requirements</label>
-                <p style={{fontSize:11,color:T.tm,marginBottom:10,marginTop:0}}>Optional: add skills or certificates that <em>anyone</em> working in this area needs, regardless of their role.</p>
+              {/* Areas detail: requirements + per-location customization combined */}
+              {selLayout&&getLayoutAreas().length>0&&(<div style={{animation:"wizFadeUp 0.3s ease"}}>
+                {/* Area cards — each shows requirements inline + location toggles */}
                 {getLayoutAreas().map(function(area,ai){
                   var reqs=getAreaReqs(area.aid);
                   var hasReqs=reqs.skills.length>0||reqs.certs.length>0;
                   var isExp=!!areaReqExp[area.aid];
-                  return (<div key={area.aid} style={{marginBottom:6,borderRadius:8,border:"1px solid "+(hasReqs?T.ac+"30":T.bd),background:hasReqs?T.ad+"40":"transparent",overflow:"hidden",animation:"wizSlideIn 0.25s ease",animationDelay:(ai*40)+"ms",animationFillMode:"backwards"}}>
-                    {/* Area row header — click to expand */}
-                    <div onClick={function(){togAreaReqExp(area.aid);}} style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
-                      <span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{isExp?TRI_D:TRI_R}</span>
-                      <span style={{fontSize:12,fontWeight:500,color:hasReqs?T.ac:T.tx,flex:1}}>{area.anm}</span>
-                      {hasReqs&&<span style={{fontSize:10,color:T.ac}}>{reqs.skills.length} skill{reqs.skills.length!==1?"s":""}, {reqs.certs.length} cert{reqs.certs.length!==1?"s":""}</span>}
-                      {!hasReqs&&<span style={{fontSize:10,color:T.td}}>No area requirements</span>}
+                  /* Which locations have this area active */
+                  var locStatus=selD.map(function(dept){var active=getDeptActiveAreas(dept.id);return {id:dept.id,nm:dept.nm,on:active.indexOf(area.aid)>=0};});
+                  var allOn=locStatus.every(function(l){return l.on;});
+                  return (<div key={area.aid} style={{marginBottom:8,borderRadius:10,border:"1px solid "+(isExp?T.ac+"40":T.bd),background:isExp?T.ad+"20":"transparent",overflow:"hidden",transition:"all 0.3s",animation:"wizSlideIn 0.25s ease",animationDelay:(ai*40)+"ms",animationFillMode:"backwards"}}>
+                    {/* Compact area header */}
+                    <div onClick={function(){togAreaReqExp(area.aid);}} style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
+                      <span style={{fontSize:10,color:T.td,width:12,textAlign:"center",transition:"transform 0.2s",transform:isExp?"rotate(90deg)":"none"}}>{TRI_R}</span>
+                      <span style={{fontSize:13,fontWeight:600,color:isExp?T.ac:T.tx}}>{area.anm}</span>
+                      {/* Inline summary pills */}
+                      <div style={{display:"flex",alignItems:"center",gap:4,flex:1}}>
+                        {hasReqs&&reqs.skills.map(function(sk){return (<span key={sk} style={{padding:"1px 6px",borderRadius:4,background:T.ac+"12",fontSize:9,color:T.ac}}>{sk}</span>);})}
+                        {hasReqs&&reqs.certs.map(function(ct){return (<span key={ct} style={{padding:"1px 6px",borderRadius:4,background:T.am+"12",fontSize:9,color:T.am}}>{ct}</span>);})}
+                      </div>
+                      {!allOn&&<span style={{fontSize:9,color:T.am,padding:"1px 6px",borderRadius:4,background:T.amd}}>{locStatus.filter(function(l){return l.on;}).length}/{selD.length} locations</span>}
+                      {!hasReqs&&!isExp&&<span style={{fontSize:10,color:T.td,opacity:0.6}}>click to configure</span>}
                     </div>
-                    {/* Expanded content — skills & certs pickers */}
-                    {isExp&&(<div style={{padding:"6px 12px 12px",borderTop:"1px solid "+T.bd+"30"}}>
-                      {/* Skills */}
-                      <div style={{marginBottom:8}}>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                          <span style={{fontSize:10,color:T.td,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Skills</span>
-                          <select value="" onChange={function(e){if(e.target.value)addAreaSkill(area.aid,e.target.value);}} style={{padding:"3px 8px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
-                            <option value="">+ Add skill...</option>
-                            {ALL_SKILLS.filter(function(sk){return reqs.skills.indexOf(sk)<0;}).map(function(sk){return <option key={sk} value={sk}>{sk}</option>;})}
-                          </select>
+                    {/* Expanded: requirements + locations */}
+                    {isExp&&(<div style={{padding:"0 14px 14px",borderTop:"1px solid "+T.bd+"20"}}>
+                      {/* Requirements row */}
+                      <div style={{marginTop:10,marginBottom:10}}>
+                        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6,flex:1}}>
+                            <span style={{fontSize:10,color:T.td,fontWeight:600}}>REQUIRES</span>
+                            <select value="" onChange={function(e){if(e.target.value)addAreaSkill(area.aid,e.target.value);}} style={{padding:"2px 6px",borderRadius:5,border:"1px solid "+T.ac+"30",background:"transparent",color:T.ac,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
+                              <option value="">+ skill</option>
+                              {ALL_SKILLS.filter(function(sk){return reqs.skills.indexOf(sk)<0;}).map(function(sk){return <option key={sk} value={sk}>{sk}</option>;})}
+                            </select>
+                            <select value="" onChange={function(e){if(e.target.value)addAreaCert(area.aid,e.target.value);}} style={{padding:"2px 6px",borderRadius:5,border:"1px solid "+T.am+"30",background:"transparent",color:T.am,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
+                              <option value="">+ cert</option>
+                              {ALL_CERTS.filter(function(ct){return reqs.certs.indexOf(ct)<0;}).map(function(ct){return <option key={ct} value={ct}>{ct}</option>;})}
+                            </select>
+                          </div>
                         </div>
-                        {reqs.skills.length===0&&<div style={{fontSize:10,color:T.td,fontStyle:"italic"}}>No area-specific skills</div>}
-                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                        {hasReqs&&(<div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                           {reqs.skills.map(function(sk){return (
-                            <div key={sk} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.ac+"15",border:"1px solid "+T.ac+"25",fontSize:10,color:T.ac,animation:"wizPop 0.2s ease"}}>
-                              <span>{sk}</span>
-                              <span onClick={function(e){e.stopPropagation();remAreaSkill(area.aid,sk);}} style={{cursor:"pointer",fontSize:11,color:T.ac,opacity:0.6}}>{CROSS}</span>
+                            <div key={sk} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.ac+"12",border:"1px solid "+T.ac+"20",fontSize:10,color:T.ac}}>
+                              {sk}
+                              <span onClick={function(e){e.stopPropagation();remAreaSkill(area.aid,sk);}} style={{cursor:"pointer",opacity:0.5,fontSize:11}}>{CROSS}</span>
                             </div>
                           );})}
-                        </div>
-                      </div>
-                      {/* Certs */}
-                      <div>
-                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-                          <span style={{fontSize:10,color:T.td,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Certificates</span>
-                          <select value="" onChange={function(e){if(e.target.value)addAreaCert(area.aid,e.target.value);}} style={{padding:"3px 8px",borderRadius:6,border:"1px solid "+T.am+"40",background:T.amd,color:T.am,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
-                            <option value="">+ Add cert...</option>
-                            {ALL_CERTS.filter(function(ct){return reqs.certs.indexOf(ct)<0;}).map(function(ct){return <option key={ct} value={ct}>{ct}</option>;})}
-                          </select>
-                        </div>
-                        {reqs.certs.length===0&&<div style={{fontSize:10,color:T.td,fontStyle:"italic"}}>No area-specific certificates</div>}
-                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                           {reqs.certs.map(function(ct){return (
-                            <div key={ct} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.am+"15",border:"1px solid "+T.am+"25",fontSize:10,color:T.am,animation:"wizPop 0.2s ease"}}>
-                              <span>{ct}</span>
-                              <span onClick={function(e){e.stopPropagation();remAreaCert(area.aid,ct);}} style={{cursor:"pointer",fontSize:11,color:T.am,opacity:0.6}}>{CROSS}</span>
+                            <div key={ct} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.am+"12",border:"1px solid "+T.am+"20",fontSize:10,color:T.am}}>
+                              {ct}
+                              <span onClick={function(e){e.stopPropagation();remAreaCert(area.aid,ct);}} style={{cursor:"pointer",opacity:0.5,fontSize:11}}>{CROSS}</span>
+                            </div>
+                          );})}
+                        </div>)}
+                        {!hasReqs&&<div style={{fontSize:10,color:T.td,opacity:0.6,fontStyle:"italic"}}>No area-specific requirements yet. Anyone placed here will only need their role skills.</div>}
+                      </div>
+                      {/* Locations for this area */}
+                      {selD.length>1&&(<div style={{paddingTop:8,borderTop:"1px solid "+T.bd+"20"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                          <span style={{fontSize:10,color:T.td,fontWeight:600}}>ACTIVE IN</span>
+                        </div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                          {locStatus.map(function(loc){return (
+                            <div key={loc.id} onClick={function(){togDeptArea(loc.id,area.aid);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(loc.on?T.ac+"40":T.bd),background:loc.on?T.ad:"transparent",cursor:"pointer",fontSize:11,color:loc.on?T.ac:T.td,fontWeight:loc.on?500:400,transition:"all 0.2s",display:"flex",alignItems:"center",gap:4}}>
+                              <div style={{width:12,height:12,borderRadius:3,border:"1.5px solid "+(loc.on?T.ac:T.bl),background:loc.on?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{loc.on&&<span style={{color:"#0B0F1A",fontSize:7,fontWeight:700}}>{CHK}</span>}</div>
+                              {loc.nm}
                             </div>
                           );})}
                         </div>
-                      </div>
+                      </div>)}
                     </div>)}
-                  </div>);
-                })}
-              </div>)}
-              {/* Per-location area customization */}
-              {selLayout&&getLayoutAreas().length>0&&(<div style={{animation:"wizFadeUp 0.3s ease"}}>
-                <label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Customize per Location</label>
-                <p style={{fontSize:11,color:T.tm,marginBottom:10,marginTop:0}}>Toggle off areas that don't apply to specific locations (e.g., smaller footprint stores).</p>
-                {selD.map(function(dept){
-                  var activeIds=getDeptActiveAreas(dept.id);
-                  var layoutAreas2=getLayoutAreas();
-                  return (<div key={dept.id} style={{marginBottom:8,padding:"10px 14px",borderRadius:8,border:"1px solid "+T.bd,background:T.sa+"60"}}>
-                    <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>{dept.nm}</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
-                      {layoutAreas2.map(function(area){
-                        var isOn=activeIds.indexOf(area.aid)>=0;
-                        return (<div key={area.aid} onClick={function(){togDeptArea(dept.id,area.aid);}} style={{padding:"5px 12px",borderRadius:6,border:"1px solid "+(isOn?T.ac+"50":T.bd),background:isOn?T.ad:"transparent",cursor:"pointer",fontSize:11,color:isOn?T.ac:T.td,fontWeight:isOn?500:400,transition:"all 0.2s",display:"flex",alignItems:"center",gap:4}}>
-                          <div style={{width:14,height:14,borderRadius:3,border:"1.5px solid "+(isOn?T.ac:T.bl),background:isOn?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{isOn&&<span style={{color:"#0B0F1A",fontSize:8,fontWeight:700}}>{CHK}</span>}</div>
-                          {area.anm}
-                        </div>);
-                      })}
-                    </div>
                   </div>);
                 })}
               </div>)}
