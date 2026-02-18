@@ -22,6 +22,8 @@ export default function DetailPage(p){
 
   var ar=allRoles(ini);var trq=0,tql=0;
   ar.forEach(function(r){trq+=r.rq;tql+=r.ql;});
+  /* Merge same-named roles across depts for Overview table */
+  var mergedRoles=(function(){var m={};ar.forEach(function(r){if(!m[r.cn])m[r.cn]={cn:r.cn,cr:r.cr,rq:0,ql:0,gp:0};m[r.cn].rq+=r.rq;m[r.cn].ql+=r.ql;m[r.cn].gp+=r.gp;if(cw(r.cr)>cw(m[r.cn].cr))m[r.cn].cr=r.cr;});return Object.keys(m).map(function(k){return m[k];});})();
   var crd=wRd(ar),sR=staffRd(ar),skR=ini._skillRd||skillRd(ini),cR=ini._certRd||certRd(ini);
   var mr=ini.rev*(1-crd/100);
   var bn=ar.filter(function(r){return r.gp>0;});
@@ -91,7 +93,7 @@ export default function DetailPage(p){
             <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
               {["Role","Criticality","Required","Qualified","Surplus / Gap","Readiness"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
             </tr></thead>
-            <tbody>{ar.map(function(r,idx){
+            <tbody>{mergedRoles.map(function(r,idx){
               var rd2=r.rq>0?Math.round(r.ql/r.rq*100):100;
               var diff=r.ql-r.rq;
               return (
