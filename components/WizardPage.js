@@ -50,7 +50,7 @@ export default function WizardPage(p){
 
   useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}50%{box-shadow:0 0 12px 2px rgba(34,211,238,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
 
-  function togExp(id){sExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
+  function togExp(id){sExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=!pr[id];return n;});}
   function togTgtExp(id){sTgtExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
   function togRoleDeptExp(id){sRoleDeptExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=!pr[id];return n;});}
   function togDept(d2){sSelD(function(pr){return pr.find(function(x){return x.id===d2.id;})?pr.filter(function(x){return x.id!==d2.id;}):pr.concat([d2]);});}
@@ -456,13 +456,13 @@ export default function WizardPage(p){
                 {someSel&&!allSel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700}}>{String.fromCharCode(8722)}</span>}
               </div>
               <div onClick={function(){togExp(region.id);}} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
-                <span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{exp[region.id]===false?TRI_R:TRI_D}</span>
+                <span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{exp[region.id]||someSel?TRI_D:TRI_R}</span>
                 <span style={{fontSize:13,fontWeight:600,color:T.tx}}>{region.nm}</span>
                 <span style={{fontSize:10,color:T.td}}>({region.ch.length})</span>
-                {selCount>0&&selCount<region.ch.length&&<span style={{fontSize:10,color:T.ac}}>{selCount} selected</span>}
+                {selCount>0&&<span style={{fontSize:10,color:T.ac}}>{selCount} selected</span>}
               </div>
             </div>
-            {exp[region.id]!==false&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
+            {(exp[region.id]||someSel)&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
           </div>);})}
           {selD.length>0&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizFadeUp 0.3s ease"}}><span style={{fontWeight:600}}>{selD.length} location{selD.length>1?"s":""}</span>{" "+DOT+" "+selD.map(function(d){return d.nm;}).join(", ")}</div>}
         </div>)}
