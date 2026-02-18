@@ -286,7 +286,7 @@ export default function DetailPage(p){
 
         return (
           <div>
-            {/* Blueprint per location — horizontal tree layout */}
+            {/* Blueprint per location */}
             {areaDepts.map(function(dept,dIdx){
               var dR=deptRd(dept);
               var totalReq=0,totalFill=0;
@@ -295,14 +295,13 @@ export default function DetailPage(p){
 
               return (
                 <div key={dept.did} style={{marginBottom:32}}>
-                  {/* Blueprint canvas container */}
-                  <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",background:bpBg,position:"relative"}}>
-                    {/* Blueprint header bar */}
+                  <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",background:bpBg}}>
+                    {/* Header */}
                     <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                       <div style={{display:"flex",alignItems:"center",gap:10}}>
                         <div style={{width:8,height:8,borderRadius:4,background:statusClr(dR),boxShadow:"0 0 6px "+statusClr(dR)+"80"}}/>
                         <span style={{fontSize:14,fontWeight:600,letterSpacing:0.5}}>{dept.dn}</span>
-                        <span style={{fontSize:10,color:bpText,fontFamily:"monospace",letterSpacing:1}}>LAYOUT</span>
+                        <span style={{fontSize:10,color:bpText,fontFamily:"monospace",letterSpacing:1}}>FLOOR PLAN</span>
                       </div>
                       <div style={{display:"flex",alignItems:"center",gap:12}}>
                         <span style={{fontSize:10,color:bpLabel,fontFamily:"monospace"}}>{totalFill}/{totalReq} STAFF</span>
@@ -311,99 +310,89 @@ export default function DetailPage(p){
                       </div>
                     </div>
 
-                    {/* Blueprint canvas with grid background — horizontal tree */}
-                    <div style={{padding:"32px 28px",backgroundImage:"radial-gradient("+bpGrid+" 1px, transparent 1px)",backgroundSize:"20px 20px"}}>
-                      <div style={{display:"flex",alignItems:"stretch",gap:0}}>
+                    {/* Blueprint body — grid background + tree */}
+                    <div style={{padding:"28px 24px",backgroundImage:"radial-gradient("+bpGrid+" 1px, transparent 1px)",backgroundSize:"20px 20px"}}>
 
-                        {/* Left: Hub node */}
-                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minWidth:100,flexShrink:0}}>
-                          <div style={{width:80,height:80,borderRadius:"50%",border:"1.5px dashed "+bpLineSolid,background:T.cd,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",boxShadow:"0 0 24px "+T.ac+"12",position:"relative",zIndex:2}}>
-                            <div style={{fontSize:11,fontWeight:700,color:T.ac,letterSpacing:0.5,textAlign:"center",lineHeight:"1.2"}}>{dept.dn}</div>
-                            <div style={{fontSize:8,color:bpText,fontFamily:"monospace",marginTop:2}}>{areaCount} AREAS</div>
-                          </div>
-                          <div style={{marginTop:8,textAlign:"center"}}>
-                            <div style={{fontSize:18,fontWeight:700,color:statusClr(dR),fontFamily:"monospace"}}>{dR}%</div>
-                            <div style={{fontSize:8,color:bpText,fontFamily:"monospace",letterSpacing:0.5}}>READINESS</div>
-                          </div>
-                        </div>
+                      {/* Area nodes — each row has a left connector gutter */}
+                      <div style={{display:"flex",flexDirection:"column",gap:0}}>
+                        {dept.areas.map(function(area,ai){
+                          var aR=areaRd(area);
+                          var aReq2=0,aFill2=0;
+                          (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
+                          var aGap=aReq2-aFill2;
+                          var stClr=statusClr(aR);
+                          var isLast=ai===areaCount-1;
 
-                        {/* Middle: Connector trunk line + branches */}
-                        <div style={{display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",width:48,flexShrink:0,position:"relative"}}>
-                          {/* Horizontal trunk from hub */}
-                          <div style={{position:"absolute",top:"50%",left:0,width:20,height:0,borderTop:"1.5px dashed "+bpLineSolid}}/>
-                          {/* Vertical spine */}
-                          <div style={{position:"absolute",left:20,top:24,bottom:24,width:0,borderLeft:"1.5px dashed "+bpLineSolid}}/>
-                          {/* Branch lines to each area node */}
-                          {dept.areas.map(function(_,ai){
-                            var topPct=areaCount===1?50:(ai/(areaCount-1))*100;
-                            return <div key={ai} style={{position:"absolute",left:20,right:0,top:"calc("+topPct+"% + "+(24-24*topPct/50)+"px - 0px)",height:0,borderTop:"1px dashed "+bpLineSolid+"80"}}/>;
-                          })}
-                        </div>
-
-                        {/* Right: Area node list */}
-                        <div style={{flex:1,display:"flex",flexDirection:"column",gap:6}}>
-                          {dept.areas.map(function(area,ai){
-                            var aR=areaRd(area);
-                            var aReq2=0,aFill2=0;
-                            (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
-                            var aGap=aReq2-aFill2;
-                            var stClr=statusClr(aR);
-
-                            return (
-                              <div key={ai} style={{display:"flex",alignItems:"stretch",gap:0}}>
-                                {/* Connection dot */}
-                                <div style={{width:10,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                                  <div style={{width:7,height:7,borderRadius:4,background:stClr,boxShadow:"0 0 6px "+stClr+"50"}}/>
-                                </div>
-                                {/* Area node card — blueprint style */}
-                                <div style={{flex:1,border:"1px solid "+stClr+"35",borderRadius:10,background:T.cd,overflow:"hidden",boxShadow:"0 0 8px "+stClr+"06"}}>
-                                  {/* Thin status strip at top */}
+                          return (
+                            <div key={ai} style={{display:"flex",alignItems:"stretch"}}>
+                              {/* Tree connector column — vertical line + branch + dot */}
+                              <div style={{width:32,flexShrink:0,position:"relative"}}>
+                                {/* Vertical line segment — top half (hidden for first node) */}
+                                {ai>0&&<div style={{position:"absolute",left:11,top:0,height:"50%",width:0,borderLeft:"1.5px dashed "+bpLineSolid}}/>}
+                                {/* Vertical line segment — bottom half (hidden for last node) */}
+                                {!isLast&&<div style={{position:"absolute",left:11,top:"50%",bottom:0,width:0,borderLeft:"1.5px dashed "+bpLineSolid}}/>}
+                                {/* Horizontal branch to card */}
+                                <div style={{position:"absolute",left:11,top:"50%",width:15,height:0,borderTop:"1.5px dashed "+bpLineSolid}}/>
+                                {/* Junction dot */}
+                                <div style={{position:"absolute",left:22,top:"50%",transform:"translate(-50%, -50%)",width:8,height:8,borderRadius:4,background:stClr,boxShadow:"0 0 5px "+stClr+"60",zIndex:1}}/>
+                              </div>
+                              {/* Area card */}
+                              <div style={{flex:1,marginBottom:ai<areaCount-1?8:0}}>
+                                <div style={{border:"1px solid "+stClr+"30",borderRadius:10,background:T.cd,overflow:"hidden"}}>
+                                  {/* Thin readiness bar */}
                                   <div style={{height:2,background:T.sa}}>
                                     <div style={{height:"100%",width:aR+"%",background:stClr,transition:"width 0.6s ease"}}/>
                                   </div>
-                                  {/* Area content — horizontal layout */}
-                                  <div style={{display:"flex",alignItems:"center",padding:"8px 14px",gap:16}}>
-                                    {/* Area name + stats */}
-                                    <div style={{width:170,flexShrink:0}}>
-                                      <div style={{fontSize:12,fontWeight:600,color:T.tx,letterSpacing:0.3}}>{area.anm}</div>
-                                      <div style={{fontSize:9,color:bpText,fontFamily:"monospace",marginTop:2}}>{aFill2}/{aReq2} STAFF {String.fromCharCode(183)} {aR}% RDY</div>
+                                  <div style={{padding:"10px 16px"}}>
+                                    {/* Area header row */}
+                                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                                      <div>
+                                        <div style={{fontSize:13,fontWeight:600,color:T.tx}}>{area.anm}</div>
+                                        <div style={{fontSize:9,color:bpText,fontFamily:"monospace",marginTop:1}}>{aFill2}/{aReq2} POSITIONS {String.fromCharCode(183)} {aR}% READY</div>
+                                      </div>
+                                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                                        {aGap>0&&<span style={{fontSize:9,color:T.rd,fontFamily:"monospace",fontWeight:600,padding:"2px 8px",borderRadius:4,border:"1px solid "+T.rd+"30",background:T.rdd}}>{String.fromCharCode(9888)} {aGap} GAP{aGap>1?"S":""}</span>}
+                                        {aGap===0&&<span style={{fontSize:9,color:T.gn,fontFamily:"monospace",padding:"2px 8px",borderRadius:4,border:"1px solid "+T.gn+"30",background:T.gd}}>{String.fromCharCode(10003)} FULL</span>}
+                                        {aGap<0&&<span style={{fontSize:9,color:T.ac,fontFamily:"monospace",padding:"2px 8px",borderRadius:4,border:"1px solid "+T.ac+"30",background:T.ad}}>+{Math.abs(aGap)} OVER</span>}
+                                      </div>
                                     </div>
-                                    {/* Roles with people dots */}
-                                    <div style={{flex:1,display:"flex",flexDirection:"column",gap:2}}>
+                                    {/* Roles — schematic rows with people dots */}
+                                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
                                       {(area.roles||[]).map(function(r,ri){
                                         var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
                                         var rClr=statusClr(rPct);
+                                        var rGap=r.rq-r.ql;
                                         return (
-                                          <div key={ri} style={{display:"flex",alignItems:"center",gap:6,fontSize:10}}>
-                                            <div style={{width:10,height:1.5,borderRadius:1,background:rClr,flexShrink:0,opacity:0.8}}/>
-                                            <span style={{color:T.tx,fontWeight:500,minWidth:90,fontSize:10}}>{r.cn}</span>
-                                            <div style={{display:"flex",gap:2,flexShrink:0}}>
-                                              {Array.from({length:Math.min(r.rq,10)}).map(function(_,di){
+                                          <div key={ri} style={{display:"flex",alignItems:"center",gap:8}}>
+                                            {/* Colored status dash */}
+                                            <div style={{width:14,height:2,borderRadius:1,background:rClr,flexShrink:0}}/>
+                                            {/* Role name */}
+                                            <span style={{fontSize:11,color:T.tx,fontWeight:500,minWidth:140}}>{r.cn}</span>
+                                            {/* People dots */}
+                                            <div style={{display:"flex",gap:3,flex:1}}>
+                                              {Array.from({length:Math.min(r.rq,12)}).map(function(_,di){
                                                 var filled=di<r.ql;
-                                                return <div key={di} style={{width:5,height:5,borderRadius:3,background:filled?rClr:"transparent",border:"1px solid "+(filled?rClr:T.bd)}}/>;
+                                                return <div key={di} style={{width:6,height:6,borderRadius:3,background:filled?rClr+"90":"transparent",border:"1.5px solid "+(filled?rClr:T.bd)}}/>;
                                               })}
-                                              {r.rq>10&&<span style={{fontSize:8,color:bpText,marginLeft:1}}>+{r.rq-10}</span>}
+                                              {r.rq>12&&<span style={{fontSize:8,color:bpText,fontFamily:"monospace",alignSelf:"center"}}>+{r.rq-12}</span>}
                                             </div>
+                                            {/* Compact readiness */}
+                                            <span style={{fontSize:9,fontFamily:"monospace",color:rClr,fontWeight:600,minWidth:32,textAlign:"right"}}>{rPct}%</span>
+                                            {rGap>0&&<span style={{fontSize:8,fontFamily:"monospace",color:T.rd,minWidth:20,textAlign:"right"}}>-{rGap}</span>}
                                           </div>
                                         );
                                       })}
                                     </div>
-                                    {/* Gap/status indicator */}
-                                    <div style={{width:60,textAlign:"right",flexShrink:0}}>
-                                      {aGap>0&&<span style={{fontSize:9,color:T.rd,fontFamily:"monospace",fontWeight:600}}>{String.fromCharCode(9888)} -{aGap}</span>}
-                                      {aGap===0&&<span style={{fontSize:9,color:T.gn,fontFamily:"monospace"}}>{String.fromCharCode(10003)} FULL</span>}
-                                      {aGap<0&&<span style={{fontSize:9,color:T.ac,fontFamily:"monospace"}}>+{Math.abs(aGap)}</span>}
-                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Blueprint footer with legend */}
+                    {/* Footer legend */}
                     <div style={{padding:"8px 20px",borderTop:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:16}}>
                       <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5}}>LEGEND:</span>
                       <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.gn}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>&ge;85%</span></div>
@@ -411,8 +400,8 @@ export default function DetailPage(p){
                       <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.rd}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>&lt;60%</span></div>
                       <div style={{flex:1}}/>
                       <div style={{display:"flex",alignItems:"center",gap:4}}>
-                        <div style={{display:"flex",gap:2}}>
-                          <div style={{width:5,height:5,borderRadius:3,background:T.ac}}/><div style={{width:5,height:5,borderRadius:3,border:"1px solid "+T.bd,background:"transparent"}}/>
+                        <div style={{display:"flex",gap:3}}>
+                          <div style={{width:6,height:6,borderRadius:3,background:T.ac+"90",border:"1.5px solid "+T.ac}}/><div style={{width:6,height:6,borderRadius:3,border:"1.5px solid "+T.bd,background:"transparent"}}/>
                         </div>
                         <span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>FILLED / VACANT</span>
                       </div>
@@ -467,7 +456,7 @@ export default function DetailPage(p){
               </div>
             )}
 
-            {/* Area health summary — compact schematic */}
+            {/* Area health summary — schematic with proven MiniGauge rings */}
             {allAreaNames.length>0&&(
               <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20,background:bpBg}}>
                 <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:8}}>
@@ -486,12 +475,7 @@ export default function DetailPage(p){
                     var stClr2=statusClr(aggRd2);
                     return (
                       <div key={ai} style={{padding:"16px 20px",borderRight:ai<allAreaNames.length-1?"1px dashed "+T.bd+"40":"none",textAlign:"center"}}>
-                        {/* Circular readiness ring — drawn as CSS */}
-                        <div style={{width:52,height:52,borderRadius:"50%",border:"2px solid "+stClr2+"40",margin:"0 auto 8px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",background:"conic-gradient("+stClr2+" "+aggRd2*3.6+"deg, "+T.sa+" 0deg)"}}>
-                          <div style={{width:42,height:42,borderRadius:"50%",background:T.cd,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            <span style={{fontSize:13,fontWeight:700,color:stClr2,fontFamily:"monospace"}}>{aggRd2}</span>
-                          </div>
-                        </div>
+                        <div style={{margin:"0 auto 8px",width:48}}><MiniGauge v={aggRd2} sz={48} sw={3}/></div>
                         <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{anm}</div>
                         <div style={{fontSize:9,color:bpText,fontFamily:"monospace"}}>{totalFill2}/{totalReq2} STAFF</div>
                         <div style={{fontSize:9,fontFamily:"monospace",marginTop:3,color:totalGap>0?T.rd:totalGap<0?T.ac:T.gn}}>
