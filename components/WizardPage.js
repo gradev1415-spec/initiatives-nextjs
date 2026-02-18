@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useT } from "@/lib/theme";
 import { fD, rc, cc2, cw, pv } from "@/lib/utils";
-import { LIBRARY, JOB_PROFILE_SKILLS, ALL_SKILLS, ALL_CERTS } from "@/lib/data";
+import { LIBRARY, JOB_PROFILE_SKILLS, ALL_SKILLS, ALL_CERTS, LAYOUT_TEMPLATES } from "@/lib/data";
 import Badge from "./Badge";
 import ProgressBar from "./ProgressBar";
 import Gauge from "./Gauge";
@@ -42,6 +42,9 @@ export default function WizardPage(p){
   var _nln=useState("");var newLayoutName=_nln[0],sNewLayoutName=_nln[1];
   var _nla=useState([]);var newAreas=_nla[0],sNewAreas=_nla[1];
   var _da=useState({});var deptAreas=_da[0],sDeptAreas=_da[1];
+  /* Area requirements: keyed by area aid -> {skills:[], certs:[]} */
+  var _areq=useState({});var areaReqs=_areq[0],sAreaReqs=_areq[1];
+  var _areqExp=useState({});var areaReqExp=_areqExp[0],sAreaReqExp=_areqExp[1];
 
   useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}50%{box-shadow:0 0 12px 2px rgba(34,211,238,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
 
@@ -78,6 +81,24 @@ export default function WizardPage(p){
   }
   function remNewArea(aid){
     sNewAreas(function(pr){return pr.filter(function(a){return a.aid!==aid;});});
+  }
+  /* Area requirements helpers */
+  function getAreaReqs(aid){return areaReqs[aid]||{skills:[],certs:[]};}
+  function addAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};if(cur.skills.indexOf(sk)>=0)return pr;n[aid]={skills:cur.skills.concat([sk]),certs:cur.certs};return n;});}
+  function remAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills.filter(function(s){return s!==sk;}),certs:cur.certs};return n;});}
+  function addAreaCert(aid,ct){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};if(cur.certs.indexOf(ct)>=0)return pr;n[aid]={skills:cur.skills,certs:cur.certs.concat([ct])};return n;});}
+  function remAreaCert(aid,ct){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills,certs:cur.certs.filter(function(c){return c!==ct;})};return n;});}
+  function togAreaReqExp(aid){sAreaReqExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[aid]=!pr[aid];return n;});}
+  function loadTemplateReqs(tmplId){
+    var tmpl=(p.layoutTemplates||[]).find(function(t){return t.id===tmplId;});
+    if(!tmpl)return;
+    var reqs={};
+    tmpl.areas.forEach(function(a){
+      if((a.skillReqs&&a.skillReqs.length>0)||(a.certReqs&&a.certReqs.length>0)){
+        reqs[a.aid]={skills:a.skillReqs||[],certs:a.certReqs||[]};
+      }
+    });
+    sAreaReqs(reqs);
   }
   function addC(did,c){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];var e=pr[did]||[];if(e.find(function(x){return x.cid===c.id;}))return pr;n[did]=e.concat([{cid:c.id,cnm:c.nm,cr:"Essential",rq:1}]);return n;});}
   function remC(did,cid){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[did]=(pr[did]||[]).filter(function(x){return x.cid!==cid;});return n;});}
@@ -231,7 +252,7 @@ export default function WizardPage(p){
   function getHint(){
     if(step===1){if(!name.trim())return "Name your initiative to begin workforce analysis.";if(!desc.trim())return "A description helps stakeholders understand the objective.";return "The system will connect "+type.toLowerCase()+" workforce data to this initiative.";}
     if(step===2){if(selD.length===0)return "Select locations to scan their employee records.";return "~"+(selD.length*22)+" employee records across "+selD.length+" location"+(selD.length>1?"s":"")+" will be cross-referenced.";}
-    if(step===25){if(!useLayout)return "Uniform structure selected. All roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose an existing layout template or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";return la.length+" area"+(la.length!==1?"s":"")+" defined. Customize which areas apply to each location below.";}
+    if(step===25){if(!useLayout)return "Uniform structure selected. All roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose an existing layout template or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";var reqCount=0;la.forEach(function(a){var r=getAreaReqs(a.aid);reqCount+=r.skills.length+r.certs.length;});return la.length+" area"+(la.length!==1?"s":"")+" defined"+(reqCount>0?", "+reqCount+" area requirement"+(reqCount!==1?"s":""):"")+". Customize per location below.";}
     if(step===3){var t=countTotals();if(t.totalPeople===0)return "Add roles to define workforce requirements.";if(roleSrc==="jobprofile")return "Tracking "+t.totalPeople+" positions. Next step: define skill & certificate targets.";return "Tracking "+t.totalPeople+" positions. Estimated readiness: "+calcRd()+"%.";}
     if(step===4&&roleSrc==="jobprofile"){var ts=targetSummary();if(ts.skills===0&&ts.certs===0)return "Select skills and certificates to define what readiness means for each profile.";return ts.skills+" skill"+(ts.skills!==1?"s":"")+" and "+ts.certs+" certificate"+(ts.certs!==1?"s":"")+" targeted. Adjust levels and coverage as needed.";}
     if(step===timelineN){if(!sq&&!tq)return "Set a timeline to enable progress tracking and deadline alerts.";if(sq&&tq&&rev)return "Financial context linked. Opportunity cost will track against readiness.";if(sq&&tq)return "Timeline locked. Quarterly snapshots will track progress.";return "Select both quarters to define the tracking window.";}
@@ -298,7 +319,11 @@ export default function WizardPage(p){
             var key=dept.id+"__"+aId;
             var dc=dCirc[key]||[];
             var area=layoutAreas.find(function(a){return a.aid===aId;});
-            return {aid:aId,anm:area?area.anm:aId,roles:dc.map(buildRole)};
+            var reqs=getAreaReqs(aId);
+            var aObj={aid:aId,anm:area?area.anm:aId,roles:dc.map(buildRole)};
+            if(reqs.skills.length>0)aObj.skillReqs=reqs.skills;
+            if(reqs.certs.length>0)aObj.certReqs=reqs.certs;
+            return aObj;
           }).filter(function(a){return a.roles.length>0;});
           if(areas.length>0)return {did:dept.id,dn:dept.nm,layout:selLayout,areas:areas};
         }
@@ -307,7 +332,13 @@ export default function WizardPage(p){
     });
     /* Save new layout template */
     if(useLayout&&selLayout==="new"&&newLayoutName.trim()&&newAreas.length>0){
-      var validAreas=newAreas.filter(function(a){return a.anm.trim();});
+      var validAreas=newAreas.filter(function(a){return a.anm.trim();}).map(function(a){
+        var reqs=getAreaReqs(a.aid);
+        var aObj={aid:a.aid,anm:a.anm};
+        if(reqs.skills.length>0)aObj.skillReqs=reqs.skills;
+        if(reqs.certs.length>0)aObj.certReqs=reqs.certs;
+        return aObj;
+      });
       if(validAreas.length>0){
         var newTmpl={id:"lt_"+Date.now(),nm:newLayoutName.trim(),areas:validAreas};
         p.setLT(function(prev){return prev.concat([newTmpl]);});
@@ -406,7 +437,7 @@ export default function WizardPage(p){
                 <label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Choose a Layout</label>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
                   {templates.map(function(tmpl){var sel=selLayout===tmpl.id;return (
-                    <div key={tmpl.id} onClick={function(){sSelLayout(tmpl.id);}} style={{padding:"12px 14px",borderRadius:10,border:"2px solid "+(sel?T.ac:T.bd),background:sel?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s",animation:"wizSlideIn 0.3s ease"}}>
+                    <div key={tmpl.id} onClick={function(){sSelLayout(tmpl.id);loadTemplateReqs(tmpl.id);}} style={{padding:"12px 14px",borderRadius:10,border:"2px solid "+(sel?T.ac:T.bd),background:sel?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s",animation:"wizSlideIn 0.3s ease"}}>
                       <div style={{fontSize:13,fontWeight:600,color:sel?T.ac:T.tx,marginBottom:4}}>{tmpl.nm}</div>
                       <div style={{fontSize:10,color:T.td,marginBottom:6}}>{tmpl.areas.length} area{tmpl.areas.length!==1?"s":""}</div>
                       <div style={{fontSize:10,color:T.tm,lineHeight:"1.4"}}>{tmpl.areas.map(function(a){return a.anm;}).join(" "+DOT+" ")}</div>
@@ -432,6 +463,66 @@ export default function WizardPage(p){
                     <button onClick={function(){remNewArea(area.aid);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>{CROSS}</button>
                   </div>
                 );})}
+              </div>)}
+              {/* Area Requirements — skills & certs per area (optional) */}
+              {selLayout&&getLayoutAreas().length>0&&(<div style={{marginBottom:14,animation:"wizFadeUp 0.3s ease"}}>
+                <label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Area Requirements</label>
+                <p style={{fontSize:11,color:T.tm,marginBottom:10,marginTop:0}}>Optional: add skills or certificates that <em>anyone</em> working in this area needs, regardless of their role.</p>
+                {getLayoutAreas().map(function(area,ai){
+                  var reqs=getAreaReqs(area.aid);
+                  var hasReqs=reqs.skills.length>0||reqs.certs.length>0;
+                  var isExp=!!areaReqExp[area.aid];
+                  return (<div key={area.aid} style={{marginBottom:6,borderRadius:8,border:"1px solid "+(hasReqs?T.ac+"30":T.bd),background:hasReqs?T.ad+"40":"transparent",overflow:"hidden",animation:"wizSlideIn 0.25s ease",animationDelay:(ai*40)+"ms",animationFillMode:"backwards"}}>
+                    {/* Area row header — click to expand */}
+                    <div onClick={function(){togAreaReqExp(area.aid);}} style={{padding:"8px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer"}}>
+                      <span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{isExp?TRI_D:TRI_R}</span>
+                      <span style={{fontSize:12,fontWeight:500,color:hasReqs?T.ac:T.tx,flex:1}}>{area.anm}</span>
+                      {hasReqs&&<span style={{fontSize:10,color:T.ac}}>{reqs.skills.length} skill{reqs.skills.length!==1?"s":""}, {reqs.certs.length} cert{reqs.certs.length!==1?"s":""}</span>}
+                      {!hasReqs&&<span style={{fontSize:10,color:T.td}}>No area requirements</span>}
+                    </div>
+                    {/* Expanded content — skills & certs pickers */}
+                    {isExp&&(<div style={{padding:"6px 12px 12px",borderTop:"1px solid "+T.bd+"30"}}>
+                      {/* Skills */}
+                      <div style={{marginBottom:8}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                          <span style={{fontSize:10,color:T.td,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Skills</span>
+                          <select value="" onChange={function(e){if(e.target.value)addAreaSkill(area.aid,e.target.value);}} style={{padding:"3px 8px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
+                            <option value="">+ Add skill...</option>
+                            {ALL_SKILLS.filter(function(sk){return reqs.skills.indexOf(sk)<0;}).map(function(sk){return <option key={sk} value={sk}>{sk}</option>;})}
+                          </select>
+                        </div>
+                        {reqs.skills.length===0&&<div style={{fontSize:10,color:T.td,fontStyle:"italic"}}>No area-specific skills</div>}
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                          {reqs.skills.map(function(sk){return (
+                            <div key={sk} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.ac+"15",border:"1px solid "+T.ac+"25",fontSize:10,color:T.ac,animation:"wizPop 0.2s ease"}}>
+                              <span>{sk}</span>
+                              <span onClick={function(e){e.stopPropagation();remAreaSkill(area.aid,sk);}} style={{cursor:"pointer",fontSize:11,color:T.ac,opacity:0.6}}>{CROSS}</span>
+                            </div>
+                          );})}
+                        </div>
+                      </div>
+                      {/* Certs */}
+                      <div>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                          <span style={{fontSize:10,color:T.td,fontWeight:600,textTransform:"uppercase",letterSpacing:0.5}}>Certificates</span>
+                          <select value="" onChange={function(e){if(e.target.value)addAreaCert(area.aid,e.target.value);}} style={{padding:"3px 8px",borderRadius:6,border:"1px solid "+T.am+"40",background:T.amd,color:T.am,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
+                            <option value="">+ Add cert...</option>
+                            {ALL_CERTS.filter(function(ct){return reqs.certs.indexOf(ct)<0;}).map(function(ct){return <option key={ct} value={ct}>{ct}</option>;})}
+                          </select>
+                        </div>
+                        {reqs.certs.length===0&&<div style={{fontSize:10,color:T.td,fontStyle:"italic"}}>No area-specific certificates</div>}
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                          {reqs.certs.map(function(ct){return (
+                            <div key={ct} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.am+"15",border:"1px solid "+T.am+"25",fontSize:10,color:T.am,animation:"wizPop 0.2s ease"}}>
+                              <span>{ct}</span>
+                              <span onClick={function(e){e.stopPropagation();remAreaCert(area.aid,ct);}} style={{cursor:"pointer",fontSize:11,color:T.am,opacity:0.6}}>{CROSS}</span>
+                            </div>
+                          );})}
+                        </div>
+                      </div>
+                    </div>)}
+                  </div>);
+                })}
               </div>)}
               {/* Per-location area customization */}
               {selLayout&&getLayoutAreas().length>0&&(<div style={{animation:"wizFadeUp 0.3s ease"}}>

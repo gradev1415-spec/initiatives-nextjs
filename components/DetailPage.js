@@ -383,6 +383,20 @@ export default function DetailPage(p){
                                         );
                                       })}
                                     </div>
+                                    {/* Area requirements — skills & certs */}
+                                    {((area.skillReqs&&area.skillReqs.length>0)||(area.certReqs&&area.certReqs.length>0))&&(
+                                      <div style={{marginTop:8,paddingTop:6,borderTop:"1px dashed "+T.bd+"40"}}>
+                                        <div style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5,marginBottom:4}}>AREA REQUIRES:</div>
+                                        <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+                                          {(area.skillReqs||[]).map(function(sk){return (
+                                            <span key={sk} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.ac+"12",border:"1px solid "+T.ac+"25",color:T.ac,fontFamily:"monospace"}}>{sk}</span>
+                                          );})}
+                                          {(area.certReqs||[]).map(function(ct){return (
+                                            <span key={ct} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.am+"12",border:"1px solid "+T.am+"25",color:T.am,fontFamily:"monospace"}}>{ct}</span>
+                                          );})}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
