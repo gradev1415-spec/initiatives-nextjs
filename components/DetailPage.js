@@ -388,8 +388,14 @@ export default function DetailPage(p){
                                       <div style={{marginTop:8,paddingTop:6,borderTop:"1px dashed "+T.bd+"40"}}>
                                         <div style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5,marginBottom:4}}>AREA REQUIRES:</div>
                                         <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
-                                          {(area.skillReqs||[]).map(function(sk){return (
-                                            <span key={sk} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.ac+"12",border:"1px solid "+T.ac+"25",color:T.ac,fontFamily:"monospace"}}>{sk}</span>
+                                          {(area.skillReqs||[]).map(function(sk){
+                                            var skName=typeof sk==="string"?sk:sk.s;
+                                            var skLvl=typeof sk==="string"?null:sk.lvl;
+                                            return (
+                                            <span key={skName} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.ac+"12",border:"1px solid "+T.ac+"25",color:T.ac,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
+                                              {skName}
+                                              {skLvl&&<span style={{display:"inline-flex",gap:1}}>{[1,2,3].map(function(lv){return <span key={lv} style={{width:4,height:4,borderRadius:2,background:lv<=skLvl?T.ac:T.ac+"30"}}/>;})}</span>}
+                                            </span>
                                           );})}
                                           {(area.certReqs||[]).map(function(ct){return (
                                             <span key={ct} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.am+"12",border:"1px solid "+T.am+"25",color:T.am,fontFamily:"monospace"}}>{ct}</span>

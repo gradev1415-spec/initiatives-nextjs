@@ -82,10 +82,11 @@ export default function WizardPage(p){
   function remNewArea(aid){
     sNewAreas(function(pr){return pr.filter(function(a){return a.aid!==aid;});});
   }
-  /* Area requirements helpers */
+  /* Area requirements helpers — skills are {s,lvl} objects, certs are strings */
   function getAreaReqs(aid){return areaReqs[aid]||{skills:[],certs:[]};}
-  function addAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};if(cur.skills.indexOf(sk)>=0)return pr;n[aid]={skills:cur.skills.concat([sk]),certs:cur.certs};return n;});}
-  function remAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills.filter(function(s){return s!==sk;}),certs:cur.certs};return n;});}
+  function addAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};if(cur.skills.some(function(x){return x.s===sk;}))return pr;n[aid]={skills:cur.skills.concat([{s:sk,lvl:1}]),certs:cur.certs};return n;});}
+  function remAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills.filter(function(x){return x.s!==sk;}),certs:cur.certs};return n;});}
+  function setAreaSkillLvl(aid,sk,lvl){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills.map(function(x){return x.s===sk?{s:x.s,lvl:lvl}:x;}),certs:cur.certs};return n;});}
   function addAreaCert(aid,ct){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};if(cur.certs.indexOf(ct)>=0)return pr;n[aid]={skills:cur.skills,certs:cur.certs.concat([ct])};return n;});}
   function remAreaCert(aid,ct){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills,certs:cur.certs.filter(function(c){return c!==ct;})};return n;});}
   function togAreaReqExp(aid){sAreaReqExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[aid]=!pr[aid];return n;});}
@@ -95,10 +96,42 @@ export default function WizardPage(p){
     var reqs={};
     tmpl.areas.forEach(function(a){
       if((a.skillReqs&&a.skillReqs.length>0)||(a.certReqs&&a.certReqs.length>0)){
-        reqs[a.aid]={skills:a.skillReqs||[],certs:a.certReqs||[]};
+        reqs[a.aid]={skills:(a.skillReqs||[]).map(function(sk){return typeof sk==="string"?{s:sk,lvl:1}:sk;}),certs:a.certReqs||[]};
       }
     });
     sAreaReqs(reqs);
+  }
+  /* Apply roles from one dept to all others */
+  function applyToAll(srcDeptId){
+    var layoutAreas3=getLayoutAreas();
+    sDCirc(function(pr){
+      var n={};for(var k in pr)n[k]=pr[k];
+      if(useLayout&&selLayout&&layoutAreas3.length>0){
+        /* Area-based: copy each area's roles from srcDept to all other depts */
+        selD.forEach(function(dept){
+          if(dept.id===srcDeptId)return;
+          var activeAIds=getDeptActiveAreas(dept.id);
+          activeAIds.forEach(function(aId){
+            var srcKey=srcDeptId+"__"+aId;
+            var dstKey=dept.id+"__"+aId;
+            if(pr[srcKey]&&pr[srcKey].length>0){
+              /* Deep copy roles but keep same structure */
+              n[dstKey]=pr[srcKey].map(function(r){return {cid:r.cid,cnm:r.cnm,cr:r.cr,rq:r.rq};});
+            }
+          });
+        });
+      }else{
+        /* Flat: copy srcDept's roles to all other depts */
+        var srcRoles=pr[srcDeptId]||[];
+        if(srcRoles.length>0){
+          selD.forEach(function(dept){
+            if(dept.id===srcDeptId)return;
+            n[dept.id]=srcRoles.map(function(r){return {cid:r.cid,cnm:r.cnm,cr:r.cr,rq:r.rq};});
+          });
+        }
+      }
+      return n;
+    });
   }
   function addC(did,c){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];var e=pr[did]||[];if(e.find(function(x){return x.cid===c.id;}))return pr;n[did]=e.concat([{cid:c.id,cnm:c.nm,cr:"Essential",rq:1}]);return n;});}
   function remC(did,cid){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[did]=(pr[did]||[]).filter(function(x){return x.cid!==cid;});return n;});}
@@ -321,7 +354,7 @@ export default function WizardPage(p){
             var area=layoutAreas.find(function(a){return a.aid===aId;});
             var reqs=getAreaReqs(aId);
             var aObj={aid:aId,anm:area?area.anm:aId,roles:dc.map(buildRole)};
-            if(reqs.skills.length>0)aObj.skillReqs=reqs.skills;
+            if(reqs.skills.length>0)aObj.skillReqs=reqs.skills.map(function(sk){return {s:sk.s,lvl:sk.lvl};});
             if(reqs.certs.length>0)aObj.certReqs=reqs.certs;
             return aObj;
           }).filter(function(a){return a.roles.length>0;});
@@ -335,7 +368,7 @@ export default function WizardPage(p){
       var validAreas=newAreas.filter(function(a){return a.anm.trim();}).map(function(a){
         var reqs=getAreaReqs(a.aid);
         var aObj={aid:a.aid,anm:a.anm};
-        if(reqs.skills.length>0)aObj.skillReqs=reqs.skills;
+        if(reqs.skills.length>0)aObj.skillReqs=reqs.skills.map(function(sk){return {s:sk.s,lvl:sk.lvl};});
         if(reqs.certs.length>0)aObj.certReqs=reqs.certs;
         return aObj;
       });
@@ -480,8 +513,8 @@ export default function WizardPage(p){
                       <span style={{fontSize:10,color:T.td,width:12,textAlign:"center",transition:"transform 0.2s",transform:isExp?"rotate(90deg)":"none"}}>{TRI_R}</span>
                       <span style={{fontSize:13,fontWeight:600,color:isExp?T.ac:T.tx}}>{area.anm}</span>
                       {/* Inline summary pills */}
-                      <div style={{display:"flex",alignItems:"center",gap:4,flex:1}}>
-                        {hasReqs&&reqs.skills.map(function(sk){return (<span key={sk} style={{padding:"1px 6px",borderRadius:4,background:T.ac+"12",fontSize:9,color:T.ac}}>{sk}</span>);})}
+                      <div style={{display:"flex",alignItems:"center",gap:4,flex:1,flexWrap:"wrap"}}>
+                        {hasReqs&&reqs.skills.map(function(sk){return (<span key={sk.s} style={{padding:"1px 6px",borderRadius:4,background:T.ac+"12",fontSize:9,color:T.ac}}>{sk.s} <span style={{opacity:0.6}}>L{sk.lvl}</span></span>);})}
                         {hasReqs&&reqs.certs.map(function(ct){return (<span key={ct} style={{padding:"1px 6px",borderRadius:4,background:T.am+"12",fontSize:9,color:T.am}}>{ct}</span>);})}
                       </div>
                       {!allOn&&<span style={{fontSize:9,color:T.am,padding:"1px 6px",borderRadius:4,background:T.amd}}>{locStatus.filter(function(l){return l.on;}).length}/{selD.length} locations</span>}
@@ -496,7 +529,7 @@ export default function WizardPage(p){
                             <span style={{fontSize:10,color:T.td,fontWeight:600}}>REQUIRES</span>
                             <select value="" onChange={function(e){if(e.target.value)addAreaSkill(area.aid,e.target.value);}} style={{padding:"2px 6px",borderRadius:5,border:"1px solid "+T.ac+"30",background:"transparent",color:T.ac,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
                               <option value="">+ skill</option>
-                              {ALL_SKILLS.filter(function(sk){return reqs.skills.indexOf(sk)<0;}).map(function(sk){return <option key={sk} value={sk}>{sk}</option>;})}
+                              {ALL_SKILLS.filter(function(sk){return !reqs.skills.some(function(x){return x.s===sk;});}).map(function(sk){return <option key={sk} value={sk}>{sk}</option>;})}
                             </select>
                             <select value="" onChange={function(e){if(e.target.value)addAreaCert(area.aid,e.target.value);}} style={{padding:"2px 6px",borderRadius:5,border:"1px solid "+T.am+"30",background:"transparent",color:T.am,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
                               <option value="">+ cert</option>
@@ -506,9 +539,15 @@ export default function WizardPage(p){
                         </div>
                         {hasReqs&&(<div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                           {reqs.skills.map(function(sk){return (
-                            <div key={sk} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.ac+"12",border:"1px solid "+T.ac+"20",fontSize:10,color:T.ac}}>
-                              {sk}
-                              <span onClick={function(e){e.stopPropagation();remAreaSkill(area.aid,sk);}} style={{cursor:"pointer",opacity:0.5,fontSize:11}}>{CROSS}</span>
+                            <div key={sk.s} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.ac+"12",border:"1px solid "+T.ac+"20",fontSize:10,color:T.ac}}>
+                              {sk.s}
+                              {/* Level pips — click to set level 1-3 */}
+                              <div style={{display:"inline-flex",gap:2,marginLeft:2}}>
+                                {[1,2,3].map(function(lv){return (
+                                  <div key={lv} onClick={function(e){e.stopPropagation();setAreaSkillLvl(area.aid,sk.s,lv);}} style={{width:6,height:6,borderRadius:3,background:lv<=sk.lvl?T.ac:T.ac+"25",cursor:"pointer",transition:"background 0.2s"}}/>
+                                );})}
+                              </div>
+                              <span onClick={function(e){e.stopPropagation();remAreaSkill(area.aid,sk.s);}} style={{cursor:"pointer",opacity:0.5,fontSize:11}}>{CROSS}</span>
                             </div>
                           );})}
                           {reqs.certs.map(function(ct){return (
@@ -589,9 +628,14 @@ export default function WizardPage(p){
               var slots=deptGroups[dId];
               var deptName=slots[0].label;
               var hasAreas=slots[0].aId!==null;
+              /* Check if this dept has any roles configured */
+              var deptHasRoles=false;
+              slots.forEach(function(sl){if((dCirc[sl.key]||[]).length>0)deptHasRoles=true;});
+              var showApply=deptOrder.length>1&&deptHasRoles;
               return (<div key={dId} style={{marginBottom:12,borderRadius:10,border:"1px solid "+T.bd}}>
-                {hasAreas&&(<div style={{padding:"8px 14px",borderBottom:"1px solid "+T.bd,background:T.sa}}>
+                {hasAreas&&(<div style={{padding:"8px 14px",borderBottom:"1px solid "+T.bd,background:T.sa,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <span style={{fontSize:13,fontWeight:600}}>{deptName}</span>
+                  {showApply&&<button onClick={function(){applyToAll(dId);}} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>Apply to all locations</button>}
                 </div>)}
                 {slots.map(function(slot){
                   var roles=dCirc[slot.key]||[];
@@ -601,6 +645,7 @@ export default function WizardPage(p){
                         {hasAreas&&<span style={{fontSize:10,color:T.ac}}>{TRI_R}</span>}
                         <span style={{fontSize:hasAreas?12:13,fontWeight:hasAreas?500:600,color:hasAreas?T.tm:T.tx}}>{hasAreas?slot.areaLabel:slot.label}</span>
                         {roles.length>0&&<span style={{fontSize:10,color:T.ac,animation:"wizFadeUp 0.3s ease"}}>{roles.reduce(function(s,r){return s+r.rq;},0)} positions</span>}
+                        {!hasAreas&&showApply&&<button onClick={function(e){e.stopPropagation();applyToAll(dId);}} style={{padding:"2px 8px",borderRadius:5,border:"1px solid "+T.ac+"30",background:T.ad,color:T.ac,fontSize:9,cursor:"pointer",fontFamily:"inherit",fontWeight:500,marginLeft:4}}>Apply to all</button>}
                       </div>
                       <div style={{display:"flex",gap:6}}>
                         <select value="" onChange={function(e){var cid=e.target.value;if(!cid)return;var found=srcList.find(function(x){return x.id===cid;});if(found)addC(slot.key,found);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+(roleSrc==="circle"?T.ac:T.pu)+"40",background:roleSrc==="circle"?T.ad:T.pd,color:roleSrc==="circle"?T.ac:T.pu,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:120}}>
