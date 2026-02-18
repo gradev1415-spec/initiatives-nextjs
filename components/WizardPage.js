@@ -88,8 +88,8 @@ export default function WizardPage(p){
   function countTotals(){var totalRoles=0,totalPeople=0,essRoles=0,essPeople=0,impRoles=0;var keys=Object.keys(dCirc);for(var i=0;i<keys.length;i++){var cs=dCirc[keys[i]];totalRoles+=cs.length;for(var j=0;j<cs.length;j++){totalPeople+=cs[j].rq;if(cs[j].cr==="Essential"){essRoles++;essPeople+=cs[j].rq;}if(cs[j].cr==="Important")impRoles++;}}return {totalRoles:totalRoles,totalPeople:totalPeople,totalDepts:selD.length,essRoles:essRoles,essPeople:essPeople,impRoles:impRoles};}
 
   /* ===== Dynamic stepper ===== */
-  var allStps=[{n:1,l:"Basics"},{n:2,l:"Locations"},{n:25,l:"Store Layout",cond:"layout"},{n:3,l:"Roles"},{n:4,l:"Define Targets",cond:"jobprofile"},{n:5,l:"Timeline"},{n:6,l:"Analysis"}];
-  var stps=allStps.filter(function(s){if(s.cond==="layout")return useLayout;if(s.cond==="jobprofile")return roleSrc==="jobprofile";return true;});
+  var allStps=[{n:1,l:"Basics"},{n:2,l:"Locations"},{n:25,l:"Store Layout"},{n:3,l:"Roles"},{n:4,l:"Define Targets",cond:"jobprofile"},{n:5,l:"Timeline"},{n:6,l:"Analysis"}];
+  var stps=allStps.filter(function(s){if(s.cond==="jobprofile")return roleSrc==="jobprofile";return true;});
   /* Remap step numbers for display when circles (no step 4) */
   function stpIdx(sn){for(var i=0;i<stps.length;i++){if(stps[i].n===sn)return i;}return -1;}
   function nxtStep(cur){var idx=stpIdx(cur);return idx<stps.length-1?stps[idx+1].n:null;}
@@ -231,7 +231,7 @@ export default function WizardPage(p){
   function getHint(){
     if(step===1){if(!name.trim())return "Name your initiative to begin workforce analysis.";if(!desc.trim())return "A description helps stakeholders understand the objective.";return "The system will connect "+type.toLowerCase()+" workforce data to this initiative.";}
     if(step===2){if(selD.length===0)return "Select locations to scan their employee records.";return "~"+(selD.length*22)+" employee records across "+selD.length+" location"+(selD.length>1?"s":"")+" will be cross-referenced.";}
-    if(step===25){var la=getLayoutAreas();if(!selLayout)return "Choose an existing layout or create a new one to define areas.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";return la.length+" area"+(la.length!==1?"s":"")+" defined. Customize which areas apply to each location below.";}
+    if(step===25){if(!useLayout)return "Uniform structure selected. All roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose an existing layout template or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";return la.length+" area"+(la.length!==1?"s":"")+" defined. Customize which areas apply to each location below.";}
     if(step===3){var t=countTotals();if(t.totalPeople===0)return "Add roles to define workforce requirements.";if(roleSrc==="jobprofile")return "Tracking "+t.totalPeople+" positions. Next step: define skill & certificate targets.";return "Tracking "+t.totalPeople+" positions. Estimated readiness: "+calcRd()+"%.";}
     if(step===4&&roleSrc==="jobprofile"){var ts=targetSummary();if(ts.skills===0&&ts.certs===0)return "Select skills and certificates to define what readiness means for each profile.";return ts.skills+" skill"+(ts.skills!==1?"s":"")+" and "+ts.certs+" certificate"+(ts.certs!==1?"s":"")+" targeted. Adjust levels and coverage as needed.";}
     if(step===timelineN){if(!sq&&!tq)return "Set a timeline to enable progress tracking and deadline alerts.";if(sq&&tq&&rev)return "Financial context linked. Opportunity cost will track against readiness.";if(sq&&tq)return "Timeline locked. Quarterly snapshots will track progress.";return "Select both quarters to define the tracking window.";}
@@ -276,7 +276,7 @@ export default function WizardPage(p){
   function canNext(){
     if(step===1)return name.trim().length>0;
     if(step===2)return selD.length>0;
-    if(step===25){if(!selLayout)return false;if(selLayout==="new")return newLayoutName.trim().length>0&&newAreas.filter(function(a){return a.anm.trim();}).length>0;return true;}
+    if(step===25){if(!useLayout)return true;if(!selLayout)return false;if(selLayout==="new")return newLayoutName.trim().length>0&&newAreas.filter(function(a){return a.anm.trim();}).length>0;return true;}
     if(step===3){var v2=Object.values(dCirc);for(var i=0;i<v2.length;i++){if(v2[i].length>0)return true;}return false;}
     if(step===4&&roleSrc==="jobprofile"){
       var keys=Object.keys(jpTargets);
@@ -371,27 +371,37 @@ export default function WizardPage(p){
             {exp[region.id]!==false&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
           </div>);})}
           {selD.length>0&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizFadeUp 0.3s ease"}}><span style={{fontWeight:600}}>{selD.length} location{selD.length>1?"s":""}</span>{" "+DOT+" "+selD.map(function(d){return d.nm;}).join(", ")}</div>}
-          {/* Store Layout toggle */}
-          {selD.length>0&&(<div style={{marginTop:14,animation:"wizFadeUp 0.4s ease"}}>
-            <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"12px 14px",borderRadius:10,border:"1px solid "+(useLayout?T.ac+"50":T.bd),background:useLayout?T.ad:"transparent",transition:"all 0.3s ease"}} onClick={function(){sUseLayout(!useLayout);}}>
-              <div style={{width:36,height:20,borderRadius:10,background:useLayout?T.ac:T.bl,position:"relative",transition:"all 0.3s",flexShrink:0}}>
-                <div style={{width:16,height:16,borderRadius:8,background:"white",position:"absolute",top:2,left:useLayout?18:2,transition:"left 0.3s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
-              </div>
-              <div>
-                <span style={{fontSize:13,fontWeight:useLayout?600:400,color:useLayout?T.ac:T.tm}}>Define a Store Layout</span>
-                <span style={{fontSize:11,color:T.td,display:"block",marginTop:1}}>Divide your locations into areas {DOT} sections, stations, or zones that need different training</span>
-              </div>
-            </label>
-          </div>)}
         </div>)}
         {/* ===== Step 25: Store Layout ===== */}
         {step===25&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          <p style={{fontSize:12,color:T.tm,marginBottom:14,marginTop:0}}>Define areas within your locations. Each area can have its own team with different training needs.</p>
-          {/* Template selection or create new */}
-          {(function(){
+          <p style={{fontSize:12,color:T.tm,marginBottom:14,marginTop:0}}>Your locations may have internal areas that need different skills and training. Define a layout, or skip if roles are uniform across each location.</p>
+          {/* Decision cards */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+            <div onClick={function(){sUseLayout(false);sSelLayout(null);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(!useLayout?T.ac:T.bd),background:!useLayout?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
+              {!useLayout&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
+              <div style={{fontSize:22,marginBottom:8,opacity:0.7}}>&#9634;</div>
+              <div style={{fontSize:14,fontWeight:600,color:!useLayout?T.ac:T.tx,marginBottom:4}}>Uniform Locations</div>
+              <div style={{fontSize:11,color:T.tm,lineHeight:"1.5"}}>Each location has the same role structure. No internal subdivisions needed.</div>
+              <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:T.sa,fontSize:10,color:T.td}}>Best for: offices, warehouses, simple stores</div>
+            </div>
+            <div onClick={function(){sUseLayout(true);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(useLayout?T.ac:T.bd),background:useLayout?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
+              {useLayout&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
+              <div style={{fontSize:22,marginBottom:8,opacity:0.7}}>&#9638;&#9638;&#9638;</div>
+              <div style={{fontSize:14,fontWeight:600,color:useLayout?T.ac:T.tx,marginBottom:4}}>Divide into Areas</div>
+              <div style={{fontSize:11,color:T.tm,lineHeight:"1.5"}}>Each location has distinct areas, sections, or zones with different teams and training needs.</div>
+              <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:T.sa,fontSize:10,color:T.td}}>Best for: retail, hospitals, large venues</div>
+            </div>
+          </div>
+          {/* Layout configuration (shown when useLayout is true) */}
+          {useLayout&&(function(){
             var templates=(p.layoutTemplates||[]);
             var hasTemplates=templates.length>0;
-            return (<div>
+            return (<div style={{animation:"wizFadeUp 0.3s ease"}}>
+              {/* Detected context hint */}
+              <div style={{marginBottom:14,padding:"8px 14px",borderRadius:8,background:"linear-gradient(90deg,"+T.ad+","+T.sa+")",border:"1px solid "+T.ac+"15",display:"flex",alignItems:"center",gap:8}}>
+                <div style={{width:6,height:6,borderRadius:3,background:T.ac,animation:"wizPulse 2s ease infinite",flexShrink:0}}/>
+                <span style={{fontSize:11,color:T.ac}}>{selD.length} location{selD.length!==1?"s":""} selected. Define areas that repeat across locations {DOT} staff will be assigned per area in the next step.</span>
+              </div>
               {hasTemplates&&(<div style={{marginBottom:14}}>
                 <label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Choose a Layout</label>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>

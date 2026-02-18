@@ -83,7 +83,7 @@ export default function DetailPage(p){
         <KPICard l="Timeline" v={ini.sd+" - "+ini.td}/>
       </div>
 
-      <div style={{marginBottom:20}}><TabBar tabs={["Overview","Locations","Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","History"]} a={tab} on={sTab}/></div>
+      <div style={{marginBottom:20}}><TabBar tabs={ini.depts.some(function(d){return d.areas;})?["Overview","Locations","Store Layout","Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","History"]:["Overview","Locations","Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","History"]} a={tab} on={sTab}/></div>
 
       {/* â”€â”€â”€ OVERVIEW TAB â”€â”€â”€ */}
       {tab==="Overview"&&(
@@ -255,6 +255,208 @@ export default function DetailPage(p){
                 })}</tbody>
               </table>
             </div>
+          </div>
+        );
+      })()}
+
+      {/* ─── STORE LAYOUT TAB ─── */}
+      {tab==="Store Layout"&&(function(){
+        var areaDepts=ini.depts.filter(function(d){return d.areas;});
+        var flatDepts=ini.depts.filter(function(d){return !d.areas;});
+        /* Collect all unique area names across all depts for cross-location comparison */
+        var areaIndex={};
+        areaDepts.forEach(function(d){
+          d.areas.forEach(function(a){
+            if(!areaIndex[a.anm]){areaIndex[a.anm]={anm:a.anm,depts:[]};}
+            var aReq=0,aFill=0;
+            (a.roles||[]).forEach(function(r){aReq+=r.rq;aFill+=r.ql;});
+            areaIndex[a.anm].depts.push({dn:d.dn,did:d.did,rd:areaRd(a),staff:areaStaff(a),req:aReq,fill:aFill,roles:a.roles||[]});
+          });
+        });
+        var allAreaNames=Object.keys(areaIndex);
+        /* Compute area colors based on readiness for the visual map */
+        var AREA_ICONS={"Radio & TV":"\uD83D\uDCFA","Computers & Tablets":"\uD83D\uDCBB","Kitchen Appliances":"\uD83C\uDF73","Gaming & Accessories":"\uD83C\uDFAE","Personal Care & Beauty":"\u2728"};
+        return (
+          <div>
+            {/* Visual floor plan per location */}
+            {areaDepts.map(function(dept){
+              var dR=deptRd(dept);
+              var totalReq=0,totalFill=0;
+              dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){totalReq+=r.rq;totalFill+=r.ql;});});
+              return (
+                <div key={dept.did} style={{marginBottom:24}}>
+                  {/* Location header */}
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10}}>
+                      <Gauge v={dR} sz={48} sw={4}/>
+                      <div>
+                        <div style={{fontSize:16,fontWeight:700}}>{dept.dn}</div>
+                        <div style={{fontSize:11,color:T.tm}}>{dept.areas.length} areas {String.fromCharCode(183)} {totalFill}/{totalReq} positions filled</div>
+                      </div>
+                    </div>
+                    {dept.layout&&<Badge c={T.ac} b={T.ad}>Layout applied</Badge>}
+                  </div>
+                  {/* Floor plan grid — areas as visual blocks */}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(dept.areas.length,3)+",1fr)",gap:12,marginBottom:8}}>
+                    {dept.areas.map(function(area,ai){
+                      var aR=areaRd(area);
+                      var aSt=areaStaff(area);
+                      var aReq=0,aFill=0;
+                      (area.roles||[]).forEach(function(r){aReq+=r.rq;aFill+=r.ql;});
+                      var aGap=aReq-aFill;
+                      var borderColor=aR>=85?T.gn:aR>=60?T.am:T.rd;
+                      var icon=AREA_ICONS[area.anm]||"\uD83C\uDFE2";
+                      return (
+                        <div key={ai} style={{borderRadius:14,border:"2px solid "+borderColor+"40",background:T.cd,overflow:"hidden",position:"relative",transition:"all 0.3s"}}>
+                          {/* Area readiness bar at top */}
+                          <div style={{height:4,background:T.sa}}>
+                            <div style={{height:"100%",width:aR+"%",background:borderColor,borderRadius:"0 2px 2px 0",transition:"width 0.6s ease"}}/>
+                          </div>
+                          {/* Area header */}
+                          <div style={{padding:"14px 16px 10px"}}>
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                                <span style={{fontSize:20}}>{icon}</span>
+                                <div>
+                                  <div style={{fontSize:13,fontWeight:600}}>{area.anm}</div>
+                                  <div style={{fontSize:10,color:T.tm}}>{aFill}/{aReq} positions</div>
+                                </div>
+                              </div>
+                              <MiniGauge v={aR} sz={36} sw={3}/>
+                            </div>
+                            {/* Staffing + readiness metrics */}
+                            <div style={{display:"flex",gap:8,marginBottom:10}}>
+                              <div style={{flex:1,padding:"6px 8px",borderRadius:6,background:T.sa,textAlign:"center"}}>
+                                <div style={{fontSize:16,fontWeight:700,color:rc(aSt,T)}}>{aSt}%</div>
+                                <div style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>Staff</div>
+                              </div>
+                              <div style={{flex:1,padding:"6px 8px",borderRadius:6,background:T.sa,textAlign:"center"}}>
+                                <div style={{fontSize:16,fontWeight:700,color:rc(aR,T)}}>{aR}%</div>
+                                <div style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>Readiness</div>
+                              </div>
+                              <div style={{flex:1,padding:"6px 8px",borderRadius:6,background:aGap>0?T.rdd:T.gd,textAlign:"center"}}>
+                                <div style={{fontSize:16,fontWeight:700,color:aGap>0?T.rd:T.gn}}>{aGap>0?"-"+aGap:aGap===0?String.fromCharCode(10003):"+"+Math.abs(aGap)}</div>
+                                <div style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>{aGap>0?"Gaps":"OK"}</div>
+                              </div>
+                            </div>
+                            {/* Role pills inside area */}
+                            <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                              {(area.roles||[]).map(function(r,ri){
+                                var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                                var rGap=r.rq-r.ql;
+                                return (
+                                  <div key={ri} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:6,background:T.sa+"80",fontSize:11}}>
+                                    <div style={{width:4,height:4,borderRadius:2,background:rc(rPct,T),flexShrink:0}}/>
+                                    <span style={{flex:1,fontWeight:500,fontSize:11}}>{r.cn}</span>
+                                    <span style={{color:T.tm,fontSize:10}}>{r.ql}/{r.rq}</span>
+                                    {rGap>0&&<span style={{fontSize:9,color:T.rd,fontWeight:600}}>-{rGap}</span>}
+                                    <span style={{fontSize:10,fontWeight:600,color:rc(rPct,T)}}>{rPct}%</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Cross-location area comparison */}
+            {areaDepts.length>1&&allAreaNames.length>0&&(
+              <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
+                <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}>
+                  <h3 style={{fontSize:14,fontWeight:600,margin:0}}>Area Comparison Across Locations</h3>
+                  <p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>How the same area performs in different locations</p>
+                </div>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",minWidth:500}}>
+                    <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
+                      <th style={{padding:"10px 16px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left",position:"sticky",left:0,background:T.cd,zIndex:1}}>Area</th>
+                      {areaDepts.map(function(d){return <th key={d.did} style={{padding:"10px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"center"}}>{d.dn}</th>;})}
+                    </tr></thead>
+                    <tbody>{allAreaNames.map(function(anm,ai){
+                      return (
+                        <tr key={ai} style={{borderBottom:"1px solid "+T.bd+"08"}}>
+                          <td style={{padding:"10px 16px",fontSize:12,fontWeight:500,position:"sticky",left:0,background:T.cd,zIndex:1}}>
+                            <div style={{display:"flex",alignItems:"center",gap:6}}>
+                              <span style={{fontSize:14}}>{AREA_ICONS[anm]||"\uD83C\uDFE2"}</span>
+                              {anm}
+                            </div>
+                          </td>
+                          {areaDepts.map(function(d){
+                            var match=areaIndex[anm].depts.find(function(x){return x.did===d.did;});
+                            if(!match)return <td key={d.did} style={{padding:"10px 14px",textAlign:"center"}}><span style={{fontSize:10,color:T.td}}>N/A</span></td>;
+                            var bg=match.rd>=85?T.gd:match.rd>=60?T.amd:T.rdd;
+                            var fg=match.rd>=85?T.gn:match.rd>=60?T.am:T.rd;
+                            return (
+                              <td key={d.did} style={{padding:"8px 14px",textAlign:"center"}}>
+                                <div style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:2,padding:"6px 12px",borderRadius:8,background:bg,minWidth:70}}>
+                                  <span style={{fontSize:16,fontWeight:700,color:fg}}>{match.rd}%</span>
+                                  <span style={{fontSize:9,color:T.tm}}>{match.fill}/{match.req} filled</span>
+                                </div>
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}</tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Area health summary — which areas are underperforming */}
+            {allAreaNames.length>0&&(
+              <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
+                <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}>
+                  <h3 style={{fontSize:14,fontWeight:600,margin:0}}>Area Health Summary</h3>
+                  <p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>Aggregated readiness per area type across all locations</p>
+                </div>
+                {allAreaNames.map(function(anm,ai){
+                  var entries=areaIndex[anm].depts;
+                  var totalReq2=entries.reduce(function(s,e){return s+e.req;},0);
+                  var totalFill2=entries.reduce(function(s,e){return s+e.fill;},0);
+                  var allRolesInArea=[];
+                  entries.forEach(function(e){e.roles.forEach(function(r){allRolesInArea.push(r);});});
+                  var aggRd=wRd(allRolesInArea);
+                  var totalGap=totalReq2-totalFill2;
+                  var icon=AREA_ICONS[anm]||"\uD83C\uDFE2";
+                  return (
+                    <div key={ai} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 20px",borderBottom:"1px solid "+T.bd+"08"}}>
+                      <span style={{fontSize:20}}>{icon}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:600}}>{anm}</div>
+                        <div style={{fontSize:10,color:T.tm}}>{entries.length} location{entries.length!==1?"s":""} {String.fromCharCode(183)} {totalFill2}/{totalReq2} filled</div>
+                      </div>
+                      <div style={{width:100}}>
+                        <ProgressBar v={aggRd} h={5}/>
+                      </div>
+                      <div style={{width:50,textAlign:"right"}}>
+                        <span style={{fontSize:14,fontWeight:700,color:rc(aggRd,T)}}>{aggRd}%</span>
+                      </div>
+                      {totalGap>0&&<Badge c={T.rd} b={T.rdd}>{totalGap} gap{totalGap!==1?"s":""}</Badge>}
+                      {totalGap===0&&<Badge c={T.gn} b={T.gd}>{String.fromCharCode(10003)} Full</Badge>}
+                      {totalGap<0&&<Badge c={T.ac} b={T.ad}>+{Math.abs(totalGap)} over</Badge>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Flat locations note */}
+            {flatDepts.length>0&&(
+              <div style={{padding:"12px 20px",borderRadius:10,border:"1px solid "+T.bd,background:T.sa,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:14,opacity:0.5}}>&#9634;</span>
+                <div>
+                  <span style={{fontSize:12,fontWeight:500}}>{flatDepts.length} location{flatDepts.length!==1?"s":""} without areas: </span>
+                  <span style={{fontSize:12,color:T.tm}}>{flatDepts.map(function(d){return d.dn;}).join(", ")}</span>
+                  <span style={{fontSize:10,color:T.td,display:"block",marginTop:2}}>These locations use a flat role structure without area subdivisions.</span>
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}
