@@ -37,7 +37,7 @@ export default function WizardPage(p){
   var _tgts=useState({});var jpTargets=_tgts[0],sJpTargets=_tgts[1];
   var _tge=useState({});var tgtExp=_tge[0],sTgtExp=_tge[1];
   /* Store Layout state */
-  var _ul=useState(false);var useLayout=_ul[0],sUseLayout=_ul[1];
+  var _ul=useState(null);var useLayout=_ul[0],sUseLayout=_ul[1];
   var _sl=useState(null);var selLayout=_sl[0],sSelLayout=_sl[1];
   var _nln=useState("");var newLayoutName=_nln[0],sNewLayoutName=_nln[1];
   var _nla=useState([]);var newAreas=_nla[0],sNewAreas=_nla[1];
@@ -300,7 +300,7 @@ export default function WizardPage(p){
   function getHint(){
     if(step===1){if(!name.trim())return "Name your initiative to begin workforce analysis.";if(!desc.trim())return "A description helps stakeholders understand the objective.";return "The system will connect "+type.toLowerCase()+" workforce data to this initiative.";}
     if(step===2){if(selD.length===0)return "Select locations to scan their employee records.";return "~"+(selD.length*22)+" employee records across "+selD.length+" location"+(selD.length>1?"s":"")+" will be cross-referenced.";}
-    if(step===25){if(!useLayout)return "Uniform structure. Roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose a saved layout or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";var reqCount=0;la.forEach(function(a){var r=getAreaReqs(a.aid);reqCount+=r.skills.length+r.certs.length;});return la.length+" area"+(la.length!==1?"s":"")+" ready"+(reqCount>0?" with "+reqCount+" requirement"+(reqCount!==1?"s":"")+". Expand any area to configure.":".");}
+    if(step===25){if(useLayout===null)return "Choose how your locations are structured.";if(useLayout===false)return "Uniform structure. Roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose a saved layout or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";var reqCount=0;la.forEach(function(a){var r=getAreaReqs(a.aid);reqCount+=r.skills.length+r.certs.length;});return la.length+" area"+(la.length!==1?"s":"")+" ready"+(reqCount>0?" with "+reqCount+" requirement"+(reqCount!==1?"s":"")+". Expand any area to configure.":".");}
     if(step===3){var t=countTotals();if(t.totalPeople===0)return "Add roles to define workforce requirements.";if(roleSrc==="jobprofile")return "Tracking "+t.totalPeople+" positions. Next step: define skill & certificate targets.";return "Tracking "+t.totalPeople+" positions. Estimated readiness: "+calcRd()+"%.";}
     if(step===4&&roleSrc==="jobprofile"){var ts=targetSummary();if(ts.skills===0&&ts.certs===0)return "Select skills and certificates to define what readiness means for each profile.";return ts.skills+" skill"+(ts.skills!==1?"s":"")+" and "+ts.certs+" certificate"+(ts.certs!==1?"s":"")+" targeted. Adjust levels and coverage as needed.";}
     if(step===timelineN){if(!sq&&!tq)return "Set a timeline to enable progress tracking and deadline alerts.";if(sq&&tq&&rev)return "Financial context linked. Opportunity cost will track against readiness.";if(sq&&tq)return "Timeline locked. Quarterly snapshots will track progress.";return "Select both quarters to define the tracking window.";}
@@ -345,7 +345,7 @@ export default function WizardPage(p){
   function canNext(){
     if(step===1)return name.trim().length>0;
     if(step===2)return selD.length>0;
-    if(step===25){if(!useLayout)return true;if(!selLayout)return false;if(selLayout==="new")return newLayoutName.trim().length>0&&newAreas.filter(function(a){return a.anm.trim();}).length>0;return true;}
+    if(step===25){if(useLayout===null)return false;if(useLayout===false)return true;if(!selLayout)return false;if(selLayout==="new")return newLayoutName.trim().length>0&&newAreas.filter(function(a){return a.anm.trim();}).length>0;return true;}
     if(step===3){var v2=Object.values(dCirc);for(var i=0;i<v2.length;i++){if(v2[i].length>0)return true;}return false;}
     if(step===4&&roleSrc==="jobprofile"){
       var keys=Object.keys(jpTargets);
@@ -471,19 +471,19 @@ export default function WizardPage(p){
           <p style={{fontSize:12,color:T.tm,marginBottom:14,marginTop:0}}>Do your locations have distinct areas, departments, or zones with different teams? Define them here, or skip if roles are the same everywhere.</p>
           {/* Decision cards */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-            <div onClick={function(){sUseLayout(false);sSelLayout(null);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(!useLayout?T.ac:T.bd),background:!useLayout?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
-              {!useLayout&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
-              <div style={{fontSize:22,marginBottom:8,opacity:0.7}}>&#9634;</div>
-              <div style={{fontSize:14,fontWeight:600,color:!useLayout?T.ac:T.tx,marginBottom:4}}>Uniform Locations</div>
-              <div style={{fontSize:11,color:T.tm,lineHeight:"1.5"}}>Each location has the same role structure. No internal subdivisions needed.</div>
-              <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:T.sa,fontSize:10,color:T.td}}>Best for: offices, warehouses, simple stores</div>
-            </div>
-            <div onClick={function(){sUseLayout(true);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(useLayout?T.ac:T.bd),background:useLayout?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
-              {useLayout&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
+            <div onClick={function(){sUseLayout(true);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(useLayout===true?T.ac:T.bd),background:useLayout===true?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
+              {useLayout===true&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
               <div style={{fontSize:22,marginBottom:8,opacity:0.7}}>&#9638;&#9638;&#9638;</div>
-              <div style={{fontSize:14,fontWeight:600,color:useLayout?T.ac:T.tx,marginBottom:4}}>Divide into Areas</div>
+              <div style={{fontSize:14,fontWeight:600,color:useLayout===true?T.ac:T.tx,marginBottom:4}}>Divide into Areas</div>
               <div style={{fontSize:11,color:T.tm,lineHeight:"1.5"}}>Each location has distinct areas, sections, or zones with different teams and training needs.</div>
               <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:T.sa,fontSize:10,color:T.td}}>Best for: retail, hospitals, large venues</div>
+            </div>
+            <div onClick={function(){sUseLayout(false);sSelLayout(null);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(useLayout===false?T.ac:T.bd),background:useLayout===false?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
+              {useLayout===false&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
+              <div style={{fontSize:22,marginBottom:8,opacity:0.7}}>&#9634;</div>
+              <div style={{fontSize:14,fontWeight:600,color:useLayout===false?T.ac:T.tx,marginBottom:4}}>Uniform Locations</div>
+              <div style={{fontSize:11,color:T.tm,lineHeight:"1.5"}}>Each location has the same role structure. No internal subdivisions needed.</div>
+              <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:T.sa,fontSize:10,color:T.td}}>Best for: offices, warehouses, simple stores</div>
             </div>
           </div>
           {/* Layout configuration (shown when useLayout is true) */}
