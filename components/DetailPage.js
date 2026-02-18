@@ -259,7 +259,7 @@ export default function DetailPage(p){
         );
       })()}
 
-      {/* ─── STORE LAYOUT TAB ─── */}
+      {/* ─── STORE LAYOUT TAB — Blueprint / Mind-map style ─── */}
       {tab==="Store Layout"&&(function(){
         var areaDepts=ini.depts.filter(function(d){return d.areas;});
         var flatDepts=ini.depts.filter(function(d){return !d.areas;});
@@ -274,186 +274,260 @@ export default function DetailPage(p){
           });
         });
         var allAreaNames=Object.keys(areaIndex);
-        /* Compute area colors based on readiness for the visual map */
-        var AREA_ICONS={"Radio & TV":"\uD83D\uDCFA","Computers & Tablets":"\uD83D\uDCBB","Kitchen Appliances":"\uD83C\uDF73","Gaming & Accessories":"\uD83C\uDFAE","Personal Care & Beauty":"\u2728"};
+        /* Blueprint color palette — muted, architectural */
+        var bpLine=T.ac+"50";
+        var bpLineSolid=T.ac+"90";
+        var bpBg=T.bg;
+        var bpGrid=T.bd+"30";
+        var bpText=T.td;
+        var bpLabel=T.tm;
+        /* Status dot color */
+        function statusClr(rd){return rd>=85?T.gn:rd>=60?T.am:T.rd;}
+        /* Alternating area position offsets for organic mind-map feel */
+        var nodePositions=[
+          {col:"1 / 2",row:"1 / 2",align:"flex-start"},
+          {col:"2 / 3",row:"1 / 2",align:"flex-end"},
+          {col:"1 / 2",row:"2 / 3",align:"flex-start"},
+          {col:"2 / 3",row:"2 / 3",align:"flex-end"},
+          {col:"1 / 3",row:"3 / 4",align:"center"}
+        ];
+
         return (
           <div>
-            {/* Visual floor plan per location */}
-            {areaDepts.map(function(dept){
+            {/* Blueprint per location */}
+            {areaDepts.map(function(dept,dIdx){
               var dR=deptRd(dept);
               var totalReq=0,totalFill=0;
               dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){totalReq+=r.rq;totalFill+=r.ql;});});
+              var areaCount=dept.areas.length;
+              /* Compute SVG connector lines from center hub to each area node */
+              var hubX=50;var hubY=50;
+              /* Distribute area nodes in a circle around center hub */
+              var nodeCoords=dept.areas.map(function(_,i){
+                var angle=-Math.PI/2+i*(2*Math.PI/areaCount);
+                var radius=36;
+                return {x:hubX+Math.cos(angle)*radius,y:hubY+Math.sin(angle)*radius};
+              });
+
               return (
-                <div key={dept.did} style={{marginBottom:24}}>
-                  {/* Location header */}
-                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                    <div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <Gauge v={dR} sz={48} sw={4}/>
-                      <div>
-                        <div style={{fontSize:16,fontWeight:700}}>{dept.dn}</div>
-                        <div style={{fontSize:11,color:T.tm}}>{dept.areas.length} areas {String.fromCharCode(183)} {totalFill}/{totalReq} positions filled</div>
+                <div key={dept.did} style={{marginBottom:32}}>
+                  {/* Blueprint canvas container */}
+                  <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",background:bpBg,position:"relative"}}>
+                    {/* Blueprint header bar */}
+                    <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <div style={{width:8,height:8,borderRadius:4,background:statusClr(dR),boxShadow:"0 0 6px "+statusClr(dR)+"80"}}/>
+                        <span style={{fontSize:14,fontWeight:600,letterSpacing:0.5}}>{dept.dn}</span>
+                        <span style={{fontSize:10,color:bpText,fontFamily:"monospace",letterSpacing:1}}>LAYOUT</span>
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:12}}>
+                        <span style={{fontSize:10,color:bpLabel,fontFamily:"monospace"}}>{totalFill}/{totalReq} STAFF</span>
+                        <span style={{fontSize:10,color:bpLabel,fontFamily:"monospace"}}>{String.fromCharCode(183)}</span>
+                        <span style={{fontSize:10,color:statusClr(dR),fontFamily:"monospace",fontWeight:600}}>{dR}% RDY</span>
                       </div>
                     </div>
-                    {dept.layout&&<Badge c={T.ac} b={T.ad}>Layout applied</Badge>}
-                  </div>
-                  {/* Floor plan grid — areas as visual blocks */}
-                  <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(dept.areas.length,3)+",1fr)",gap:12,marginBottom:8}}>
-                    {dept.areas.map(function(area,ai){
-                      var aR=areaRd(area);
-                      var aSt=areaStaff(area);
-                      var aReq=0,aFill=0;
-                      (area.roles||[]).forEach(function(r){aReq+=r.rq;aFill+=r.ql;});
-                      var aGap=aReq-aFill;
-                      var borderColor=aR>=85?T.gn:aR>=60?T.am:T.rd;
-                      var icon=AREA_ICONS[area.anm]||"\uD83C\uDFE2";
-                      return (
-                        <div key={ai} style={{borderRadius:14,border:"2px solid "+borderColor+"40",background:T.cd,overflow:"hidden",position:"relative",transition:"all 0.3s"}}>
-                          {/* Area readiness bar at top */}
-                          <div style={{height:4,background:T.sa}}>
-                            <div style={{height:"100%",width:aR+"%",background:borderColor,borderRadius:"0 2px 2px 0",transition:"width 0.6s ease"}}/>
-                          </div>
-                          {/* Area header */}
-                          <div style={{padding:"14px 16px 10px"}}>
-                            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-                              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                                <span style={{fontSize:20}}>{icon}</span>
-                                <div>
-                                  <div style={{fontSize:13,fontWeight:600}}>{area.anm}</div>
-                                  <div style={{fontSize:10,color:T.tm}}>{aFill}/{aReq} positions</div>
-                                </div>
-                              </div>
-                              <MiniGauge v={aR} sz={36} sw={3}/>
-                            </div>
-                            {/* Staffing + readiness metrics */}
-                            <div style={{display:"flex",gap:8,marginBottom:10}}>
-                              <div style={{flex:1,padding:"6px 8px",borderRadius:6,background:T.sa,textAlign:"center"}}>
-                                <div style={{fontSize:16,fontWeight:700,color:rc(aSt,T)}}>{aSt}%</div>
-                                <div style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>Staff</div>
-                              </div>
-                              <div style={{flex:1,padding:"6px 8px",borderRadius:6,background:T.sa,textAlign:"center"}}>
-                                <div style={{fontSize:16,fontWeight:700,color:rc(aR,T)}}>{aR}%</div>
-                                <div style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>Readiness</div>
-                              </div>
-                              <div style={{flex:1,padding:"6px 8px",borderRadius:6,background:aGap>0?T.rdd:T.gd,textAlign:"center"}}>
-                                <div style={{fontSize:16,fontWeight:700,color:aGap>0?T.rd:T.gn}}>{aGap>0?"-"+aGap:aGap===0?String.fromCharCode(10003):"+"+Math.abs(aGap)}</div>
-                                <div style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>{aGap>0?"Gaps":"OK"}</div>
-                              </div>
-                            </div>
-                            {/* Role pills inside area */}
-                            <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                              {(area.roles||[]).map(function(r,ri){
-                                var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
-                                var rGap=r.rq-r.ql;
-                                return (
-                                  <div key={ri} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 8px",borderRadius:6,background:T.sa+"80",fontSize:11}}>
-                                    <div style={{width:4,height:4,borderRadius:2,background:rc(rPct,T),flexShrink:0}}/>
-                                    <span style={{flex:1,fontWeight:500,fontSize:11}}>{r.cn}</span>
-                                    <span style={{color:T.tm,fontSize:10}}>{r.ql}/{r.rq}</span>
-                                    {rGap>0&&<span style={{fontSize:9,color:T.rd,fontWeight:600}}>-{rGap}</span>}
-                                    <span style={{fontSize:10,fontWeight:600,color:rc(rPct,T)}}>{rPct}%</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
+
+                    {/* Blueprint canvas with grid background */}
+                    <div style={{position:"relative",padding:"40px 32px",backgroundImage:"radial-gradient("+bpGrid+" 1px, transparent 1px)",backgroundSize:"20px 20px",minHeight:380}}>
+
+                      {/* SVG connector lines — drawn underneath nodes */}
+                      <svg style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",pointerEvents:"none",zIndex:0}} viewBox="0 0 100 100" preserveAspectRatio="none">
+                        {/* Connector lines from hub to each node */}
+                        {nodeCoords.map(function(nc,i){
+                          return <line key={i} x1={hubX} y1={hubY} x2={nc.x} y2={nc.y} stroke={bpLineSolid} strokeWidth="0.15" strokeDasharray="0.8,0.4"/>;
+                        })}
+                        {/* Hub circle */}
+                        <circle cx={hubX} cy={hubY} r="3" fill="none" stroke={bpLineSolid} strokeWidth="0.15" strokeDasharray="0.5,0.3"/>
+                        <circle cx={hubX} cy={hubY} r="1.2" fill={T.ac+"30"} stroke={bpLineSolid} strokeWidth="0.1"/>
+                      </svg>
+
+                      {/* Center hub — location name */}
+                      <div style={{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%, -50%)",zIndex:2,textAlign:"center"}}>
+                        <div style={{width:72,height:72,borderRadius:"50%",border:"1.5px dashed "+bpLineSolid,background:T.cd,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",boxShadow:"0 0 20px "+T.ac+"10"}}>
+                          <div style={{fontSize:10,fontWeight:700,color:T.ac,letterSpacing:0.5}}>{dept.dn.substring(0,8)}</div>
+                          <div style={{fontSize:8,color:bpText,fontFamily:"monospace",marginTop:1}}>{areaCount} AREAS</div>
                         </div>
-                      );
-                    })}
+                      </div>
+
+                      {/* Area nodes — positioned around the hub */}
+                      {dept.areas.map(function(area,ai){
+                        var aR=areaRd(area);
+                        var aSt=areaStaff(area);
+                        var aReq2=0,aFill2=0;
+                        (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
+                        var aGap=aReq2-aFill2;
+                        var nc=nodeCoords[ai];
+                        var stClr=statusClr(aR);
+                        /* Convert viewBox coords to percentage positioning */
+                        var leftPct=nc.x;
+                        var topPct=nc.y;
+                        /* Node width based on role count */
+                        var nodeW=220;
+
+                        return (
+                          <div key={ai} style={{position:"absolute",left:leftPct+"%",top:topPct+"%",transform:"translate(-50%, -50%)",zIndex:1,width:nodeW}}>
+                            {/* Area node — blueprint block */}
+                            <div style={{border:"1px solid "+stClr+"50",borderRadius:10,background:T.cd,overflow:"hidden",boxShadow:"0 0 12px "+stClr+"08"}}>
+                              {/* Thin status strip at top */}
+                              <div style={{height:2,background:T.sa}}>
+                                <div style={{height:"100%",width:aR+"%",background:stClr,transition:"width 0.6s ease"}}/>
+                              </div>
+                              {/* Area label */}
+                              <div style={{padding:"8px 12px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                                <div>
+                                  <div style={{fontSize:11,fontWeight:600,color:T.tx,letterSpacing:0.3}}>{area.anm}</div>
+                                  <div style={{fontSize:9,color:bpText,fontFamily:"monospace",marginTop:1}}>{aFill2}/{aReq2} STAFF {String.fromCharCode(183)} {aR}%</div>
+                                </div>
+                                <div style={{width:8,height:8,borderRadius:4,background:stClr,boxShadow:"0 0 4px "+stClr+"60",flexShrink:0}}/>
+                              </div>
+                              {/* Roles as compact schematic rows */}
+                              <div style={{borderTop:"1px dashed "+T.bd+"60",padding:"4px 0"}}>
+                                {(area.roles||[]).map(function(r,ri){
+                                  var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                                  var rGap=r.rq-r.ql;
+                                  var rClr=statusClr(rPct);
+                                  return (
+                                    <div key={ri} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 12px",fontSize:10}}>
+                                      {/* Status indicator line */}
+                                      <div style={{width:12,height:1.5,borderRadius:1,background:rClr,flexShrink:0,opacity:0.8}}/>
+                                      <span style={{flex:1,color:T.tx,fontWeight:500,fontSize:10,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.cn}</span>
+                                      {/* People dots — filled vs empty */}
+                                      <div style={{display:"flex",gap:2,flexShrink:0}}>
+                                        {Array.from({length:Math.min(r.rq,8)}).map(function(_,di){
+                                          var filled=di<r.ql;
+                                          return <div key={di} style={{width:5,height:5,borderRadius:3,background:filled?rClr:T.bd,border:filled?"none":"1px solid "+T.bd}}/>;
+                                        })}
+                                        {r.rq>8&&<span style={{fontSize:8,color:bpText,marginLeft:1}}>+{r.rq-8}</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              {/* Gap annotation — only when gaps exist */}
+                              {aGap>0&&(
+                                <div style={{padding:"3px 12px 6px",fontSize:9,color:T.rd,fontFamily:"monospace",borderTop:"1px dashed "+T.rd+"25"}}>
+                                  {String.fromCharCode(9888)} {aGap} position{aGap>1?"s":""} unfilled
+                                </div>
+                              )}
+                              {aGap<=0&&aGap<0&&(
+                                <div style={{padding:"3px 12px 6px",fontSize:9,color:T.ac,fontFamily:"monospace",borderTop:"1px dashed "+T.ac+"25"}}>
+                                  +{Math.abs(aGap)} over capacity
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Blueprint footer with legend */}
+                    <div style={{padding:"8px 20px",borderTop:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:16}}>
+                      <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5}}>LEGEND:</span>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.gn}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>&ge;85%</span></div>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.am}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>60-84%</span></div>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:6,height:6,borderRadius:3,background:T.rd}}/><span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>&lt;60%</span></div>
+                      <div style={{flex:1}}/>
+                      <div style={{display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{display:"flex",gap:2}}>
+                          <div style={{width:5,height:5,borderRadius:3,background:T.ac}}/><div style={{width:5,height:5,borderRadius:3,border:"1px solid "+T.bd,background:"transparent"}}/>
+                        </div>
+                        <span style={{fontSize:9,color:bpLabel,fontFamily:"monospace"}}>FILLED / VACANT</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
             })}
 
-            {/* Cross-location area comparison */}
+            {/* Cross-location area comparison — schematic style */}
             {areaDepts.length>1&&allAreaNames.length>0&&(
-              <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
-                <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}>
-                  <h3 style={{fontSize:14,fontWeight:600,margin:0}}>Area Comparison Across Locations</h3>
-                  <p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>How the same area performs in different locations</p>
-                </div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",minWidth:500}}>
-                    <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
-                      <th style={{padding:"10px 16px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left",position:"sticky",left:0,background:T.cd,zIndex:1}}>Area</th>
-                      {areaDepts.map(function(d){return <th key={d.did} style={{padding:"10px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"center"}}>{d.dn}</th>;})}
-                    </tr></thead>
-                    <tbody>{allAreaNames.map(function(anm,ai){
-                      return (
-                        <tr key={ai} style={{borderBottom:"1px solid "+T.bd+"08"}}>
-                          <td style={{padding:"10px 16px",fontSize:12,fontWeight:500,position:"sticky",left:0,background:T.cd,zIndex:1}}>
-                            <div style={{display:"flex",alignItems:"center",gap:6}}>
-                              <span style={{fontSize:14}}>{AREA_ICONS[anm]||"\uD83C\uDFE2"}</span>
-                              {anm}
-                            </div>
-                          </td>
-                          {areaDepts.map(function(d){
-                            var match=areaIndex[anm].depts.find(function(x){return x.did===d.did;});
-                            if(!match)return <td key={d.did} style={{padding:"10px 14px",textAlign:"center"}}><span style={{fontSize:10,color:T.td}}>N/A</span></td>;
-                            var bg=match.rd>=85?T.gd:match.rd>=60?T.amd:T.rdd;
-                            var fg=match.rd>=85?T.gn:match.rd>=60?T.am:T.rd;
-                            return (
-                              <td key={d.did} style={{padding:"8px 14px",textAlign:"center"}}>
-                                <div style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:2,padding:"6px 12px",borderRadius:8,background:bg,minWidth:70}}>
-                                  <span style={{fontSize:16,fontWeight:700,color:fg}}>{match.rd}%</span>
-                                  <span style={{fontSize:9,color:T.tm}}>{match.fill}/{match.req} filled</span>
-                                </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}</tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Area health summary — which areas are underperforming */}
-            {allAreaNames.length>0&&(
-              <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
-                <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}>
-                  <h3 style={{fontSize:14,fontWeight:600,margin:0}}>Area Health Summary</h3>
-                  <p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>Aggregated readiness per area type across all locations</p>
+              <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20,background:bpBg}}>
+                <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:1}}>CROSS-LOCATION</span>
+                  <span style={{fontSize:12,fontWeight:600}}>Area Comparison</span>
                 </div>
                 {allAreaNames.map(function(anm,ai){
                   var entries=areaIndex[anm].depts;
-                  var totalReq2=entries.reduce(function(s,e){return s+e.req;},0);
-                  var totalFill2=entries.reduce(function(s,e){return s+e.fill;},0);
                   var allRolesInArea=[];
                   entries.forEach(function(e){e.roles.forEach(function(r){allRolesInArea.push(r);});});
                   var aggRd=wRd(allRolesInArea);
-                  var totalGap=totalReq2-totalFill2;
-                  var icon=AREA_ICONS[anm]||"\uD83C\uDFE2";
+                  var stClr=statusClr(aggRd);
                   return (
-                    <div key={ai} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 20px",borderBottom:"1px solid "+T.bd+"08"}}>
-                      <span style={{fontSize:20}}>{icon}</span>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:600}}>{anm}</div>
-                        <div style={{fontSize:10,color:T.tm}}>{entries.length} location{entries.length!==1?"s":""} {String.fromCharCode(183)} {totalFill2}/{totalReq2} filled</div>
+                    <div key={ai} style={{padding:"10px 20px",borderBottom:"1px dashed "+T.bd+"40",display:"flex",alignItems:"center",gap:16}}>
+                      {/* Area name */}
+                      <div style={{width:160,display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:8,height:8,borderRadius:4,background:stClr,boxShadow:"0 0 4px "+stClr+"40",flexShrink:0}}/>
+                        <span style={{fontSize:12,fontWeight:500}}>{anm}</span>
                       </div>
-                      <div style={{width:100}}>
-                        <ProgressBar v={aggRd} h={5}/>
+                      {/* Location readiness bars — horizontal segments */}
+                      <div style={{flex:1,display:"flex",gap:8,alignItems:"center"}}>
+                        {entries.map(function(e,ei){
+                          var eClr=statusClr(e.rd);
+                          return (
+                            <div key={ei} style={{flex:1,display:"flex",alignItems:"center",gap:6}}>
+                              <div style={{flex:1,position:"relative",height:6,borderRadius:3,background:T.sa,overflow:"hidden"}}>
+                                <div style={{position:"absolute",left:0,top:0,height:"100%",width:e.rd+"%",borderRadius:3,background:eClr,opacity:0.7,transition:"width 0.6s"}}/>
+                              </div>
+                              <span style={{fontSize:9,fontFamily:"monospace",color:eClr,fontWeight:600,minWidth:28,textAlign:"right"}}>{e.rd}%</span>
+                              <span style={{fontSize:9,fontFamily:"monospace",color:bpText,minWidth:36}}>{e.dn.substring(0,6)}</span>
+                            </div>
+                          );
+                        })}
                       </div>
+                      {/* Aggregate */}
                       <div style={{width:50,textAlign:"right"}}>
-                        <span style={{fontSize:14,fontWeight:700,color:rc(aggRd,T)}}>{aggRd}%</span>
+                        <span style={{fontSize:12,fontWeight:700,color:stClr,fontFamily:"monospace"}}>{aggRd}%</span>
                       </div>
-                      {totalGap>0&&<Badge c={T.rd} b={T.rdd}>{totalGap} gap{totalGap!==1?"s":""}</Badge>}
-                      {totalGap===0&&<Badge c={T.gn} b={T.gd}>{String.fromCharCode(10003)} Full</Badge>}
-                      {totalGap<0&&<Badge c={T.ac} b={T.ad}>+{Math.abs(totalGap)} over</Badge>}
                     </div>
                   );
                 })}
               </div>
             )}
 
+            {/* Area health summary — compact schematic */}
+            {allAreaNames.length>0&&(
+              <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20,background:bpBg}}>
+                <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:8}}>
+                  <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:1}}>HEALTH</span>
+                  <span style={{fontSize:12,fontWeight:600}}>Area Readiness Summary</span>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(allAreaNames.length,3)+",1fr)",gap:0}}>
+                  {allAreaNames.map(function(anm,ai){
+                    var entries=areaIndex[anm].depts;
+                    var totalReq2=entries.reduce(function(s,e){return s+e.req;},0);
+                    var totalFill2=entries.reduce(function(s,e){return s+e.fill;},0);
+                    var allRolesInArea2=[];
+                    entries.forEach(function(e){e.roles.forEach(function(r){allRolesInArea2.push(r);});});
+                    var aggRd2=wRd(allRolesInArea2);
+                    var totalGap=totalReq2-totalFill2;
+                    var stClr2=statusClr(aggRd2);
+                    return (
+                      <div key={ai} style={{padding:"16px 20px",borderRight:ai<allAreaNames.length-1?"1px dashed "+T.bd+"40":"none",textAlign:"center"}}>
+                        {/* Circular readiness ring — drawn as CSS */}
+                        <div style={{width:52,height:52,borderRadius:"50%",border:"2px solid "+stClr2+"40",margin:"0 auto 8px",display:"flex",alignItems:"center",justifyContent:"center",position:"relative",background:"conic-gradient("+stClr2+" "+aggRd2*3.6+"deg, "+T.sa+" 0deg)"}}>
+                          <div style={{width:42,height:42,borderRadius:"50%",background:T.cd,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <span style={{fontSize:13,fontWeight:700,color:stClr2,fontFamily:"monospace"}}>{aggRd2}</span>
+                          </div>
+                        </div>
+                        <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{anm}</div>
+                        <div style={{fontSize:9,color:bpText,fontFamily:"monospace"}}>{totalFill2}/{totalReq2} STAFF</div>
+                        <div style={{fontSize:9,fontFamily:"monospace",marginTop:3,color:totalGap>0?T.rd:totalGap<0?T.ac:T.gn}}>
+                          {totalGap>0?String.fromCharCode(9660)+" "+totalGap+" GAP":totalGap<0?String.fromCharCode(9650)+" "+Math.abs(totalGap)+" OVER":String.fromCharCode(10003)+" FULL"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Flat locations note */}
             {flatDepts.length>0&&(
-              <div style={{padding:"12px 20px",borderRadius:10,border:"1px solid "+T.bd,background:T.sa,display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:14,opacity:0.5}}>&#9634;</span>
+              <div style={{padding:"10px 20px",borderRadius:10,border:"1px dashed "+T.bd,display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:6,height:6,borderRadius:3,background:T.td,opacity:0.5}}/>
                 <div>
-                  <span style={{fontSize:12,fontWeight:500}}>{flatDepts.length} location{flatDepts.length!==1?"s":""} without areas: </span>
-                  <span style={{fontSize:12,color:T.tm}}>{flatDepts.map(function(d){return d.dn;}).join(", ")}</span>
-                  <span style={{fontSize:10,color:T.td,display:"block",marginTop:2}}>These locations use a flat role structure without area subdivisions.</span>
+                  <span style={{fontSize:11,fontWeight:500,color:bpLabel}}>{flatDepts.length} location{flatDepts.length!==1?"s":""} without layout: </span>
+                  <span style={{fontSize:11,color:bpText,fontFamily:"monospace"}}>{flatDepts.map(function(d){return d.dn;}).join(", ")}</span>
                 </div>
               </div>
             )}
