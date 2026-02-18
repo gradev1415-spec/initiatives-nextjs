@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/theme";
-import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
+import { fmt, fD, rc, cc2, cw, ic2, forEachRole } from "@/lib/utils";
 import { allRoles, wRd, staffRd, skillRd, certRd, iRd } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
 import { LIBRARY } from "@/lib/data";
@@ -17,7 +17,7 @@ export default function ReportPage(p){
   var tv=0,opp2=0,trr=0,totalGaps=0,topSG={},topCG={};
   ini.forEach(function(it){
     var rd2=iRd(it);tv+=it.rev;opp2+=it.rev*(1-rd2/100);trr+=rd2;
-    it.depts.forEach(function(d){d.roles.forEach(function(r){totalGaps+=r.gp;});});
+    forEachRole(it.depts,function(r){totalGaps+=r.gp;});
     it.sg.forEach(function(g){if(g.s!=="All skills"&&g.s!=="Gaps detected")topSG[g.s]=(topSG[g.s]||0)+g.n;});
     it.cg.forEach(function(g){if(g.c!=="All certs"&&g.c!=="Cert gaps")topCG[g.c]=(topCG[g.c]||0)+g.n;});
   });
@@ -131,7 +131,7 @@ export default function ReportPage(p){
               var rd2=iRd(it);var roles2=allRoles(it);var sR2=staffRd(roles2);
               var skR2=it._skillRd||Math.min(100,rd2+5);var cR2=it._certRd||Math.max(0,rd2-8);
               var mr2=it.rev*(1-rd2/100);var tgp=0;
-              it.depts.forEach(function(d){d.roles.forEach(function(r){tgp+=r.gp;});});
+              forEachRole(it.depts,function(r){tgp+=r.gp;});
               return (
                 <tr key={it.id} style={{background:idx%2===0?"#FAFBFC":"white"}}>
                   <td style={{padding:"8px 12px",borderBottom:"1px solid #E2E8F0",fontWeight:700,fontSize:12,color:"#0F172A"}}>{it.nm}</td>

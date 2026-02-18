@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/theme";
-import { fmt, fD, rc, cc2 } from "@/lib/utils";
+import { fmt, fD, rc, cc2, forEachRole } from "@/lib/utils";
 import { allRoles, wRd, iRd, staffRd, skillRd, certRd } from "@/lib/readiness";
 import Badge from "./Badge";
 import ProgressBar from "./ProgressBar";
@@ -59,7 +59,7 @@ export default function OverviewPage(p){
           {fd.map(function(it){
             var crd=iRd(it);var mr=it.rev*(1-crd/100);
             var trq2=0,tgp2=0;
-            it.depts.forEach(function(d){d.roles.forEach(function(r){trq2+=r.rq;tgp2+=r.gp;});});
+            forEachRole(it.depts,function(r){trq2+=r.rq;tgp2+=r.gp;});
             var sR=staffRd(allRoles(it)),skR=it._skillRd||skillRd(it),cR=it._certRd||certRd(it);
             return (
               <div key={it.id} onClick={function(){p.onOpen(it);}} style={{padding:20,borderRadius:14,border:"1px solid "+T.bd,background:T.cd,cursor:"pointer",position:"relative",overflow:"hidden"}}>
@@ -113,7 +113,7 @@ export default function OverviewPage(p){
             <tbody>{fd.sort(function(a,b){return iRd(a)-iRd(b);}).map(function(it,idx){
               var crd=iRd(it),mr=it.rev*(1-crd/100);
               var sR=staffRd(allRoles(it)),skR=it._skillRd||0,cR=it._certRd||0;
-              var tgp=0;it.depts.forEach(function(d){d.roles.forEach(function(r){tgp+=r.gp;});});
+              var tgp=0;forEachRole(it.depts,function(r){tgp+=r.gp;});
               return (
                 <tr key={it.id} onClick={function(){p.onOpen(it);}} style={{borderBottom:"1px solid "+T.bd+"40",cursor:"pointer"}}>
                   <td style={{padding:"10px 12px",fontSize:12,color:T.td}}>{idx+1}</td>

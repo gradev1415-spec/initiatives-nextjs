@@ -36,12 +36,49 @@ export default function WizardPage(p){
   /* New state for job profile targets */
   var _tgts=useState({});var jpTargets=_tgts[0],sJpTargets=_tgts[1];
   var _tge=useState({});var tgtExp=_tge[0],sTgtExp=_tge[1];
+  /* Store Layout state */
+  var _ul=useState(false);var useLayout=_ul[0],sUseLayout=_ul[1];
+  var _sl=useState(null);var selLayout=_sl[0],sSelLayout=_sl[1];
+  var _nln=useState("");var newLayoutName=_nln[0],sNewLayoutName=_nln[1];
+  var _nla=useState([]);var newAreas=_nla[0],sNewAreas=_nla[1];
+  var _da=useState({});var deptAreas=_da[0],sDeptAreas=_da[1];
 
   useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}50%{box-shadow:0 0 12px 2px rgba(34,211,238,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
 
   function togExp(id){sExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
   function togTgtExp(id){sTgtExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
   function togDept(d2){sSelD(function(pr){return pr.find(function(x){return x.id===d2.id;})?pr.filter(function(x){return x.id!==d2.id;}):pr.concat([d2]);});}
+  /* Layout helpers */
+  function getLayoutAreas(){
+    if(!selLayout)return [];
+    if(selLayout==="new")return newAreas;
+    var tmpl=(p.layoutTemplates||[]).find(function(t){return t.id===selLayout;});
+    return tmpl?tmpl.areas:[];
+  }
+  function getDeptActiveAreas(dId){
+    var all=getLayoutAreas();
+    if(!deptAreas[dId])return all.map(function(a){return a.aid;});
+    return deptAreas[dId];
+  }
+  function togDeptArea(dId,aId){
+    sDeptAreas(function(pr){
+      var n={};for(var k in pr)n[k]=pr[k];
+      var cur=getDeptActiveAreas(dId);
+      if(cur.indexOf(aId)>=0){n[dId]=cur.filter(function(x){return x!==aId;});}
+      else{n[dId]=cur.concat([aId]);}
+      return n;
+    });
+  }
+  function addNewArea(){
+    var aid="a_"+Date.now();
+    sNewAreas(function(pr){return pr.concat([{aid:aid,anm:""}]);});
+  }
+  function updAreaName(aid,nm){
+    sNewAreas(function(pr){return pr.map(function(a){return a.aid===aid?{aid:a.aid,anm:nm}:a;});});
+  }
+  function remNewArea(aid){
+    sNewAreas(function(pr){return pr.filter(function(a){return a.aid!==aid;});});
+  }
   function addC(did,c){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];var e=pr[did]||[];if(e.find(function(x){return x.cid===c.id;}))return pr;n[did]=e.concat([{cid:c.id,cnm:c.nm,cr:"Essential",rq:1}]);return n;});}
   function remC(did,cid){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[did]=(pr[did]||[]).filter(function(x){return x.cid!==cid;});return n;});}
   function updC(did,cid,f,v){sDCirc(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[did]=(pr[did]||[]).map(function(x){if(x.cid===cid){return {cid:x.cid,cnm:x.cnm,cr:f==="cr"?v:x.cr,rq:f==="rq"?v:x.rq};}return x;});return n;});}
@@ -51,15 +88,15 @@ export default function WizardPage(p){
   function countTotals(){var totalRoles=0,totalPeople=0,essRoles=0,essPeople=0,impRoles=0;var keys=Object.keys(dCirc);for(var i=0;i<keys.length;i++){var cs=dCirc[keys[i]];totalRoles+=cs.length;for(var j=0;j<cs.length;j++){totalPeople+=cs[j].rq;if(cs[j].cr==="Essential"){essRoles++;essPeople+=cs[j].rq;}if(cs[j].cr==="Important")impRoles++;}}return {totalRoles:totalRoles,totalPeople:totalPeople,totalDepts:selD.length,essRoles:essRoles,essPeople:essPeople,impRoles:impRoles};}
 
   /* ===== Dynamic stepper ===== */
-  var allStps=[{n:1,l:"Basics"},{n:2,l:"Locations"},{n:3,l:"Roles"},{n:4,l:"Define Targets",cond:"jobprofile"},{n:5,l:"Timeline"},{n:6,l:"Analysis"}];
-  var stps=allStps.filter(function(s){return !s.cond||roleSrc===s.cond;});
+  var allStps=[{n:1,l:"Basics"},{n:2,l:"Locations"},{n:25,l:"Store Layout",cond:"layout"},{n:3,l:"Roles"},{n:4,l:"Define Targets",cond:"jobprofile"},{n:5,l:"Timeline"},{n:6,l:"Analysis"}];
+  var stps=allStps.filter(function(s){if(s.cond==="layout")return useLayout;if(s.cond==="jobprofile")return roleSrc==="jobprofile";return true;});
   /* Remap step numbers for display when circles (no step 4) */
   function stpIdx(sn){for(var i=0;i<stps.length;i++){if(stps[i].n===sn)return i;}return -1;}
   function nxtStep(cur){var idx=stpIdx(cur);return idx<stps.length-1?stps[idx+1].n:null;}
   function prvStep(cur){var idx=stpIdx(cur);return idx>0?stps[idx-1].n:null;}
   function isLast(cur){return stpIdx(cur)===stps.length-1;}
-  var analysisN=roleSrc==="jobprofile"?6:5;
-  var timelineN=roleSrc==="jobprofile"?5:4;
+  var analysisN=6;
+  var timelineN=5;
 
   /* ===== Job Profile Targets helpers ===== */
   function getUniqueProfiles(){
@@ -194,6 +231,7 @@ export default function WizardPage(p){
   function getHint(){
     if(step===1){if(!name.trim())return "Name your initiative to begin workforce analysis.";if(!desc.trim())return "A description helps stakeholders understand the objective.";return "The system will connect "+type.toLowerCase()+" workforce data to this initiative.";}
     if(step===2){if(selD.length===0)return "Select locations to scan their employee records.";return "~"+(selD.length*22)+" employee records across "+selD.length+" location"+(selD.length>1?"s":"")+" will be cross-referenced.";}
+    if(step===25){var la=getLayoutAreas();if(!selLayout)return "Choose an existing layout or create a new one to define areas.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";return la.length+" area"+(la.length!==1?"s":"")+" defined. Customize which areas apply to each location below.";}
     if(step===3){var t=countTotals();if(t.totalPeople===0)return "Add roles to define workforce requirements.";if(roleSrc==="jobprofile")return "Tracking "+t.totalPeople+" positions. Next step: define skill & certificate targets.";return "Tracking "+t.totalPeople+" positions. Estimated readiness: "+calcRd()+"%.";}
     if(step===4&&roleSrc==="jobprofile"){var ts=targetSummary();if(ts.skills===0&&ts.certs===0)return "Select skills and certificates to define what readiness means for each profile.";return ts.skills+" skill"+(ts.skills!==1?"s":"")+" and "+ts.certs+" certificate"+(ts.certs!==1?"s":"")+" targeted. Adjust levels and coverage as needed.";}
     if(step===timelineN){if(!sq&&!tq)return "Set a timeline to enable progress tracking and deadline alerts.";if(sq&&tq&&rev)return "Financial context linked. Opportunity cost will track against readiness.";if(sq&&tq)return "Timeline locked. Quarterly snapshots will track progress.";return "Select both quarters to define the tracking window.";}
@@ -238,6 +276,7 @@ export default function WizardPage(p){
   function canNext(){
     if(step===1)return name.trim().length>0;
     if(step===2)return selD.length>0;
+    if(step===25){if(!selLayout)return false;if(selLayout==="new")return newLayoutName.trim().length>0&&newAreas.filter(function(a){return a.anm.trim();}).length>0;return true;}
     if(step===3){var v2=Object.values(dCirc);for(var i=0;i<v2.length;i++){if(v2[i].length>0)return true;}return false;}
     if(step===4&&roleSrc==="jobprofile"){
       var keys=Object.keys(jpTargets);
@@ -247,8 +286,33 @@ export default function WizardPage(p){
     if(step===analysisN)return analysisDone;
     return true;
   }
+  function buildRole(dc){var q=isProj?0:Math.floor(dc.rq*0.8);return {cid:dc.cid,cn:dc.cnm,cr:dc.cr,rq:dc.rq,ql:q,gp:Math.max(0,dc.rq-q)};}
   function doComplete(){
-    var rd=calcRd();var deps=selD.map(function(dept){return {did:dept.id,dn:dept.nm,roles:(dCirc[dept.id]||[]).map(function(dc){var q=isProj?0:Math.floor(dc.rq*0.8);return {cid:dc.cid,cn:dc.cnm,cr:dc.cr,rq:dc.rq,ql:q,gp:Math.max(0,dc.rq-q)};})};});
+    var rd=calcRd();
+    var layoutAreas=getLayoutAreas();
+    var deps=selD.map(function(dept){
+      if(useLayout&&selLayout){
+        var active=getDeptActiveAreas(dept.id);
+        if(active.length>0){
+          var areas=active.map(function(aId){
+            var key=dept.id+"__"+aId;
+            var dc=dCirc[key]||[];
+            var area=layoutAreas.find(function(a){return a.aid===aId;});
+            return {aid:aId,anm:area?area.anm:aId,roles:dc.map(buildRole)};
+          }).filter(function(a){return a.roles.length>0;});
+          if(areas.length>0)return {did:dept.id,dn:dept.nm,layout:selLayout,areas:areas};
+        }
+      }
+      return {did:dept.id,dn:dept.nm,roles:(dCirc[dept.id]||[]).map(buildRole)};
+    });
+    /* Save new layout template */
+    if(useLayout&&selLayout==="new"&&newLayoutName.trim()&&newAreas.length>0){
+      var validAreas=newAreas.filter(function(a){return a.anm.trim();});
+      if(validAreas.length>0){
+        var newTmpl={id:"lt_"+Date.now(),nm:newLayoutName.trim(),areas:validAreas};
+        p.setLT(function(prev){return prev.concat([newTmpl]);});
+      }
+    }
     var sg,cg,skillRdVal,certRdVal;
     if(roleSrc==="jobprofile"){
       sg=computeSkillGaps();cg=computeCertGaps();skillRdVal=isProj?0:computeSkillRd();certRdVal=isProj?0:computeCertRd();
@@ -307,11 +371,86 @@ export default function WizardPage(p){
             {exp[region.id]!==false&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
           </div>);})}
           {selD.length>0&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizFadeUp 0.3s ease"}}><span style={{fontWeight:600}}>{selD.length} location{selD.length>1?"s":""}</span>{" "+DOT+" "+selD.map(function(d){return d.nm;}).join(", ")}</div>}
+          {/* Store Layout toggle */}
+          {selD.length>0&&(<div style={{marginTop:14,animation:"wizFadeUp 0.4s ease"}}>
+            <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"12px 14px",borderRadius:10,border:"1px solid "+(useLayout?T.ac+"50":T.bd),background:useLayout?T.ad:"transparent",transition:"all 0.3s ease"}} onClick={function(){sUseLayout(!useLayout);}}>
+              <div style={{width:36,height:20,borderRadius:10,background:useLayout?T.ac:T.bl,position:"relative",transition:"all 0.3s",flexShrink:0}}>
+                <div style={{width:16,height:16,borderRadius:8,background:"white",position:"absolute",top:2,left:useLayout?18:2,transition:"left 0.3s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
+              </div>
+              <div>
+                <span style={{fontSize:13,fontWeight:useLayout?600:400,color:useLayout?T.ac:T.tm}}>Define a Store Layout</span>
+                <span style={{fontSize:11,color:T.td,display:"block",marginTop:1}}>Divide your locations into areas {DOT} sections, stations, or zones that need different training</span>
+              </div>
+            </label>
+          </div>)}
+        </div>)}
+        {/* ===== Step 25: Store Layout ===== */}
+        {step===25&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
+          <p style={{fontSize:12,color:T.tm,marginBottom:14,marginTop:0}}>Define areas within your locations. Each area can have its own team with different training needs.</p>
+          {/* Template selection or create new */}
+          {(function(){
+            var templates=(p.layoutTemplates||[]);
+            var hasTemplates=templates.length>0;
+            return (<div>
+              {hasTemplates&&(<div style={{marginBottom:14}}>
+                <label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Choose a Layout</label>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
+                  {templates.map(function(tmpl){var sel=selLayout===tmpl.id;return (
+                    <div key={tmpl.id} onClick={function(){sSelLayout(tmpl.id);}} style={{padding:"12px 14px",borderRadius:10,border:"2px solid "+(sel?T.ac:T.bd),background:sel?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s",animation:"wizSlideIn 0.3s ease"}}>
+                      <div style={{fontSize:13,fontWeight:600,color:sel?T.ac:T.tx,marginBottom:4}}>{tmpl.nm}</div>
+                      <div style={{fontSize:10,color:T.td,marginBottom:6}}>{tmpl.areas.length} area{tmpl.areas.length!==1?"s":""}</div>
+                      <div style={{fontSize:10,color:T.tm,lineHeight:"1.4"}}>{tmpl.areas.map(function(a){return a.anm;}).join(" "+DOT+" ")}</div>
+                    </div>
+                  );})}
+                  <div onClick={function(){sSelLayout("new");}} style={{padding:"12px 14px",borderRadius:10,border:"2px dashed "+(selLayout==="new"?T.ac:T.bd),background:selLayout==="new"?T.ad:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:60,transition:"all 0.3s"}}>
+                    <span style={{fontSize:12,color:selLayout==="new"?T.ac:T.td,fontWeight:500}}>+ Create New Layout</span>
+                  </div>
+                </div>
+              </div>)}
+              {(!hasTemplates||selLayout==="new")&&(<div style={{marginBottom:14,padding:14,borderRadius:10,border:"1px solid "+T.bd,background:T.sa+"60",animation:"wizFadeUp 0.3s ease"}}>
+                <label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Layout Name *</label>
+                <input value={newLayoutName} onChange={function(e){sNewLayoutName(e.target.value);if(!selLayout)sSelLayout("new");}} placeholder="e.g. POWER Standard" style={iS}/>
+                <div style={{marginTop:12,marginBottom:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <label style={{fontSize:11,color:T.td,textTransform:"uppercase"}}>Areas</label>
+                  <button onClick={addNewArea} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>+ Add Area</button>
+                </div>
+                {newAreas.length===0&&<div style={{padding:12,textAlign:"center",color:T.td,fontSize:11,borderRadius:6,border:"1px dashed "+T.bd}}>No areas yet. Click &quot;+ Add Area&quot; to start defining your layout.</div>}
+                {newAreas.map(function(area,ai){return (
+                  <div key={area.aid} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,animation:"wizSlideIn 0.25s ease",animationDelay:(ai*40)+"ms",animationFillMode:"backwards"}}>
+                    <span style={{fontSize:11,color:T.td,minWidth:20}}>{ai+1}.</span>
+                    <input value={area.anm} onChange={function(e){updAreaName(area.aid,e.target.value);}} placeholder="e.g. Radio & TV" style={{flex:1,padding:"6px 10px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:12,fontFamily:"inherit",outline:"none"}}/>
+                    <button onClick={function(){remNewArea(area.aid);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>{CROSS}</button>
+                  </div>
+                );})}
+              </div>)}
+              {/* Per-location area customization */}
+              {selLayout&&getLayoutAreas().length>0&&(<div style={{animation:"wizFadeUp 0.3s ease"}}>
+                <label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Customize per Location</label>
+                <p style={{fontSize:11,color:T.tm,marginBottom:10,marginTop:0}}>Toggle off areas that don't apply to specific locations (e.g., smaller footprint stores).</p>
+                {selD.map(function(dept){
+                  var activeIds=getDeptActiveAreas(dept.id);
+                  var layoutAreas2=getLayoutAreas();
+                  return (<div key={dept.id} style={{marginBottom:8,padding:"10px 14px",borderRadius:8,border:"1px solid "+T.bd,background:T.sa+"60"}}>
+                    <div style={{fontSize:12,fontWeight:600,marginBottom:8}}>{dept.nm}</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {layoutAreas2.map(function(area){
+                        var isOn=activeIds.indexOf(area.aid)>=0;
+                        return (<div key={area.aid} onClick={function(){togDeptArea(dept.id,area.aid);}} style={{padding:"5px 12px",borderRadius:6,border:"1px solid "+(isOn?T.ac+"50":T.bd),background:isOn?T.ad:"transparent",cursor:"pointer",fontSize:11,color:isOn?T.ac:T.td,fontWeight:isOn?500:400,transition:"all 0.2s",display:"flex",alignItems:"center",gap:4}}>
+                          <div style={{width:14,height:14,borderRadius:3,border:"1.5px solid "+(isOn?T.ac:T.bl),background:isOn?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{isOn&&<span style={{color:"#0B0F1A",fontSize:8,fontWeight:700}}>{CHK}</span>}</div>
+                          {area.anm}
+                        </div>);
+                      })}
+                    </div>
+                  </div>);
+                })}
+              </div>)}
+            </div>);
+          })()}
         </div>)}
         {step===3&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
           {/* Source selector */}
           <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:14}}>
-            <p style={{fontSize:12,color:T.tm,margin:0,flex:1}}>Define roles and headcount per location.</p>
+            <p style={{fontSize:12,color:T.tm,margin:0,flex:1}}>Define roles and headcount{useLayout?" per area.":" per location."}</p>
             <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid "+T.bd}}>
               {[{k:"circle",l:"Circles"},{k:"jobprofile",l:"Job Profiles"}].map(function(s){var sel=roleSrc===s.k;return (<button key={s.k} onClick={function(){sRoleSrc(s.k);}} style={{padding:"5px 14px",fontSize:11,fontWeight:sel?600:400,background:sel?T.ad:"transparent",color:sel?T.ac:T.td,border:"none",cursor:"pointer",fontFamily:"inherit",transition:"all 0.3s ease"}}>{s.l}</button>);})}
             </div>
@@ -328,20 +467,68 @@ export default function WizardPage(p){
             {tots.impRoles>0&&<><div style={{width:1,height:22,background:T.bd}}/><div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.am,fontSize:13}}>{tots.impRoles}</span> important</div></>}
             <div style={{flex:1}}/><div style={{padding:"5px 10px",background:T.ad,color:T.ac,fontWeight:600,fontSize:10}}>Weight: {tots.essPeople*2+tots.impRoles*1}</div>
           </div>)}
-          {selD.map(function(dept){var roles=dCirc[dept.id]||[];var srcList=roleSrc==="circle"?p.circlesList:p.jobProfilesList;return (<div key={dept.id} style={{marginBottom:12,borderRadius:10,border:"1px solid "+T.bd}}>
-            <div style={{padding:"8px 14px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center",background:T.sa}}>
-              <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{fontSize:13,fontWeight:600}}>{dept.nm}</span>{roles.length>0&&<span style={{fontSize:10,color:T.ac,animation:"wizFadeUp 0.3s ease"}}>{roles.reduce(function(s,r){return s+r.rq;},0)} positions</span>}</div>
-              <div style={{display:"flex",gap:6}}><select value="" onChange={function(e){var cid=e.target.value;if(!cid)return;var found=srcList.find(function(x){return x.id===cid;});if(found)addC(dept.id,found);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+(roleSrc==="circle"?T.ac:T.pu)+"40",background:roleSrc==="circle"?T.ad:T.pd,color:roleSrc==="circle"?T.ac:T.pu,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:120}}><option value="">{"+ Add "+(roleSrc==="circle"?"circle":"profile")+"..."}</option>{srcList.filter(function(c){return !(dCirc[dept.id]||[]).find(function(x){return x.cid===c.id;});}).map(function(c){return (<option key={c.id} value={c.id}>{c.nm}</option>);})}</select><button onClick={function(){sNcDp(dept.id);sMNC(true);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>New</button></div>
-            </div>
-            {roles.length===0&&<div style={{padding:10,textAlign:"center",color:T.td,fontSize:11}}>{"No "+(roleSrc==="circle"?"circles":"profiles")+" added"}</div>}
-            {roles.map(function(r,ri){return (<div key={r.cid} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px",borderBottom:"1px solid "+T.bd+"08",animation:"wizSlideIn 0.3s ease",animationDelay:(ri*60)+"ms",animationFillMode:"backwards"}}>
-              <span style={{fontSize:12,fontWeight:500,minWidth:110}}>{r.cnm}</span>
-              <select value={r.cr} onChange={function(e){updC(dept.id,r.cid,"cr",e.target.value);}} style={{padding:"3px 6px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:11,fontFamily:"inherit"}}><option>Essential</option><option>Important</option><option>Nice to have</option></select>
-              <span style={{fontSize:10,color:T.td}}>Qty:</span>
-              <input type="number" min={1} value={r.rq} onChange={function(e){updC(dept.id,r.cid,"rq",Math.max(1,parseInt(e.target.value)||1));}} style={{width:42,padding:"3px 4px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:12,textAlign:"center"}}/>
-              <div style={{flex:1}}/><button onClick={function(){remC(dept.id,r.cid);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:13,fontFamily:"inherit",padding:"2px 6px"}}>{CROSS}</button>
-            </div>);})}
-          </div>);})}
+          {/* Build role slots: either flat (dept-only) or area-aware (dept+area composite keys) */}
+          {(function(){
+            var roleSlots=[];
+            var layoutAreas3=getLayoutAreas();
+            if(useLayout&&selLayout&&layoutAreas3.length>0){
+              selD.forEach(function(dept){
+                var activeAIds=getDeptActiveAreas(dept.id);
+                activeAIds.forEach(function(aId){
+                  var area=layoutAreas3.find(function(a){return a.aid===aId;});
+                  roleSlots.push({key:dept.id+"__"+aId,dId:dept.id,aId:aId,label:dept.nm,areaLabel:area?area.anm:aId});
+                });
+              });
+            }else{
+              selD.forEach(function(dept){
+                roleSlots.push({key:dept.id,dId:dept.id,aId:null,label:dept.nm,areaLabel:null});
+              });
+            }
+            /* Group by department for visual hierarchy when areas active */
+            var deptGroups={};var deptOrder=[];
+            roleSlots.forEach(function(slot){
+              if(!deptGroups[slot.dId]){deptGroups[slot.dId]=[];deptOrder.push(slot.dId);}
+              deptGroups[slot.dId].push(slot);
+            });
+            var srcList=roleSrc==="circle"?p.circlesList:p.jobProfilesList;
+            return deptOrder.map(function(dId){
+              var slots=deptGroups[dId];
+              var deptName=slots[0].label;
+              var hasAreas=slots[0].aId!==null;
+              return (<div key={dId} style={{marginBottom:12,borderRadius:10,border:"1px solid "+T.bd}}>
+                {hasAreas&&(<div style={{padding:"8px 14px",borderBottom:"1px solid "+T.bd,background:T.sa}}>
+                  <span style={{fontSize:13,fontWeight:600}}>{deptName}</span>
+                </div>)}
+                {slots.map(function(slot){
+                  var roles=dCirc[slot.key]||[];
+                  return (<div key={slot.key} style={{borderBottom:hasAreas?"1px solid "+T.bd+"15":"none"}}>
+                    <div style={{padding:hasAreas?"6px 14px 6px 28px":"8px 14px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center",background:hasAreas?"transparent":T.sa}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        {hasAreas&&<span style={{fontSize:10,color:T.ac}}>{TRI_R}</span>}
+                        <span style={{fontSize:hasAreas?12:13,fontWeight:hasAreas?500:600,color:hasAreas?T.tm:T.tx}}>{hasAreas?slot.areaLabel:slot.label}</span>
+                        {roles.length>0&&<span style={{fontSize:10,color:T.ac,animation:"wizFadeUp 0.3s ease"}}>{roles.reduce(function(s,r){return s+r.rq;},0)} positions</span>}
+                      </div>
+                      <div style={{display:"flex",gap:6}}>
+                        <select value="" onChange={function(e){var cid=e.target.value;if(!cid)return;var found=srcList.find(function(x){return x.id===cid;});if(found)addC(slot.key,found);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+(roleSrc==="circle"?T.ac:T.pu)+"40",background:roleSrc==="circle"?T.ad:T.pd,color:roleSrc==="circle"?T.ac:T.pu,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:120}}>
+                          <option value="">{"+ Add "+(roleSrc==="circle"?"circle":"profile")+"..."}</option>
+                          {srcList.filter(function(c){return !(dCirc[slot.key]||[]).find(function(x){return x.cid===c.id;});}).map(function(c){return (<option key={c.id} value={c.id}>{c.nm}</option>);})}
+                        </select>
+                        <button onClick={function(){sNcDp(slot.key);sMNC(true);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>New</button>
+                      </div>
+                    </div>
+                    {roles.length===0&&<div style={{padding:8,paddingLeft:hasAreas?28:14,textAlign:"center",color:T.td,fontSize:11}}>{"No "+(roleSrc==="circle"?"circles":"profiles")+" added"}</div>}
+                    {roles.map(function(r,ri){return (<div key={r.cid} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px",paddingLeft:hasAreas?28:14,borderBottom:"1px solid "+T.bd+"08",animation:"wizSlideIn 0.3s ease",animationDelay:(ri*60)+"ms",animationFillMode:"backwards"}}>
+                      <span style={{fontSize:12,fontWeight:500,minWidth:110}}>{r.cnm}</span>
+                      <select value={r.cr} onChange={function(e){updC(slot.key,r.cid,"cr",e.target.value);}} style={{padding:"3px 6px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:11,fontFamily:"inherit"}}><option>Essential</option><option>Important</option><option>Nice to have</option></select>
+                      <span style={{fontSize:10,color:T.td}}>Qty:</span>
+                      <input type="number" min={1} value={r.rq} onChange={function(e){updC(slot.key,r.cid,"rq",Math.max(1,parseInt(e.target.value)||1));}} style={{width:42,padding:"3px 4px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:12,textAlign:"center"}}/>
+                      <div style={{flex:1}}/><button onClick={function(){remC(slot.key,r.cid);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:13,fontFamily:"inherit",padding:"2px 6px"}}>{CROSS}</button>
+                    </div>);})}
+                  </div>);
+                })}
+              </div>);
+            });
+          })()}
         </div>)}
 
         {/* ===== NEW: Define Targets step (job profiles only) ===== */}

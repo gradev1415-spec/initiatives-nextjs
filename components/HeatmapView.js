@@ -1,6 +1,6 @@
 "use client";
 import { useT } from "@/lib/theme";
-import { rc, cc2 } from "@/lib/utils";
+import { rc, cc2, forEachRole } from "@/lib/utils";
 import { allRoles, wRd } from "@/lib/readiness";
 import Badge from "./Badge";
 
@@ -10,7 +10,7 @@ export default function HeatmapView(p){
   p.ini.forEach(function(it){
     it.depts.forEach(function(d){
       if(!locList.find(function(x){return x.dn===d.dn;}))locList.push({dn:d.dn,ini:it.nm});
-      d.roles.forEach(function(r){
+      forEachRole([d],function(r){
         roleMap[r.cn]=roleMap[r.cn]||{};
         var pct=r.rq>0?Math.round(r.ql/r.rq*100):100;
         roleMap[r.cn][d.dn]=pct;

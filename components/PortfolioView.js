@@ -1,7 +1,7 @@
 "use client";
 import { useT } from "@/lib/theme";
-import { rc } from "@/lib/utils";
-import { allRoles, wRd } from "@/lib/readiness";
+import { rc, fD, forEachRole } from "@/lib/utils";
+import { allRoles, wRd, iRd } from "@/lib/readiness";
 import Badge from "./Badge";
 import MiniGauge from "./MiniGauge";
 
@@ -9,7 +9,7 @@ export default function PortfolioView(p){
   var T=useT();
   var totalGaps=0,topSkillGaps={},topCertGaps={};
   p.ini.forEach(function(it){
-    it.depts.forEach(function(d){d.roles.forEach(function(r){totalGaps+=r.gp;});});
+    forEachRole(it.depts,function(r){totalGaps+=r.gp;});
     it.sg.forEach(function(g){if(g.s!=="All skills"){topSkillGaps[g.s]=(topSkillGaps[g.s]||0)+g.n;}});
     it.cg.forEach(function(g){if(g.c!=="All certs"){topCertGaps[g.c]=(topCertGaps[g.c]||0)+g.n;}});
   });

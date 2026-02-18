@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useT } from "@/lib/theme";
 import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
-import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff } from "@/lib/readiness";
+import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff, areaRd, areaStaff } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
 import { LIBRARY, FITS } from "@/lib/data";
 import Badge from "./Badge";
@@ -122,12 +122,16 @@ export default function DetailPage(p){
             </div>
           );
         }
-        /* Compute per-dept stats */
+        /* Compute per-dept stats (handles both flat roles and areas) */
         var deptStats=ini.depts.map(function(dept){
           var dR=deptRd(dept);
           var dS=deptStaff(dept);
           var dReq=0,dFill=0;
-          (dept.roles||[]).forEach(function(r){dReq+=r.rq;dFill+=r.ql;});
+          if(dept.areas){
+            dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){dReq+=r.rq;dFill+=r.ql;});});
+          }else{
+            (dept.roles||[]).forEach(function(r){dReq+=r.rq;dFill+=r.ql;});
+          }
           var surplus=dFill-dReq;
           return {dept:dept,rd:dR,staff:dS,req:dReq,filled:dFill,surplus:surplus};
         });
@@ -169,24 +173,56 @@ export default function DetailPage(p){
                         <div style={{fontSize:11,color:T.tm}}>{ds.filled}/{ds.req} filled <span style={{color:surpColor,fontWeight:600}}>({ds.surplus>0?"+":""}{ds.surplus})</span></div>
                       </div>
                     </div>
-                    {/* Per-role breakdown */}
+                    {/* Per-role breakdown (handles areas and flat roles) */}
                     <div style={{borderTop:"1px solid "+T.bd}}>
-                      <div style={{padding:"6px 16px",borderBottom:"1px solid "+T.bd+"08",fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,display:"flex"}}>
-                        <span style={{flex:1}}>Role</span>
-                        <span style={{width:60,textAlign:"center"}}>Filled</span>
-                        <span style={{width:50,textAlign:"right"}}>Readiness</span>
-                      </div>
-                      {(ds.dept.roles||[]).map(function(r,ri){
-                        var rrd=r.rq>0?Math.round(r.ql/r.rq*100):100;
-                        var rsurp=r.ql-r.rq;
-                        return (
-                          <div key={ri} style={{display:"flex",alignItems:"center",padding:"5px 16px",borderBottom:"1px solid "+T.bd+"05",fontSize:12}}>
-                            <span style={{flex:1,fontWeight:500}}>{r.cn}</span>
-                            <span style={{width:60,textAlign:"center",color:T.tm}}>{r.ql}/{r.rq}{rsurp!==0&&<span style={{fontSize:10,color:rsurp>0?T.ac:T.rd,marginLeft:3}}>({rsurp>0?"+":""}{rsurp})</span>}</span>
-                            <span style={{width:50,textAlign:"right",fontWeight:600,color:rc(rrd,T)}}>{rrd}%</span>
+                      {ds.dept.areas?(
+                        /* Area-based layout: show each area as a sub-section */
+                        ds.dept.areas.map(function(area,ai){
+                          var aR=areaRd(area);
+                          var aReq=0,aFill=0;
+                          (area.roles||[]).forEach(function(r){aReq+=r.rq;aFill+=r.ql;});
+                          return (<div key={ai}>
+                            <div style={{padding:"6px 16px",borderBottom:"1px solid "+T.bd+"15",background:T.sa+"60",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                              <span style={{fontSize:11,fontWeight:600,color:T.ac}}>{area.anm}</span>
+                              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                                <span style={{fontSize:10,color:T.tm}}>{aFill}/{aReq}</span>
+                                <span style={{fontSize:10,fontWeight:600,color:rc(aR,T)}}>{aR}%</span>
+                              </div>
+                            </div>
+                            {(area.roles||[]).map(function(r,ri){
+                              var rrd=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                              var rsurp=r.ql-r.rq;
+                              return (
+                                <div key={ri} style={{display:"flex",alignItems:"center",padding:"4px 16px 4px 28px",borderBottom:"1px solid "+T.bd+"05",fontSize:12}}>
+                                  <span style={{flex:1,fontWeight:500}}>{r.cn}</span>
+                                  <span style={{width:60,textAlign:"center",color:T.tm}}>{r.ql}/{r.rq}{rsurp!==0&&<span style={{fontSize:10,color:rsurp>0?T.ac:T.rd,marginLeft:3}}>({rsurp>0?"+":""}{rsurp})</span>}</span>
+                                  <span style={{width:50,textAlign:"right",fontWeight:600,color:rc(rrd,T)}}>{rrd}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>);
+                        })
+                      ):(
+                        /* Flat roles layout */
+                        <div>
+                          <div style={{padding:"6px 16px",borderBottom:"1px solid "+T.bd+"08",fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,display:"flex"}}>
+                            <span style={{flex:1}}>Role</span>
+                            <span style={{width:60,textAlign:"center"}}>Filled</span>
+                            <span style={{width:50,textAlign:"right"}}>Readiness</span>
                           </div>
-                        );
-                      })}
+                          {(ds.dept.roles||[]).map(function(r,ri){
+                            var rrd=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                            var rsurp=r.ql-r.rq;
+                            return (
+                              <div key={ri} style={{display:"flex",alignItems:"center",padding:"5px 16px",borderBottom:"1px solid "+T.bd+"05",fontSize:12}}>
+                                <span style={{flex:1,fontWeight:500}}>{r.cn}</span>
+                                <span style={{width:60,textAlign:"center",color:T.tm}}>{r.ql}/{r.rq}{rsurp!==0&&<span style={{fontSize:10,color:rsurp>0?T.ac:T.rd,marginLeft:3}}>({rsurp>0?"+":""}{rsurp})</span>}</span>
+                                <span style={{width:50,textAlign:"right",fontWeight:600,color:rc(rrd,T)}}>{rrd}%</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
