@@ -177,7 +177,7 @@ export default function OverviewPage(p){
         {/* Risk exposure */}
         <div style={{background:T.cd,padding:"20px 24px"}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Risk Exposure<Tip text="Total revenue at risk across all initiatives due to readiness gaps." icon="i" sz={12}/></div>
-          <div style={{fontSize:24,fontWeight:700,color:T.am,lineHeight:1}}>{fD(totalRisk)}</div>
+          <div style={{fontSize:24,fontWeight:700,color:T.tx,lineHeight:1}}>{fD(totalRisk)}</div>
           <div style={{fontSize:11,color:T.tm,marginTop:6}}>{ini.length} initiatives tracked</div>
         </div>
         {/* Workforce fill */}
@@ -188,7 +188,7 @@ export default function OverviewPage(p){
             <span style={{fontSize:14,color:T.td}}>/ {pR.required}</span>
           </div>
           <div style={{marginTop:6}}>
-            <ProgressBar v={pR.required>0?Math.round(pR.filled/pR.required*100):0} h={4}/>
+            <ProgressBar v={pR.required>0?Math.round(pR.filled/pR.required*100):0} h={4} c={T.ac}/>
             <div style={{fontSize:10,color:T.tm,marginTop:3}}>{pR.required>0?Math.round(pR.filled/pR.required*100):0}% staffed</div>
           </div>
         </div>
@@ -200,13 +200,13 @@ export default function OverviewPage(p){
             {pC.total>0&&<span style={{fontSize:14,color:T.td}}>/ {pC.total}</span>}
           </div>
           <div style={{marginTop:6}}>
-            {pC.total>0?<div><ProgressBar v={Math.round(pC.covered/pC.total*100)} h={4}/><div style={{fontSize:10,color:T.tm,marginTop:3}}>{Math.round(pC.covered/pC.total*100)}% capability</div></div>:<div style={{fontSize:10,color:T.tm}}>Define requirements to track</div>}
+            {pC.total>0?<div><ProgressBar v={Math.round(pC.covered/pC.total*100)} h={4} c={T.ac}/><div style={{fontSize:10,color:T.tm,marginTop:3}}>{Math.round(pC.covered/pC.total*100)}% capability</div></div>:<div style={{fontSize:10,color:T.tm}}>Define requirements to track</div>}
           </div>
         </div>
         {/* Urgent priorities */}
         <div style={{background:T.cd,padding:"20px 24px"}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Urgent Priorities<Tip text="Essential or Critical skill and certificate gaps requiring immediate attention." icon="i" sz={12}/></div>
-          <div style={{fontSize:24,fontWeight:700,lineHeight:1,color:pP>0?T.rd:T.gn}}>{pP}</div>
+          <div style={{fontSize:24,fontWeight:700,lineHeight:1,color:T.tx}}>{pP}</div>
           <div style={{fontSize:11,color:T.tm,marginTop:6}}>{pP>0?"Essential gaps to close":"All critical gaps resolved"}</div>
         </div>
       </div>
