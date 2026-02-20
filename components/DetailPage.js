@@ -907,23 +907,22 @@ export default function DetailPage(p){
       {/* ——— PROGRESS TAB — fixed 4-quarter year grid ——— */}
       {tab==="Progress"&&(function(){
         var hist=(ini.hist||[]).slice();
-        /* Inject live "Current" as the latest quarter snapshot */
-        var curSnap={q:"Current",rd:crd,staff:sR,skill:skR!==null?skR:0,cert:cR!==null?cR:0,isCurrent:true};
-        /* Determine current quarter label from latest hist or from initiative timeline */
-        var latestQ=hist.length>0?hist[hist.length-1].q:null;
-        var curQn=null,curYr=null;
-        if(latestQ){var m=latestQ.match(/Q(\d)\s+(\d{4})/);if(m){curQn=parseInt(m[1],10);curYr=parseInt(m[2],10);}}
-        /* If last snapshot matches live value, mark it as current; otherwise append as next quarter */
-        if(hist.length>0&&hist[hist.length-1].rd===crd){
-          hist[hist.length-1]=Object.assign({},hist[hist.length-1],{isCurrent:true});
-        } else if(curQn!==null){
-          var nxtQn=curQn<4?curQn+1:1;
-          var nxtYr=curQn<4?curYr:curYr+1;
-          curSnap.q="Q"+nxtQn+" "+nxtYr;
-          hist.push(curSnap);
+        /* Determine actual current quarter from calendar */
+        var now=new Date();
+        var nowQn=Math.ceil((now.getMonth()+1)/3);
+        var nowYr=now.getFullYear();
+        var nowLabel="Q"+nowQn+" "+nowYr;
+        /* Build the current quarter snapshot from live-computed values */
+        var curSnap={q:nowLabel,rd:crd,staff:sR,skill:skR!==null?skR:0,cert:cR!==null?cR:0,isCurrent:true};
+        /* Check if hist already has an entry for this quarter */
+        var existingIdx=-1;
+        hist.forEach(function(h,i){if(h.q===nowLabel)existingIdx=i;});
+        if(existingIdx>=0){
+          /* Replace existing quarter with live data and mark as current */
+          hist[existingIdx]=Object.assign({},hist[existingIdx],{rd:crd,staff:sR,skill:skR!==null?skR:hist[existingIdx].skill,cert:cR!==null?cR:hist[existingIdx].cert,isCurrent:true});
         } else {
-          /* No history at all — just show current */
-          hist.push(Object.assign(curSnap,{q:"Q1 2025"}));
+          /* Append current quarter */
+          hist.push(curSnap);
         }
         /* Parse target date for deadline marker */
         var targetQ=ini.td&&ini.td!=="TBD"?ini.td:null;
@@ -932,7 +931,7 @@ export default function DetailPage(p){
         hist.forEach(function(h){var ym=h.q.match(/(\d{4})/);if(ym)yearsSet[ym[1]]=true;});
         if(targetQ){var tym=targetQ.match(/(\d{4})/);if(tym)yearsSet[tym[1]]=true;}
         var years=Object.keys(yearsSet).sort();
-        var selYear=progYear||(years.length>0?years[years.length-1]:null);
+        var selYear=progYear||(yearsSet[String(nowYr)]?String(nowYr):(years.length>0?years[years.length-1]:null));
         var showAll=selYear==="All";
         /* Build the 4-quarter grid for each visible year */
         var visibleYears=showAll?years:(selYear?[selYear]:years);
