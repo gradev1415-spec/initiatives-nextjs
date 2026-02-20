@@ -139,7 +139,7 @@ export default function OverviewPage(p){
   return (
     <div style={{padding:"32px 32px",maxWidth:1400,margin:"0 auto"}}>
       {/* ═══ HEADER ═══ */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:48}}>
         <div>
           <h1 style={{fontSize:24,fontWeight:700,marginBottom:4}}>Initiatives</h1>
           <p style={{color:T.tm,fontSize:13}}>Workforce readiness across all locations</p>
@@ -158,7 +158,7 @@ export default function OverviewPage(p){
       </div>
 
       {/* ═══ COMMAND CENTER: Portfolio Pulse ═══ */}
-      <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 1fr 1fr 1fr",gap:1,marginBottom:32,borderRadius:14,overflow:"hidden",border:"1px solid "+T.bd,background:T.bd}}>
+      <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 1fr 1fr 1fr",gap:1,marginBottom:52,borderRadius:14,overflow:"hidden",border:"1px solid "+T.bd,background:T.bd}}>
         {/* Hero readiness */}
         <div style={{background:T.cd,padding:"20px 24px",display:"flex",alignItems:"center",gap:16}}>
           <div>
