@@ -942,94 +942,104 @@ export default function DetailPage(p){
         function qOrd(ql){var m2=ql.match(/Q(\d)\s+(\d{4})/);return m2?parseInt(m2[2],10)*10+parseInt(m2[1],10):0;}
         var nowOrd=qOrd(nowLabel);
 
+        /* Build flat list of all quarter slots for visible years */
+        var allQuarters=[];
+        visibleYears.forEach(function(yr){allQuarters.push("Q1 "+yr,"Q2 "+yr,"Q3 "+yr,"Q4 "+yr);});
+        /* For past empty quarters, carry forward last known snapshot */
+        var lastKnown=null;
+        allQuarters.forEach(function(qLabel){
+          if(histMap[qLabel]){lastKnown=histMap[qLabel];}
+          else if(qOrd(qLabel)<=nowOrd&&lastKnown){
+            histMap[qLabel]={q:qLabel,rd:lastKnown.rd,staff:lastKnown.staff,skill:lastKnown.skill,cert:lastKnown.cert,carried:true};
+          }
+        });
+
         return (
         <div>
-          {visibleYears.map(function(yr){
-            var quarters=["Q1 "+yr,"Q2 "+yr,"Q3 "+yr,"Q4 "+yr];
-            return (
-              <div key={yr} style={{marginBottom:showAll?24:0}}>
-                {showAll&&<h4 style={{fontSize:13,fontWeight:600,color:T.tm,marginBottom:8}}>{yr}</h4>}
-                {/* Snapshot table */}
-                <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:14}}>
-                  <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Quarterly Progress{!showAll&&years.length<=1?" "+yr:""}</h3>
-                    {/* Single-year selector when only header has room */}
-                    {years.length>1&&!showAll&&(
-                      <select value={selYear||""} onChange={function(e){sProgYear(e.target.value);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:11,fontFamily:"inherit",cursor:"pointer"}}>
-                        {years.map(function(y){return <option key={y} value={y}>{y}</option>;})}
-                        <option value="All">All years</option>
-                      </select>
+          {/* Snapshot table — single table for all visible quarters */}
+          <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:14}}>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Quarterly Progress{!showAll&&visibleYears.length===1?" "+visibleYears[0]:""}</h3>
+              {years.length>1&&(
+                <select value={selYear||""} onChange={function(e){sProgYear(e.target.value);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:11,fontFamily:"inherit",cursor:"pointer"}}>
+                  {years.map(function(y){return <option key={y} value={y}>{y}</option>;})}
+                  <option value="All">All years</option>
+                </select>
+              )}
+            </div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
+                {["Quarter","Overall","Staffing","Skill","Certification","Change"].map(function(col){return <th key={col} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{col}</th>;})}
+              </tr></thead>
+              <tbody>{allQuarters.map(function(qLabel,qi){
+                var h=histMap[qLabel];
+                var isCur=h&&!!h.isCurrent;
+                var isCarried=h&&!!h.carried;
+                var isEmpty=!h;
+                var isTarget=targetQ===qLabel;
+                var isFuture=qOrd(qLabel)>nowOrd;
+                /* Year boundary separator */
+                var qm=qLabel.match(/Q(\d)\s+(\d{4})/);
+                var isYearStart=showAll&&qm&&qm[1]==="1"&&qi>0;
+                /* Find previous quarter's data for delta */
+                var prevLabel=qi>0?allQuarters[qi-1]:null;
+                var prevH=prevLabel?histMap[prevLabel]:null;
+                var delta=(h&&prevH&&!isCarried)?h.rd-prevH.rd:0;
+                return (
+                  <tr key={qLabel} style={{borderTop:isYearStart?"2px solid "+T.bd:undefined,borderBottom:isTarget?"2px dashed "+T.bd:"1px solid "+T.bd+"08",background:isCur?T.ad:isEmpty?T.sa+"60":"transparent",opacity:isEmpty?0.5:isCarried?0.6:1}}>
+                    <td style={{padding:"8px 14px",fontSize:13,fontWeight:600,color:isEmpty?T.td:T.tx}}>
+                      {showAll?qLabel:qLabel.replace(" "+qm[2],"")}
+                      {isCur&&<span style={{fontSize:9,marginLeft:6,color:T.ac,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Current</span>}
+                      {isTarget&&<span style={{fontSize:9,marginLeft:6,color:T.td,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Target</span>}
+                      {isCarried&&<span style={{fontSize:9,marginLeft:6,color:T.td,fontStyle:"italic"}}>(carried)</span>}
+                    </td>
+                    {isEmpty?(
+                      <td colSpan={5} style={{padding:"8px 14px",fontSize:11,color:T.td,fontStyle:"italic"}}>{isFuture?"Upcoming":"No snapshot"}</td>
+                    ):(
+                      [
+                        <td key="ov" style={{padding:"8px 14px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:50}}><ProgressBar v={h.rd} h={4}/></div><span style={{fontSize:12,fontWeight:600,color:rc(h.rd,T)}}>{h.rd}%</span></div></td>,
+                        <td key="st" style={{padding:"8px 14px",fontSize:12,color:rc(h.staff,T)}}>{h.staff}%</td>,
+                        <td key="sk" style={{padding:"8px 14px",fontSize:12,color:hSk?rc(h.skill,T):T.td}}>{hSk?h.skill+"%":"-"}</td>,
+                        <td key="ct" style={{padding:"8px 14px",fontSize:12,color:hCt?rc(h.cert,T):T.td}}>{hCt?h.cert+"%":"-"}</td>,
+                        <td key="dl" style={{padding:"8px 14px",fontSize:12,fontWeight:600,color:delta>0?T.gn:delta<0?T.rd:T.td}}>{(prevH&&!isCarried)?(delta>0?"+"+delta+"%":delta<0?delta+"%":"\u2014"):"\u2014"}</td>
+                      ]
                     )}
+                  </tr>
+                );
+              })}</tbody>
+            </table>
+          </div>
+          {/* Bar chart — all visible quarters in one row */}
+          <div style={{borderRadius:14,border:"1px solid "+T.bd,padding:20}}>
+            <h3 style={{fontSize:13,fontWeight:600,margin:"0 0 16px"}}>Readiness Trend</h3>
+            <div style={{display:"flex",alignItems:"flex-end",gap:showAll?6:12,height:120}}>
+              {allQuarters.map(function(qLabel){
+                var h=histMap[qLabel];
+                var isCur=h&&!!h.isCurrent;
+                var isCarried=h&&!!h.carried;
+                var isEmpty=!h;
+                var isTarget=targetQ===qLabel;
+                var qm2=qLabel.match(/Q(\d)\s+(\d{4})/);
+                return (
+                  <div key={qLabel} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,position:"relative"}}>
+                    {isEmpty?(
+                      <span style={{fontSize:11,color:T.td}}>{"\u2014"}</span>
+                    ):(
+                      <span style={{fontSize:showAll?9:11,fontWeight:isCur?700:600,color:isCarried?T.td:rc(h.rd,T)}}>{h.rd}%</span>
+                    )}
+                    <div style={{width:"100%",height:isEmpty?12:Math.max(h.rd*1.1,8),borderRadius:6,background:isEmpty?T.sa:isCarried?T.sa:rc(h.rd,T)+(isCur?"40":"30"),position:"relative",border:isCur?"2px solid "+rc(h.rd,T):isCarried?"1px dashed "+T.bd:"none",transition:"height 0.3s ease"}}>
+                      {!isEmpty&&!isCarried&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:"100%",borderRadius:isCur?4:6,background:rc(h.rd,T),opacity:isCur?0.85:0.6}}/>}
+                    </div>
+                    <span style={{fontSize:showAll?8:10,fontWeight:isCur?700:400,color:isCur?T.ac:T.td}}>{showAll?qLabel:qLabel.replace(" "+qm2[2],"")}</span>
+                    {/* Target deadline marker */}
+                    {isTarget&&<div style={{position:"absolute",top:-8,right:-6,bottom:-4,width:0,borderRight:"2px dashed "+T.bd,pointerEvents:"none"}}>
+                      <span style={{position:"absolute",top:-2,right:4,fontSize:8,color:T.td,fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,whiteSpace:"nowrap"}}>Target</span>
+                    </div>}
                   </div>
-                  <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
-                      {["Quarter","Overall","Staffing","Skill","Certification","Change"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
-                    </tr></thead>
-                    <tbody>{quarters.map(function(qLabel,qi){
-                      var h=histMap[qLabel];
-                      var isCur=h&&!!h.isCurrent;
-                      var isEmpty=!h;
-                      var isTarget=targetQ===qLabel;
-                      var isFuture=qOrd(qLabel)>nowOrd;
-                      /* Find previous quarter's data for delta */
-                      var prevLabel=qi>0?quarters[qi-1]:null;
-                      var prevH=prevLabel?histMap[prevLabel]:null;
-                      var delta=(h&&prevH)?h.rd-prevH.rd:0;
-                      return (
-                        <tr key={qLabel} style={{borderBottom:isTarget?"2px dashed "+T.bd:"1px solid "+T.bd+"08",background:isCur?T.ad:isEmpty?T.sa+"60":"transparent",opacity:isEmpty?0.5:1}}>
-                          <td style={{padding:"8px 14px",fontSize:13,fontWeight:600,color:isEmpty?T.td:T.tx}}>
-                            {qLabel.replace(" "+yr,"")}
-                            {isCur&&<span style={{fontSize:9,marginLeft:6,color:T.ac,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Current</span>}
-                            {isTarget&&<span style={{fontSize:9,marginLeft:6,color:T.td,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Target</span>}
-                          </td>
-                          {isEmpty?(
-                            <td colSpan={5} style={{padding:"8px 14px",fontSize:11,color:T.td,fontStyle:"italic"}}>{isFuture?"Upcoming":"No snapshot"}</td>
-                          ):(
-                            [
-                              <td key="ov" style={{padding:"8px 14px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:50}}><ProgressBar v={h.rd} h={4}/></div><span style={{fontSize:12,fontWeight:600,color:rc(h.rd,T)}}>{h.rd}%</span></div></td>,
-                              <td key="st" style={{padding:"8px 14px",fontSize:12,color:rc(h.staff,T)}}>{h.staff}%</td>,
-                              <td key="sk" style={{padding:"8px 14px",fontSize:12,color:hSk?rc(h.skill,T):T.td}}>{hSk?h.skill+"%":"-"}</td>,
-                              <td key="ct" style={{padding:"8px 14px",fontSize:12,color:hCt?rc(h.cert,T):T.td}}>{hCt?h.cert+"%":"-"}</td>,
-                              <td key="dl" style={{padding:"8px 14px",fontSize:12,fontWeight:600,color:delta>0?T.gn:delta<0?T.rd:T.td}}>{prevH?(delta>0?"+"+delta+"%":delta<0?delta+"%":"\u2014"):"\u2014"}</td>
-                            ]
-                          )}
-                        </tr>
-                      );
-                    })}</tbody>
-                  </table>
-                </div>
-                {/* Bar chart — 4 fixed quarter slots */}
-                <div style={{borderRadius:14,border:"1px solid "+T.bd,padding:20,marginBottom:showAll?0:0}}>
-                  <h3 style={{fontSize:13,fontWeight:600,margin:"0 0 16px"}}>Readiness Trend</h3>
-                  <div style={{display:"flex",alignItems:"flex-end",gap:12,height:120}}>
-                    {quarters.map(function(qLabel){
-                      var h=histMap[qLabel];
-                      var isCur=h&&!!h.isCurrent;
-                      var isEmpty=!h;
-                      var isTarget=targetQ===qLabel;
-                      return (
-                        <div key={qLabel} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4,position:"relative"}}>
-                          {isEmpty?(
-                            <span style={{fontSize:11,color:T.td}}>{"\u2014"}</span>
-                          ):(
-                            <span style={{fontSize:11,fontWeight:isCur?700:600,color:rc(h.rd,T)}}>{h.rd}%</span>
-                          )}
-                          <div style={{width:"100%",height:isEmpty?12:Math.max(h.rd*1.1,8),borderRadius:6,background:isEmpty?T.sa:rc(h.rd,T)+(isCur?"40":"30"),position:"relative",border:isCur?"2px solid "+rc(h.rd,T):"none",transition:"height 0.3s ease"}}>
-                            {!isEmpty&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:"100%",borderRadius:isCur?4:6,background:rc(h.rd,T),opacity:isCur?0.85:0.6}}/>}
-                          </div>
-                          <span style={{fontSize:10,fontWeight:isCur?700:400,color:isCur?T.ac:T.td}}>{qLabel.replace(" "+yr,"")}</span>
-                          {/* Target deadline marker — dashed line on right edge */}
-                          {isTarget&&<div style={{position:"absolute",top:-8,right:-6,bottom:-4,width:0,borderRight:"2px dashed "+T.bd,pointerEvents:"none"}}>
-                            <span style={{position:"absolute",top:-2,right:4,fontSize:8,color:T.td,fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,whiteSpace:"nowrap"}}>Target</span>
-                          </div>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
         );
       })()}
