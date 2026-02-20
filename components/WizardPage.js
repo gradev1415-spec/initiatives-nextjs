@@ -47,8 +47,9 @@ export default function WizardPage(p){
   var _areqExp=useState({});var areaReqExp=_areqExp[0],sAreaReqExp=_areqExp[1];
   /* Roles step: dept expand/collapse — first dept open by default */
   var _rdx=useState({});var roleDeptExp=_rdx[0],sRoleDeptExp=_rdx[1];
+  var _pss=useState(null);var presetSavedId=_pss[0],sPresetSavedId=_pss[1];
 
-  useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}50%{box-shadow:0 0 12px 2px rgba(34,211,238,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
+  useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(28,37,63,0)}50%{box-shadow:0 0 12px 2px rgba(28,37,63,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
 
   function togExp(id){sExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=!pr[id];return n;});}
   function togTgtExp(id){sTgtExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[id]=n[id]===undefined?false:!n[id];return n;});}
@@ -111,10 +112,69 @@ export default function WizardPage(p){
     var reqs={};
     tmpl.areas.forEach(function(a){
       if((a.skillReqs&&a.skillReqs.length>0)||(a.certReqs&&a.certReqs.length>0)){
-        reqs[a.aid]={skills:(a.skillReqs||[]).map(function(sk){return typeof sk==="string"?{s:sk,lvl:1}:sk;}),certs:a.certReqs||[]};
+        reqs[a.aid]={skills:(a.skillReqs||[]).map(function(sk){return typeof sk==="string"?{s:sk,lvl:1}:sk;}),certs:(a.certReqs||[]).map(function(ct){return typeof ct==="string"?ct:ct.c||ct;})};
       }
     });
     sAreaReqs(reqs);
+    /* Auto-load role preset if template has one */
+    if(tmpl.rolePreset){
+      loadRolePreset(tmpl);
+    }
+  }
+  /* Load saved role preset from a template into dCirc for all selected depts */
+  function loadRolePreset(tmpl){
+    if(!tmpl||!tmpl.rolePreset)return;
+    var preset=tmpl.rolePreset;
+    sDCirc(function(pr){
+      var n={};for(var k in pr)n[k]=pr[k];
+      selD.forEach(function(dept){
+        var activeAIds=getDeptActiveAreas(dept.id);
+        activeAIds.forEach(function(aId){
+          var key=dept.id+"__"+aId;
+          if(preset[aId]&&preset[aId].length>0&&!(n[key]&&n[key].length>0)){
+            n[key]=preset[aId].map(function(r){return {cid:r.cid,cnm:r.cnm,cr:r.cr,rq:r.rq};});
+          }
+        });
+      });
+      return n;
+    });
+  }
+  /* Save a specific dept's role config as preset on the selected template */
+  function saveRolePreset(dId){
+    if(!selLayout||selLayout==="new")return;
+    var layoutAreas=getLayoutAreas();
+    if(!dId){var fd=selD[0];if(!fd)return;dId=fd.id;}
+    var preset={};
+    layoutAreas.forEach(function(a){
+      var key=dId+"__"+a.aid;
+      var roles=dCirc[key]||[];
+      if(roles.length>0){
+        preset[a.aid]=roles.map(function(r){return {cid:r.cid,cnm:r.cnm,cr:r.cr,rq:r.rq};});
+      }
+    });
+    p.setLT(function(prev){return prev.map(function(t){
+      if(t.id===selLayout)return Object.assign({},t,{rolePreset:preset});
+      return t;
+    });});
+    return preset;
+  }
+  /* Apply saved preset to a specific dept */
+  function applyPresetToDept(dId){
+    if(!selLayout||selLayout==="new")return;
+    var tmpl=(p.layoutTemplates||[]).find(function(t){return t.id===selLayout;});
+    if(!tmpl||!tmpl.rolePreset)return;
+    var preset=tmpl.rolePreset;
+    var activeAIds=getDeptActiveAreas(dId);
+    sDCirc(function(pr){
+      var n={};for(var k in pr)n[k]=pr[k];
+      activeAIds.forEach(function(aId){
+        var key=dId+"__"+aId;
+        if(preset[aId]&&preset[aId].length>0){
+          n[key]=preset[aId].map(function(r){return {cid:r.cid,cnm:r.cnm,cr:r.cr,rq:r.rq};});
+        }
+      });
+      return n;
+    });
   }
   /* Apply roles from one dept to all others */
   function applyToAll(srcDeptId){
@@ -404,6 +464,8 @@ export default function WizardPage(p){
         p.setLT(function(prev){return prev.concat([newTmpl]);});
       }
     }
+    /* Auto-save role preset for existing layout templates */
+    if(useLayout&&selLayout&&selLayout!=="new"){saveRolePreset();}
     var sg,cg,skillRdVal,certRdVal;
     if(roleSrc==="jobprofile"){
       sg=computeSkillGaps();cg=computeCertGaps();skillRdVal=isProj?0:computeSkillRd();certRdVal=isProj?0:computeCertRd();
@@ -454,15 +516,15 @@ export default function WizardPage(p){
         {stps.map(function(s,idx){var isActive=step===s.n;var isDone=stpIdx(step)>idx;return (
           <div key={s.n} style={{display:"flex",alignItems:"center",flex:idx<stps.length-1?1:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <div style={{width:26,height:26,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,background:isActive?T.ac:isDone?T.gn:T.sa,color:isActive||isDone?"#0B0F1A":T.td,transition:"all 0.4s ease",animation:isActive?"wizGlow 2.5s ease infinite":"none"}}>{isDone?<span style={{animation:"wizPop 0.3s ease"}}>{CHK}</span>:idx+1}</div>
+              <div style={{width:26,height:26,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,background:isActive?T.ac:isDone?T.gn:T.sa,color:isActive||isDone?"#FFFFFF":T.td,transition:"all 0.4s ease",animation:isActive?"wizGlow 2.5s ease infinite":"none"}}>{isDone?<span style={{animation:"wizPop 0.3s ease"}}>{CHK}</span>:idx+1}</div>
               <span style={{fontSize:11,fontWeight:isActive?600:400,color:isActive?T.tx:T.td,whiteSpace:"nowrap",transition:"color 0.3s"}}>{s.l}</span>
             </div>
             {idx<stps.length-1&&<div style={{flex:1,height:2,margin:"0 8px",background:T.bd,position:"relative",overflow:"hidden",borderRadius:1}}><div style={{position:"absolute",top:0,left:0,height:"100%",background:isDone?T.gn:isActive?T.ac:"transparent",width:isDone?"100%":isActive?"50%":"0%",transition:"width 0.6s ease",borderRadius:1}}/></div>}
           </div>
         );})}
       </div>
-      {/* Smart hint */}
-      {step!==analysisN&&hintText&&(<div style={{marginBottom:16,padding:"7px 14px",borderRadius:8,background:"linear-gradient(90deg,"+T.ad+","+T.sa+")",border:"1px solid "+T.ac+"15",display:"flex",alignItems:"center",gap:8,animation:"wizSlideIn 0.4s ease"}}><div style={{width:6,height:6,borderRadius:3,background:T.ac,animation:"wizPulse 2s ease infinite",flexShrink:0}}/><span style={{fontSize:11,color:T.ac,lineHeight:"1.3"}}>{hintText}</span></div>)}
+      {/* Step subtitle — compact, no box */}
+      {step!==analysisN&&hintText&&(<div style={{marginBottom:12}}><span style={{fontSize:11,color:T.td,lineHeight:"1.3"}}>{hintText}</span></div>)}
       <div style={{minHeight:340}}>
         {step===1&&(<div style={{display:"flex",flexDirection:"column",gap:18,animation:"wizFadeUp 0.4s ease"}}>
           <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Initiative Name *</label><input value={name} onChange={function(e){sName(e.target.value);}} placeholder="e.g. Helsingor - New Opening" style={iS}/></div>
@@ -471,7 +533,7 @@ export default function WizardPage(p){
           <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"10px 14px",borderRadius:10,border:"1px solid "+(isProj?T.pu+"50":T.bd),background:isProj?T.pd:"transparent",transition:"all 0.3s ease"}} onClick={function(){sProj(!isProj);}}><div style={{width:18,height:18,borderRadius:4,border:"2px solid "+(isProj?T.pu:T.bl),background:isProj?T.pu:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{isProj&&<span style={{color:"white",fontSize:10,fontWeight:700,animation:"wizPop 0.3s ease"}}>{CHK}</span>}</div><div><span style={{fontSize:13,color:isProj?T.pu:T.tm,fontWeight:isProj?600:400}}>This is a projection</span><span style={{fontSize:11,color:T.td,display:"block"}}>Future-state planning, no current employees matched</span></div></label>
         </div>)}
         {step===2&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}><p style={{fontSize:12,color:T.tm,margin:0}}>Select locations for this initiative.</p><button onClick={function(){sMND(true);}} style={{padding:"5px 12px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>+ New Dept</button></div>
+          <div style={{display:"flex",justifyContent:"flex-end",alignItems:"center",marginBottom:12}}><button onClick={function(){sMND(true);}} style={{padding:"5px 12px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>+ New Dept</button></div>
           {p.deptTree.map(function(region){
             var allSel=region.ch.length>0&&region.ch.every(function(d2){return selD.find(function(x){return x.id===d2.id;});});
             var someSel=region.ch.some(function(d2){return selD.find(function(x){return x.id===d2.id;});});
@@ -479,8 +541,8 @@ export default function WizardPage(p){
             return (<div key={region.id} style={{marginBottom:6}}>
             <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",cursor:"pointer",borderRadius:8,background:T.sa}}>
               <div onClick={function(e){e.stopPropagation();togRegion(region);}} style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(allSel?T.ac:someSel?T.ac+"60":T.bl),background:allSel?T.ac:someSel?T.ac+"30":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s",cursor:"pointer"}}>
-                {allSel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700}}>{CHK}</span>}
-                {someSel&&!allSel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700}}>{String.fromCharCode(8722)}</span>}
+                {allSel&&<span style={{color:"#FFFFFF",fontSize:9,fontWeight:700}}>{CHK}</span>}
+                {someSel&&!allSel&&<span style={{color:"#FFFFFF",fontSize:9,fontWeight:700}}>{String.fromCharCode(8722)}</span>}
               </div>
               <div onClick={function(){togExp(region.id);}} style={{display:"flex",alignItems:"center",gap:8,flex:1}}>
                 <span style={{fontSize:10,color:T.td,width:12,textAlign:"center"}}>{exp[region.id]||someSel?TRI_D:TRI_R}</span>
@@ -489,48 +551,87 @@ export default function WizardPage(p){
                 {selCount>0&&<span style={{fontSize:10,color:T.ac}}>{selCount} selected</span>}
               </div>
             </div>
-            {(exp[region.id]||someSel)&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
+            {(exp[region.id]||someSel)&&<div style={{paddingLeft:28}}>{region.ch.map(function(d2,di){var sel=selD.find(function(x){return x.id===d2.id;});return (<div key={d2.id} onClick={function(){togDept(d2);}} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 12px",cursor:"pointer",borderRadius:6,background:sel?T.ad:"transparent",marginBottom:1,transition:"all 0.2s",animation:"wizSlideIn 0.3s ease",animationDelay:(di*40)+"ms",animationFillMode:"backwards"}}><div style={{width:15,height:15,borderRadius:3,border:"1.5px solid "+(sel?T.ac:T.bl),background:sel?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{sel&&<span style={{color:"#FFFFFF",fontSize:9,fontWeight:700,animation:"wizPop 0.2s ease"}}>{CHK}</span>}</div><span style={{fontSize:13,color:sel?T.tx:T.tm}}>{d2.nm}</span>{sel&&<span style={{fontSize:10,color:T.ac,marginLeft:"auto",animation:"wizSlideIn 0.3s ease"}}>~22 employees</span>}</div>);})}</div>}
           </div>);})}
           {selD.length>0&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizFadeUp 0.3s ease"}}><span style={{fontWeight:600}}>{selD.length} location{selD.length>1?"s":""}</span>{" "+DOT+" "+selD.map(function(d){return d.nm;}).join(", ")}</div>}
         </div>)}
         {/* ===== Step 25: Store Layout ===== */}
         {step===25&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          <p style={{fontSize:12,color:T.tm,marginBottom:14,marginTop:0}}>Do your locations have distinct areas, departments, or zones with different teams? Define them here, or skip if roles are the same everywhere.</p>
           {/* Decision cards */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
-            <div onClick={function(){sUseLayout(true);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(useLayout===true?T.ac:T.bd),background:useLayout===true?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
-              {useLayout===true&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
-              <div style={{fontSize:22,marginBottom:8,opacity:0.7}}>&#9638;&#9638;&#9638;</div>
-              <div style={{fontSize:14,fontWeight:600,color:useLayout===true?T.ac:T.tx,marginBottom:4}}>Divide into Areas</div>
-              <div style={{fontSize:11,color:T.tm,lineHeight:"1.5"}}>Each location has distinct areas, sections, or zones with different teams and training needs.</div>
-              <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:T.sa,fontSize:10,color:T.td}}>Best for: retail, hospitals, large venues</div>
-            </div>
-            <div onClick={function(){sUseLayout(false);sSelLayout(null);}} style={{padding:"18px 20px",borderRadius:12,border:"2px solid "+(useLayout===false?T.ac:T.bd),background:useLayout===false?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden"}}>
-              {useLayout===false&&<div style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:11,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#0B0F1A",fontSize:10,fontWeight:700}}>{CHK}</span></div>}
-              <div style={{fontSize:22,marginBottom:8,opacity:0.7}}>&#9634;</div>
-              <div style={{fontSize:14,fontWeight:600,color:useLayout===false?T.ac:T.tx,marginBottom:4}}>Uniform Locations</div>
-              <div style={{fontSize:11,color:T.tm,lineHeight:"1.5"}}>Each location has the same role structure. No internal subdivisions needed.</div>
-              <div style={{marginTop:10,padding:"6px 10px",borderRadius:6,background:T.sa,fontSize:10,color:T.td}}>Best for: offices, warehouses, simple stores</div>
-            </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
+            {(function(){
+              var multiSel=useLayout===true;var uniSel=useLayout===false;
+              /* Mini diagram: multi-area — 3 stacked sections with labels */
+              var multiViz=(<svg width="140" height="110" viewBox="0 0 140 110" fill="none" style={{flexShrink:0}}>
+                <rect x="0" y="0" width="140" height="32" rx="6" fill={multiSel?T.ad:T.sa}/>
+                <rect x="8" y="8" width="50" height="4" rx="2" fill={multiSel?T.ac:T.bd}/>
+                <rect x="8" y="16" width="30" height="3" rx="1.5" fill={multiSel?T.ac+"60":T.bd+"80"}/>
+                <rect x="8" y="22" width="38" height="3" rx="1.5" fill={multiSel?T.ac+"40":T.bd+"60"}/>
+                <rect x="90" y="8" width="40" height="16" rx="4" fill={multiSel?T.ac+"20":T.sa}/>
+                <rect x="96" y="13" width="28" height="3" rx="1.5" fill={multiSel?T.ac+"50":T.bd}/>
+                <rect x="0" y="38" width="140" height="32" rx="6" fill={multiSel?T.ad:T.sa}/>
+                <rect x="8" y="46" width="42" height="4" rx="2" fill={multiSel?T.ac:T.bd}/>
+                <rect x="8" y="54" width="34" height="3" rx="1.5" fill={multiSel?T.ac+"60":T.bd+"80"}/>
+                <rect x="8" y="60" width="26" height="3" rx="1.5" fill={multiSel?T.ac+"40":T.bd+"60"}/>
+                <rect x="90" y="46" width="40" height="16" rx="4" fill={multiSel?T.ac+"20":T.sa}/>
+                <rect x="96" y="51" width="28" height="3" rx="1.5" fill={multiSel?T.ac+"50":T.bd}/>
+                <rect x="0" y="76" width="140" height="32" rx="6" fill={multiSel?T.ad:T.sa}/>
+                <rect x="8" y="84" width="56" height="4" rx="2" fill={multiSel?T.ac:T.bd}/>
+                <rect x="8" y="92" width="28" height="3" rx="1.5" fill={multiSel?T.ac+"60":T.bd+"80"}/>
+                <rect x="8" y="98" width="44" height="3" rx="1.5" fill={multiSel?T.ac+"40":T.bd+"60"}/>
+                <rect x="90" y="84" width="40" height="16" rx="4" fill={multiSel?T.ac+"20":T.sa}/>
+                <rect x="96" y="89" width="28" height="3" rx="1.5" fill={multiSel?T.ac+"50":T.bd}/>
+              </svg>);
+              /* Mini diagram: uniform — single block with repeated rows */
+              var uniViz=(<svg width="140" height="110" viewBox="0 0 140 110" fill="none" style={{flexShrink:0}}>
+                <rect x="0" y="0" width="140" height="110" rx="6" fill={uniSel?T.ad:T.sa}/>
+                {[14,30,46,62,78].map(function(y,i){return (<g key={i}>
+                  <rect x="12" y={y} width="36" height="4" rx="2" fill={uniSel?T.ac:T.bd}/>
+                  <rect x="56" y={y} width="28" height="4" rx="2" fill={uniSel?T.ac+"50":T.bd+"80"}/>
+                  <rect x="92" y={y} width="36" height="4" rx="2" fill={uniSel?T.ac+"30":T.bd+"60"}/>
+                  <rect x="12" y={y+8} width="116" height="1" rx="0.5" fill={uniSel?T.ac+"15":T.bd+"40"}/>
+                </g>);})}
+              </svg>);
+              return [
+                <div key="multi" onClick={function(){sUseLayout(true);}} style={{padding:"20px 22px",borderRadius:14,border:"2px solid "+(multiSel?T.ac:T.bd),background:T.sf,cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden",display:"flex",alignItems:"center",gap:20}}>
+                  {multiSel&&<div style={{position:"absolute",top:12,right:12,width:24,height:24,borderRadius:12,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#FFFFFF",fontSize:11,fontWeight:700}}>{CHK}</span></div>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:15,fontWeight:700,color:multiSel?T.ac:T.tx,marginBottom:6}}>Divide into Areas</div>
+                    <div style={{fontSize:12,color:T.tm,lineHeight:"1.6",marginBottom:10}}>Different sections with their own team structures and requirements.</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:multiSel?T.ac:T.tm}}><span style={{fontSize:9}}>{CHK}</span> Per-area readiness tracking</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:multiSel?T.ac:T.tm}}><span style={{fontSize:9}}>{CHK}</span> Reusable layout templates</div>
+                    </div>
+                  </div>
+                  {multiViz}
+                </div>,
+                <div key="uni" onClick={function(){sUseLayout(false);sSelLayout(null);}} style={{padding:"20px 22px",borderRadius:14,border:"2px solid "+(uniSel?T.ac:T.bd),background:T.sf,cursor:"pointer",transition:"all 0.3s ease",position:"relative",overflow:"hidden",display:"flex",alignItems:"center",gap:20}}>
+                  {uniSel&&<div style={{position:"absolute",top:12,right:12,width:24,height:24,borderRadius:12,background:T.ac,display:"flex",alignItems:"center",justifyContent:"center",animation:"wizPop 0.3s ease"}}><span style={{color:"#FFFFFF",fontSize:11,fontWeight:700}}>{CHK}</span></div>}
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:15,fontWeight:700,color:uniSel?T.ac:T.tx,marginBottom:6}}>Uniform Structure</div>
+                    <div style={{fontSize:12,color:T.tm,lineHeight:"1.6",marginBottom:10}}>Same roles everywhere. One setup applies to all locations.</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:uniSel?T.ac:T.tm}}><span style={{fontSize:9}}>{CHK}</span> Quick to configure</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:uniSel?T.ac:T.tm}}><span style={{fontSize:9}}>{CHK}</span> Easy to scale</div>
+                    </div>
+                  </div>
+                  {uniViz}
+                </div>
+              ];
+            })()}
           </div>
           {/* Layout configuration (shown when useLayout is true) */}
           {useLayout&&(function(){
             var templates=(p.layoutTemplates||[]);
             var hasTemplates=templates.length>0;
             return (<div style={{animation:"wizFadeUp 0.3s ease"}}>
-              {/* Detected context hint */}
-              <div style={{marginBottom:14,padding:"8px 14px",borderRadius:8,background:"linear-gradient(90deg,"+T.ad+","+T.sa+")",border:"1px solid "+T.ac+"15",display:"flex",alignItems:"center",gap:8}}>
-                <div style={{width:6,height:6,borderRadius:3,background:T.ac,animation:"wizPulse 2s ease infinite",flexShrink:0}}/>
-                <span style={{fontSize:11,color:T.ac}}>Define your layout once {DOT} assign staff per area in the next step.</span>
-              </div>
               {hasTemplates&&(<div style={{marginBottom:14}}>
                 <label style={{fontSize:11,color:T.td,display:"block",marginBottom:8,textTransform:"uppercase"}}>Choose a Layout</label>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
                   {templates.map(function(tmpl){var sel=selLayout===tmpl.id;return (
                     <div key={tmpl.id} onClick={function(){sSelLayout(tmpl.id);loadTemplateReqs(tmpl.id);}} style={{padding:"12px 14px",borderRadius:10,border:"2px solid "+(sel?T.ac:T.bd),background:sel?T.ad:"transparent",cursor:"pointer",transition:"all 0.3s",animation:"wizSlideIn 0.3s ease"}}>
                       <div style={{fontSize:13,fontWeight:600,color:sel?T.ac:T.tx,marginBottom:4}}>{tmpl.nm}</div>
-                      <div style={{fontSize:10,color:T.td,marginBottom:6}}>{tmpl.areas.length} area{tmpl.areas.length!==1?"s":""}</div>
-                      <div style={{fontSize:10,color:T.tm,lineHeight:"1.4"}}>{tmpl.areas.map(function(a){return a.anm;}).join(" "+DOT+" ")}</div>
+                      <div style={{fontSize:10,color:T.td}}>{tmpl.areas.length} area{tmpl.areas.length!==1?"s":""}{tmpl.rolePreset?" "+DOT+" roles saved":""}</div>
                     </div>
                   );})}
                   <div onClick={function(){sSelLayout("new");}} style={{padding:"12px 14px",borderRadius:10,border:"2px dashed "+(selLayout==="new"?T.ac:T.bd),background:selLayout==="new"?T.ad:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",minHeight:60,transition:"all 0.3s"}}>
@@ -624,7 +725,7 @@ export default function WizardPage(p){
                         <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                           {locStatus.map(function(loc){return (
                             <div key={loc.id} onClick={function(){togDeptArea(loc.id,area.aid);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+(loc.on?T.ac+"40":T.bd),background:loc.on?T.ad:"transparent",cursor:"pointer",fontSize:11,color:loc.on?T.ac:T.td,fontWeight:loc.on?500:400,transition:"all 0.2s",display:"flex",alignItems:"center",gap:4}}>
-                              <div style={{width:12,height:12,borderRadius:3,border:"1.5px solid "+(loc.on?T.ac:T.bl),background:loc.on?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{loc.on&&<span style={{color:"#0B0F1A",fontSize:7,fontWeight:700}}>{CHK}</span>}</div>
+                              <div style={{width:12,height:12,borderRadius:3,border:"1.5px solid "+(loc.on?T.ac:T.bl),background:loc.on?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.2s"}}>{loc.on&&<span style={{color:"#FFFFFF",fontSize:7,fontWeight:700}}>{CHK}</span>}</div>
                               {loc.nm}
                             </div>
                           );})}
@@ -638,25 +739,14 @@ export default function WizardPage(p){
           })()}
         </div>)}
         {step===3&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          {/* Source selector */}
-          <div style={{display:"flex",alignItems:"center",gap:0,marginBottom:14}}>
-            <p style={{fontSize:12,color:T.tm,margin:0,flex:1}}>Define roles and headcount{useLayout?" per area.":" per location."}</p>
-            <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid "+T.bd}}>
+          {/* Source toggle + New button */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+            <div style={{flex:1}}/>
+            <button onClick={function(){sNcDp(null);sMNC(true);}} style={{padding:"5px 12px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>{"+ New "+(roleSrc==="circle"?"Circle":"Profile")}</button>
+            <div style={{display:"flex",borderRadius:8,overflow:"hidden",border:"1px solid "+T.bd,flexShrink:0}}>
               {[{k:"circle",l:"Circles"},{k:"jobprofile",l:"Job Profiles"}].map(function(s){var sel=roleSrc===s.k;return (<button key={s.k} onClick={function(){sRoleSrc(s.k);}} style={{padding:"5px 14px",fontSize:11,fontWeight:sel?600:400,background:sel?T.ad:"transparent",color:sel?T.ac:T.td,border:"none",cursor:"pointer",fontFamily:"inherit",transition:"all 0.3s ease"}}>{s.l}</button>);})}
             </div>
           </div>
-          {/* Source context hint */}
-          <div style={{marginBottom:12,padding:"6px 12px",borderRadius:8,background:roleSrc==="circle"?T.ad:T.pd,fontSize:11,color:roleSrc==="circle"?T.ac:T.pu,display:"flex",alignItems:"center",gap:6,animation:"wizSlideIn 0.3s ease"}}>
-            <div style={{width:5,height:5,borderRadius:3,background:roleSrc==="circle"?T.ac:T.pu,animation:"wizPulse 2s ease infinite",flexShrink:0}}/>
-            {roleSrc==="circle"?"Using Circles as role source. Skills and certificates linked automatically.":"Using Job Profiles as role source. You will define skill & certificate targets in the next step."}
-          </div>
-          {tots.totalPeople>0&&(<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:12,borderRadius:8,overflow:"hidden",border:"1px solid "+T.bd,fontSize:11,animation:"wizGlow 3s ease infinite"}}>
-            <div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.ac,fontSize:13}}>{tots.totalPeople}</span> people</div><div style={{width:1,height:22,background:T.bd}}/>
-            <div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.ac,fontSize:13}}>{tots.totalRoles}</span> roles</div><div style={{width:1,height:22,background:T.bd}}/>
-            <div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.rd,fontSize:13}}>{tots.essRoles}</span> essential</div>
-            {tots.impRoles>0&&<><div style={{width:1,height:22,background:T.bd}}/><div style={{padding:"5px 10px",background:T.sa,color:T.td,display:"flex",alignItems:"center",gap:4}}><span style={{fontWeight:700,color:T.am,fontSize:13}}>{tots.impRoles}</span> important</div></>}
-            <div style={{flex:1}}/><div style={{padding:"5px 10px",background:T.ad,color:T.ac,fontWeight:600,fontSize:10}}>Weight: {tots.essPeople*2+tots.impRoles*1}</div>
-          </div>)}
           {/* Build role slots: either flat (dept-only) or area-aware (dept+area composite keys) */}
           {(function(){
             var roleSlots=[];
@@ -690,6 +780,8 @@ export default function WizardPage(p){
               var deptTotalPos=0;
               slots.forEach(function(sl){var rs=dCirc[sl.key]||[];if(rs.length>0)deptHasRoles=true;rs.forEach(function(r){deptTotalPos+=r.rq;});});
               var showApply=deptOrder.length>1&&deptHasRoles;
+              /* Check if template has a saved preset available */
+              var tmplHasPreset=useLayout&&selLayout&&selLayout!=="new"&&(function(){var tmpl=(p.layoutTemplates||[]).find(function(t){return t.id===selLayout;});return tmpl&&tmpl.rolePreset&&Object.keys(tmpl.rolePreset).length>0;})();
               /* Collapse: first dept open by default, rest collapsed */
               var isDeptOpen=roleDeptExp[dId]===undefined?dIdx===0:roleDeptExp[dId];
               return (<div key={dId} style={{marginBottom:8,borderRadius:10,border:"1px solid "+T.bd,overflow:"hidden"}}>
@@ -700,7 +792,10 @@ export default function WizardPage(p){
                   {/* Summary badges when collapsed */}
                   {deptTotalPos>0&&<span style={{fontSize:10,color:T.ac,padding:"1px 8px",borderRadius:4,background:T.ad}}>{deptTotalPos} positions</span>}
                   {!deptHasRoles&&<span style={{fontSize:10,color:T.td,opacity:0.6}}>not configured</span>}
+                  {/* Apply saved preset to this dept */}
+                  {tmplHasPreset&&!deptHasRoles&&<button onClick={function(e){e.stopPropagation();applyPresetToDept(dId);}} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>Apply Preset</button>}
                   {showApply&&<button onClick={function(e){e.stopPropagation();applyToAll(dId);}} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>Apply to all</button>}
+                  {useLayout&&selLayout&&selLayout!=="new"&&deptHasRoles&&(function(){var isSaved=presetSavedId===dId;return <button onClick={function(e){e.stopPropagation();saveRolePreset(dId);sPresetSavedId(dId);setTimeout(function(){sPresetSavedId(null);},2000);}} style={{padding:"3px 10px",borderRadius:6,border:"1px solid "+(isSaved?T.gn+"40":T.bd),background:isSaved?T.gd:T.sf,color:isSaved?T.gn:T.tx,fontSize:10,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>{isSaved?CHK+" Saved":"Save as Preset"}</button>;})()}
                 </div>
                 {/* Expanded content */}
                 {isDeptOpen&&slots.map(function(slot){
@@ -712,20 +807,17 @@ export default function WizardPage(p){
                         <span style={{fontSize:hasAreas?12:12,fontWeight:500,color:hasAreas?T.tm:T.tx}}>{hasAreas?slot.areaLabel:slot.label}</span>
                         {roles.length>0&&<span style={{fontSize:10,color:T.ac,animation:"wizFadeUp 0.3s ease"}}>{roles.reduce(function(s,r){return s+r.rq;},0)} positions</span>}
                       </div>
-                      <div style={{display:"flex",gap:6}}>
-                        <select value="" onChange={function(e){var cid=e.target.value;if(!cid)return;var found=srcList.find(function(x){return x.id===cid;});if(found)addC(slot.key,found);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+(roleSrc==="circle"?T.ac:T.pu)+"40",background:roleSrc==="circle"?T.ad:T.pd,color:roleSrc==="circle"?T.ac:T.pu,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:120}}>
-                          <option value="">{"+ Add "+(roleSrc==="circle"?"circle":"profile")+"..."}</option>
-                          {srcList.filter(function(c){return !(dCirc[slot.key]||[]).find(function(x){return x.cid===c.id;});}).map(function(c){return (<option key={c.id} value={c.id}>{c.nm}</option>);})}
-                        </select>
-                        <button onClick={function(){sNcDp(slot.key);sMNC(true);}} style={{padding:"4px 10px",borderRadius:6,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>New</button>
-                      </div>
+                      <select value="" onChange={function(e){var cid=e.target.value;if(!cid)return;var found=srcList.find(function(x){return x.id===cid;});if(found)addC(slot.key,found);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+(roleSrc==="circle"?T.ac:T.pu)+"40",background:roleSrc==="circle"?T.ad:T.pd,color:roleSrc==="circle"?T.ac:T.pu,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:120}}>
+                        <option value="">{"+ Add "+(roleSrc==="circle"?"circle":"profile")+"..."}</option>
+                        {srcList.filter(function(c){return !(dCirc[slot.key]||[]).find(function(x){return x.cid===c.id;});}).map(function(c){return (<option key={c.id} value={c.id}>{c.nm}</option>);})}
+                      </select>
                     </div>
                     {roles.length===0&&<div style={{padding:8,paddingLeft:hasAreas?28:14,textAlign:"center",color:T.td,fontSize:11}}>{"No "+(roleSrc==="circle"?"circles":"profiles")+" added"}</div>}
                     {roles.map(function(r,ri){return (<div key={r.cid} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px",paddingLeft:hasAreas?28:14,borderBottom:"1px solid "+T.bd+"08",animation:"wizSlideIn 0.3s ease",animationDelay:(ri*60)+"ms",animationFillMode:"backwards"}}>
-                      <span style={{fontSize:12,fontWeight:500,minWidth:110}}>{r.cnm}</span>
-                      <select value={r.cr} onChange={function(e){updC(slot.key,r.cid,"cr",e.target.value);}} style={{padding:"3px 6px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:11,fontFamily:"inherit"}}><option>Essential</option><option>Important</option><option>Nice to have</option></select>
-                      <span style={{fontSize:10,color:T.td}}>Qty:</span>
-                      <input type="number" min={1} value={r.rq} onChange={function(e){updC(slot.key,r.cid,"rq",Math.max(1,parseInt(e.target.value)||1));}} style={{width:42,padding:"3px 4px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:12,textAlign:"center"}}/>
+                      <span style={{fontSize:12,fontWeight:500,width:180,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.cnm}</span>
+                      <select value={r.cr} onChange={function(e){updC(slot.key,r.cid,"cr",e.target.value);}} style={{padding:"3px 6px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:11,fontFamily:"inherit",width:110,flexShrink:0}}><option>Essential</option><option>Important</option><option>Nice to have</option></select>
+                      <span style={{fontSize:10,color:T.td,flexShrink:0}}>Qty:</span>
+                      <input type="number" min={1} value={r.rq} onChange={function(e){updC(slot.key,r.cid,"rq",Math.max(1,parseInt(e.target.value)||1));}} style={{width:42,padding:"3px 4px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:12,textAlign:"center",flexShrink:0}}/>
                       <div style={{flex:1}}/><button onClick={function(){remC(slot.key,r.cid);}} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:13,fontFamily:"inherit",padding:"2px 6px"}}>{CROSS}</button>
                     </div>);})}
                   </div>);
@@ -737,11 +829,6 @@ export default function WizardPage(p){
 
         {/* ===== NEW: Define Targets step (job profiles only) ===== */}
         {step===4&&roleSrc==="jobprofile"&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          <p style={{fontSize:12,color:T.tm,marginBottom:4,marginTop:0}}>Define skill and certificate targets for each job profile.</p>
-          <div style={{marginBottom:14,padding:"6px 12px",borderRadius:8,background:T.pd,fontSize:11,color:T.pu,display:"flex",alignItems:"center",gap:6,animation:"wizSlideIn 0.3s ease"}}>
-            <div style={{width:5,height:5,borderRadius:3,background:T.pu,animation:"wizPulse 2s ease infinite",flexShrink:0}}/>
-            Pre-populated from employee data. Common skills are checked; rare skills shown as suggestions.
-          </div>
           {getUniqueProfiles().map(function(prof,pi){
             var tgt=jpTargets[prof.id];if(!tgt)return null;
             var data=JOB_PROFILE_SKILLS[prof.id];
@@ -773,7 +860,7 @@ export default function WizardPage(p){
                   var coverage=dist&&data?Math.round(dist.have/data.hc*100):0;
                   return (<div key={sk.s} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid "+T.bd+"08",opacity:sk.on?1:0.45,transition:"opacity 0.2s",animation:"wizSlideIn 0.25s ease",animationDelay:(si*40)+"ms",animationFillMode:"backwards"}}>
                     {/* Checkbox */}
-                    <div onClick={function(){togSkill(prof.id,sk.s);}} style={{width:16,height:16,borderRadius:3,border:"1.5px solid "+(sk.on?T.ac:T.bl),background:sk.on?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.2s"}}>{sk.on&&<span style={{color:"#0B0F1A",fontSize:9,fontWeight:700}}>{CHK}</span>}</div>
+                    <div onClick={function(){togSkill(prof.id,sk.s);}} style={{width:16,height:16,borderRadius:3,border:"1.5px solid "+(sk.on?T.ac:T.bl),background:sk.on?T.ac:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0,transition:"all 0.2s"}}>{sk.on&&<span style={{color:"#FFFFFF",fontSize:9,fontWeight:700}}>{CHK}</span>}</div>
                     {/* Skill name */}
                     <span style={{fontSize:12,fontWeight:500,minWidth:120,color:sk.on?T.tx:T.td}}>{sk.s}</span>
                     {/* Coverage bar */}
@@ -784,7 +871,7 @@ export default function WizardPage(p){
                     {/* Target level selector */}
                     <div style={{display:"flex",gap:2}}>
                       {[1,2,3,4].map(function(lvl){var sel2=sk.tgtLvl===lvl;return (
-                        <button key={lvl} onClick={function(){if(sk.on)setSkLvl(prof.id,sk.s,lvl);}} style={{width:22,height:22,borderRadius:4,border:"1px solid "+(sel2?T.ac:T.bd),background:sel2?T.ac:"transparent",color:sel2?"#0B0F1A":sk.on?T.tm:T.td,fontSize:10,fontWeight:sel2?700:400,cursor:sk.on?"pointer":"default",fontFamily:"inherit",padding:0,transition:"all 0.2s"}}>{lvl}</button>
+                        <button key={lvl} onClick={function(){if(sk.on)setSkLvl(prof.id,sk.s,lvl);}} style={{width:22,height:22,borderRadius:4,border:"1px solid "+(sel2?T.ac:T.bd),background:sel2?T.ac:"transparent",color:sel2?"#FFFFFF":sk.on?T.tm:T.td,fontSize:10,fontWeight:sel2?700:400,cursor:sk.on?"pointer":"default",fontFamily:"inherit",padding:0,transition:"all 0.2s"}}>{lvl}</button>
                       );})}
                     </div>
                     {/* Remove */}
@@ -819,7 +906,6 @@ export default function WizardPage(p){
         </div>)}
 
         {step===timelineN&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          <p style={{fontSize:12,color:T.tm,marginBottom:14}}>Set timeline and financial context to enable impact tracking.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
             <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Start Quarter</label><select value={sq} onChange={function(e){sSq(e.target.value);}} style={iS}><option value="">Select...</option>{qs.map(function(q){return <option key={q} value={q}>{q}</option>;})}</select></div>
             <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Target Quarter</label><select value={tq} onChange={function(e){sTq(e.target.value);}} style={iS}><option value="">Select...</option>{qs.map(function(q){return <option key={q} value={q}>{q}</option>;})}</select></div>
@@ -854,10 +940,10 @@ export default function WizardPage(p){
       </div>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:24,paddingTop:14,borderTop:"1px solid "+T.bd}}>
         <button onClick={function(){var prev=prvStep(step);if(prev!==null)goToStep(prev);else p.onClose();}} style={{padding:"8px 16px",borderRadius:10,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit",transition:"all 0.2s"}}>{prvStep(step)!==null?"Back":"Cancel"}</button>
-        <button disabled={!canNext()} onClick={function(){var nxt=nxtStep(step);if(nxt!==null)goToStep(nxt);else doComplete();}} style={{padding:"8px 22px",borderRadius:10,border:"none",cursor:canNext()?"pointer":"default",background:canNext()?"linear-gradient(135deg,"+T.ac+",#06B6D4)":T.sa,color:canNext()?"#0B0F1A":T.td,fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:canNext()?1:0.5,transition:"all 0.3s ease",animation:canNext()&&!isLast(step)?"wizGlow 2s ease infinite":"none"}}>{step===analysisN?(analysisDone?"Create Initiative":"Analyzing"+ELLIP):"Continue"}</button>
+        <button disabled={!canNext()} onClick={function(){var nxt=nxtStep(step);if(nxt!==null)goToStep(nxt);else doComplete();}} style={{padding:"8px 22px",borderRadius:10,border:"none",cursor:canNext()?"pointer":"default",background:canNext()?T.ac:T.sa,color:canNext()?"#FFFFFF":T.td,fontSize:13,fontWeight:600,fontFamily:"inherit",opacity:canNext()?1:0.5,transition:"all 0.3s ease",animation:canNext()&&!isLast(step)?"wizGlow 2s ease infinite":"none"}}>{step===analysisN?(analysisDone?"Create Initiative":"Analyzing"+ELLIP):"Continue"}</button>
       </div>
-      {mND&&(<Overlay x={function(){sMND(false);}}><h3 style={{fontSize:16,fontWeight:700,margin:"0 0 16px"}}>New Department</h3><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Name *</label><input value={ndNm} onChange={function(e){sNdNm(e.target.value);}} style={iS}/></div><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Parent Region</label><select value={ndPr} onChange={function(e){sNdPr(e.target.value);}} style={iS}><option value="">None (new region)</option>{p.deptTree.map(function(r){return <option key={r.id} value={r.id}>{r.nm}</option>;})}</select></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={function(){sMND(false);}} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Cancel</button><button onClick={doND} style={{padding:"7px 16px",borderRadius:8,border:"none",background:T.ac,color:"#0B0F1A",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>Create</button></div></Overlay>)}
-      {mNC&&(<Overlay x={function(){sMNC(false);}}><h3 style={{fontSize:16,fontWeight:700,margin:"0 0 16px"}}>{"New "+(roleSrc==="circle"?"Circle":"Job Profile")}</h3><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Name *</label><input value={ncNm} onChange={function(e){sNcNm(e.target.value);}} placeholder={roleSrc==="circle"?"e.g. Crew Trainer":"e.g. Team Leader"} style={iS}/></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={function(){sMNC(false);}} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Cancel</button><button onClick={doNC} style={{padding:"7px 16px",borderRadius:8,border:"none",background:T.ac,color:"#0B0F1A",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>Create</button></div></Overlay>)}
+      {mND&&(<Overlay x={function(){sMND(false);}}><h3 style={{fontSize:16,fontWeight:700,margin:"0 0 16px"}}>New Department</h3><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Name *</label><input value={ndNm} onChange={function(e){sNdNm(e.target.value);}} style={iS}/></div><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Parent Region</label><select value={ndPr} onChange={function(e){sNdPr(e.target.value);}} style={iS}><option value="">None (new region)</option>{p.deptTree.map(function(r){return <option key={r.id} value={r.id}>{r.nm}</option>;})}</select></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={function(){sMND(false);}} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Cancel</button><button onClick={doND} style={{padding:"7px 16px",borderRadius:8,border:"none",background:T.ac,color:"#FFFFFF",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>Create</button></div></Overlay>)}
+      {mNC&&(<Overlay x={function(){sMNC(false);}}><h3 style={{fontSize:16,fontWeight:700,margin:"0 0 16px"}}>{"New "+(roleSrc==="circle"?"Circle":"Job Profile")}</h3><div style={{marginBottom:12}}><label style={{fontSize:11,color:T.td,display:"block",marginBottom:4,textTransform:"uppercase"}}>Name *</label><input value={ncNm} onChange={function(e){sNcNm(e.target.value);}} placeholder={roleSrc==="circle"?"e.g. Crew Trainer":"e.g. Team Leader"} style={iS}/></div><div style={{display:"flex",gap:8,justifyContent:"flex-end"}}><button onClick={function(){sMNC(false);}} style={{padding:"7px 16px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,cursor:"pointer",fontSize:12,fontFamily:"inherit"}}>Cancel</button><button onClick={doNC} style={{padding:"7px 16px",borderRadius:8,border:"none",background:T.ac,color:"#FFFFFF",cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:"inherit"}}>Create</button></div></Overlay>)}
     </div>
   );
 }

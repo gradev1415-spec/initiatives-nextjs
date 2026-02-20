@@ -2,16 +2,19 @@
 import { useState } from "react";
 import { useT } from "@/lib/theme";
 import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
-import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff, areaRd, areaStaff, areaSkillRd, areaCertRd } from "@/lib/readiness";
+import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff, areaRd, areaStaff, areaSkillRd, areaCertRd, hasSkillData, hasCertData } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
-import { LIBRARY, FITS } from "@/lib/data";
+import { LIBRARY, FITS, LAYOUT_TEMPLATES } from "@/lib/data";
 import Badge from "./Badge";
 import ProgressBar from "./ProgressBar";
 import Gauge from "./Gauge";
 import MiniGauge from "./MiniGauge";
 import TabBar from "./TabBar";
 import KPICard from "./KPICard";
+import Tip from "./Tip";
 import Overlay from "./Overlay";
+import dynamic from "next/dynamic";
+var FloorPlan3D = dynamic(function(){ return import("./FloorPlan3D"); }, { ssr: false });
 import RiskActionsTab from "./RiskActionsTab";
 
 export default function DetailPage(p){
@@ -21,12 +24,14 @@ export default function DetailPage(p){
   var eaState=useState(null);var enabledActs=eaState[0],sEnabledActs=eaState[1];
   var _sloc=useState(null);var selLoc=_sloc[0],sSelLoc=_sloc[1];
   var _sarea=useState(null);var selArea=_sarea[0],sSelArea=_sarea[1];
+  var _hov=useState(null);var hovArea=_hov[0],sHovArea=_hov[1];
 
   var ar=allRoles(ini);var trq=0,tql=0;
   ar.forEach(function(r){trq+=r.rq;tql+=r.ql;});
   /* Merge same-named roles across depts for Overview table */
   var mergedRoles=(function(){var m={};ar.forEach(function(r){if(!m[r.cn])m[r.cn]={cn:r.cn,cr:r.cr,rq:0,ql:0,gp:0};m[r.cn].rq+=r.rq;m[r.cn].ql+=r.ql;m[r.cn].gp+=r.gp;if(cw(r.cr)>cw(m[r.cn].cr))m[r.cn].cr=r.cr;});return Object.keys(m).map(function(k){return m[k];});})();
-  var crd=wRd(ar),sR=staffRd(ar),skR=ini._skillRd||skillRd(ini),cR=ini._certRd||certRd(ini);
+  var hSk=hasSkillData(ini),hCt=hasCertData(ini);
+  var crd=iRd(ini),sR=wRd(ar),skR=hSk?skillRd(ini):null,cR=hCt?certRd(ini):null;
   var mr=ini.rev*(1-crd/100);
   function statusClr(rd){return rd>=85?T.gn:rd>=60?T.am:T.rd;}
   var bn=ar.filter(function(r){return r.gp>0;});
@@ -43,7 +48,7 @@ export default function DetailPage(p){
 
   return (
     <div style={{padding:"24px 32px",maxWidth:1400,margin:"0 auto"}}>
-      <button onClick={p.onBack} style={{background:"none",border:"none",color:T.tm,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:12}}>Back to Initiatives</button>
+      <button onClick={p.onBack} style={{background:"none",border:"none",color:T.tm,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:12,display:"flex",alignItems:"center",gap:4,padding:0}}><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Initiatives</button>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <h1 style={{fontSize:22,fontWeight:700,margin:0}}>{ini.nm}</h1>
@@ -58,37 +63,54 @@ export default function DetailPage(p){
       <p style={{color:T.tm,fontSize:12,marginBottom:20}}>{ini.ds}</p>
 
       {/* KPI row with three-part readiness */}
-      <div style={{display:"grid",gridTemplateColumns:"auto 1fr 1fr 1fr 1fr",gap:12,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 1fr 1fr",gap:12,marginBottom:20}}>
         <div style={{padding:16,borderRadius:14,border:"1px solid "+T.bd,background:T.cd,display:"flex",alignItems:"center",gap:14}}>
           <Gauge v={crd} sz={64} sw={5}/>
-          <div>
-            <div style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>Overall</div>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5}}>Workforce Readiness<Tip text="Weighted composite of staffing, capability, and compliance. Only active pillars contribute to the score." icon="i" sz={13}/></div>
             <div style={{fontSize:18,fontWeight:700,color:rc(crd,T)}}>{crd}%</div>
+            <div style={{fontSize:10,color:T.tm,marginTop:2}}>{ini.depts.length} location{ini.depts.length!==1?"s":""} {String.fromCharCode(183)} {tql}/{trq} positions filled</div>
           </div>
         </div>
-        {[{k:"staff",l:"Staffing",v:sR},{k:"skill",l:"Capability",v:skR},{k:"cert",l:"Compliance",v:cR}].map(function(m){
-          return (
+        {[{k:"staff",l:"Staffing",v:sR,on:true,tip:"Add skill requirements to areas to measure",ht:"Qualified employees vs. required positions, weighted by role criticality."},{k:"skill",l:"Capability",v:skR,on:hSk,tip:"Add skill requirements to areas to measure",ht:"How well current staff meet skill requirements. Scales with how many positions are filled."},{k:"cert",l:"Compliance",v:cR,on:hCt,tip:"Add certificate requirements to start tracking",ht:"Valid certifications held by staff vs. requirements. Scales with staffing level."}].map(function(m){
+          return m.on?(
             <div key={m.k} style={{padding:16,borderRadius:14,border:"1px solid "+T.bd,background:T.cd}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <span style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>{m.l}</span>
+                <span style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>{m.l}<Tip text={m.ht} sz={12}/></span>
                 <MiniGauge v={m.v} sz={28} sw={2}/>
               </div>
               <div style={{fontSize:18,fontWeight:700,color:rc(m.v,T)}}>{m.v}%</div>
               <ProgressBar v={m.v} h={3}/>
+            </div>
+          ):(
+            <div key={m.k} style={{padding:16,borderRadius:14,border:"1px dashed "+T.bd,background:T.sf,opacity:0.7}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                <span style={{fontSize:9,color:T.td,textTransform:"uppercase"}}>{m.l}</span>
+              </div>
+              <div style={{fontSize:13,fontWeight:600,color:T.td,marginBottom:4}}>Not measured</div>
+              <div style={{fontSize:10,color:T.tm,lineHeight:1.4}}>{m.tip}</div>
             </div>
           );
         })}
       </div>
 
       <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16,padding:"6px 0",fontSize:11,color:T.td}}>
-        <span><span style={{color:T.tm}}>Revenue</span> <span style={{fontWeight:600,color:T.tx}}>{fD(ini.rev)}</span></span>
+        <span><span style={{color:T.tm}}>Revenue</span> <span style={{fontWeight:600,color:T.tx}}>{fD(ini.rev)}</span><Tip text="Total revenue value tied to this initiative." icon="i" sz={12}/></span>
         <span style={{color:T.bd}}>{String.fromCharCode(124)}</span>
-        <span><span style={{color:T.tm}}>Risk</span> <span style={{fontWeight:600,color:T.am}}>{fD(mr)}</span></span>
+        <span><span style={{color:T.tm}}>Risk</span> <span style={{fontWeight:600,color:T.am}}>{fD(mr)}</span><Tip text="Revenue at risk due to readiness gaps. Calculated as Revenue \u00D7 (1 \u2212 Readiness%)." icon="i" sz={12}/></span>
         <span style={{color:T.bd}}>{String.fromCharCode(124)}</span>
-        <span><span style={{color:T.tm}}>Timeline</span> <span style={{fontWeight:500,color:T.tx}}>{ini.sd+" "+String.fromCharCode(8594)+" "+ini.td}</span></span>
+        <span><span style={{color:T.tm}}>Timeline</span> <span style={{fontWeight:500,color:T.tx}}>{function(){var s=ini.sd&&ini.sd!=="TBD",e=ini.td&&ini.td!=="TBD";if(s&&e)return ini.sd+" "+String.fromCharCode(183)+" "+ini.td;if(e)return "Target "+ini.td;if(s)return "Start "+ini.sd;return "Not set";}()}</span></span>
       </div>
 
-      <div style={{marginBottom:20}}><TabBar tabs={ini.depts.some(function(d){return d.areas;})?["Overview","Locations","Store Layout","Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","History"]:["Overview","Locations","Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","History"]} a={tab} on={sTab}/></div>
+      <div style={{marginBottom:20}}><TabBar tabs={(function(){
+        var hasAreas=ini.depts.some(function(d){return d.areas;});
+        var multiLoc=ini.depts.length>1;
+        var t=["Overview"];
+        if(multiLoc)t.push("Locations");
+        if(hasAreas)t.push("Store Layout");
+        t.push("Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","Progress");
+        return t;
+      })()} a={tab} on={sTab}/></div>
 
       {/* â”€â”€â”€ OVERVIEW TAB â”€â”€â”€ */}
       {tab==="Overview"&&(
@@ -96,7 +118,7 @@ export default function DetailPage(p){
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between"}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Role Requirements</h3><span style={{fontSize:12,color:T.td}}>{tql}/{trq} filled</span></div>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
-              {["Role","Criticality","Required","Qualified","Surplus / Gap","Readiness"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
+              {[{h:"Role"},{h:"Criticality",t:"How critical this role is to operations. Essential roles weigh more in readiness."},{h:"Required"},{h:"Qualified"},{h:"Surplus / Gap",t:"Positive means overstaffed, negative means unfilled positions."},{h:"Readiness"}].map(function(c){return <th key={c.h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{c.h}{c.t&&<Tip text={c.t} sz={12}/>}</th>;})}
             </tr></thead>
             <tbody>{mergedRoles.map(function(r,idx){
               var rd2=r.rq>0?Math.round(r.ql/r.rq*100):100;
@@ -118,15 +140,6 @@ export default function DetailPage(p){
 
       {/* ─── LOCATIONS TAB ─── */}
       {tab==="Locations"&&(function(){
-        if(ini.depts.length<=1){
-          return (
-            <div style={{padding:40,textAlign:"center",borderRadius:14,border:"1px solid "+T.bd}}>
-              <div style={{fontSize:40,marginBottom:12,opacity:0.3}}>&#128205;</div>
-              <div style={{fontSize:14,fontWeight:600,color:T.tx,marginBottom:6}}>Single Location Initiative</div>
-              <div style={{fontSize:12,color:T.td,maxWidth:340,margin:"0 auto"}}>This initiative covers a single location. When multiple locations are added, you can compare staffing and readiness across them here.</div>
-            </div>
-          );
-        }
         /* Compute per-dept stats (handles both flat roles and areas) */
         var deptStats=ini.depts.map(function(dept){
           var dR=deptRd(dept);
@@ -140,23 +153,10 @@ export default function DetailPage(p){
           var surplus=dFill-dReq;
           return {dept:dept,rd:dR,staff:dS,req:dReq,filled:dFill,surplus:surplus};
         });
-        var totalReq=deptStats.reduce(function(s,d){return s+d.req;},0);
-        var totalFill=deptStats.reduce(function(s,d){return s+d.filled;},0);
         /* Sort by readiness ascending (worst first) for ranking */
         var ranked=deptStats.slice().sort(function(a,b){return a.rd-b.rd;});
         return (
           <div>
-            {/* Overall initiative summary */}
-            <div style={{padding:16,borderRadius:14,border:"1px solid "+T.bd,background:T.cd,marginBottom:16}}>
-              <div style={{display:"flex",alignItems:"center",gap:16}}>
-                <Gauge v={crd} sz={60} sw={5}/>
-                <div>
-                  <div style={{fontSize:10,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:2}}>Overall Initiative</div>
-                  <div style={{fontSize:14,fontWeight:600,color:T.tx}}>{ini.depts.length} locations &middot; {totalReq} positions &middot; {totalFill} filled</div>
-                </div>
-              </div>
-            </div>
-
             {/* Location cards side-by-side */}
             <div style={{display:"grid",gridTemplateColumns:ini.depts.length<=3?"repeat("+ini.depts.length+",1fr)":"repeat(2,1fr)",gap:14,marginBottom:16}}>
               {deptStats.map(function(ds){
@@ -255,11 +255,11 @@ export default function DetailPage(p){
         );
       })()}
 
-      {/* ─── STORE LAYOUT TAB — Blueprint / Mind-map style ─── */}
+      {/* ─── STORE LAYOUT TAB — Card Grid + Detail Panel ─── */}
       {tab==="Store Layout"&&(function(){
         var areaDepts=ini.depts.filter(function(d){return d.areas;});
         var flatDepts=ini.depts.filter(function(d){return !d.areas;});
-        /* Collect all unique area names across all depts for cross-location comparison */
+        /* Cross-location area index */
         var areaIndex={};
         areaDepts.forEach(function(d){
           d.areas.forEach(function(a){
@@ -270,255 +270,209 @@ export default function DetailPage(p){
           });
         });
         var allAreaNames=Object.keys(areaIndex);
-        /* Blueprint color palette — muted, architectural */
-        var bpLine=T.ac+"50";
-        var bpLineSolid=T.ac+"90";
-        var bpBg=T.bg;
-        var bpGrid=T.bd+"30";
-        var bpText=T.td;
-        var bpLabel=T.tm;
-        /* Status dot color */
-        function statusClr(rd){return rd>=85?T.gn:rd>=60?T.am:T.rd;}
 
-        /* Auto-select first location if none selected or selected not in list */
+        /* Auto-select first location */
         var selDept=(function(){
-          var locId=selLoc||areaDepts[0]&&areaDepts[0].did;
+          var locId=selLoc||(areaDepts[0]&&areaDepts[0].did);
           var found=areaDepts.find(function(d){return d.did===locId;});
           return found||areaDepts[0]||null;
         })();
 
         return (
           <div>
-            {/* Location selector dropdown */}
-            {areaDepts.length>0&&(
-              <div style={{marginBottom:16,display:"flex",alignItems:"center",gap:12}}>
-                <div style={{position:"relative",flex:1,maxWidth:320}}>
-                  <select value={selDept?selDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
-                    {areaDepts.map(function(d){
-                      var dr=deptRd(d);
-                      return <option key={d.did} value={d.did}>{d.dn+" "+String.fromCharCode(183)+" "+dr+"% ready"}</option>;
-                    })}
-                  </select>
-                  <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:T.tm}}>{String.fromCharCode(9660)}</div>
-                </div>
-                <span style={{fontSize:10,color:T.td,fontFamily:"monospace"}}>{areaDepts.length} LOCATION{areaDepts.length!==1?"S":""}</span>
-              </div>
-            )}
-
-            {/* Blueprint for selected location */}
-            {selDept&&(function(){
+            {/* ── ZONE 1: Compact Location Selector Bar ── */}
+            {areaDepts.length>0&&selDept&&(function(){
               var dept=selDept;
               var dR=deptRd(dept);
-              var totalReq=0,totalFill=0;
-              dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){totalReq+=r.rq;totalFill+=r.ql;});});
-              /* Auto-select first area with gaps, or first area */
+              var dSt=deptStaff(dept);
+              var totalReq=0,totalFill=0,totalGap=0;
+              dept.areas.forEach(function(a){(a.roles||[]).forEach(function(r){totalReq+=r.rq;totalFill+=r.ql;totalGap+=r.gp;});});
+              return (
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20,flexWrap:"wrap"}}>
+                  <div style={{position:"relative"}}>
+                    <select value={dept.did} onChange={function(e){sSelLoc(e.target.value);sSelArea(null);}} style={{padding:"8px 32px 8px 12px",borderRadius:8,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:13,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",minWidth:180}}>
+                      {areaDepts.map(function(d){return <option key={d.did} value={d.did}>{d.dn}</option>;})}
+                    </select>
+                    <div style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:9,color:T.tm}}>{String.fromCharCode(9660)}</div>
+                  </div>
+                  <div style={{width:8,height:8,borderRadius:4,background:statusClr(dR),boxShadow:"0 0 6px "+statusClr(dR)+"60"}}/>
+                  <span style={{fontSize:15,fontWeight:700,color:statusClr(dR),fontFamily:"monospace"}}>{dR}%</span>
+                  <span style={{fontSize:11,color:T.tm,fontFamily:"monospace"}}>{totalFill}/{totalReq} staff</span>
+                  <span style={{fontSize:11,color:T.tm,fontFamily:"monospace"}}>{dept.areas.length} areas</span>
+                  {totalGap>0&&<span style={{fontSize:11,color:T.rd,fontFamily:"monospace",fontWeight:600}}>{String.fromCharCode(8722)}{totalGap} gap{totalGap!==1?"s":""}</span>}
+                </div>
+              );
+            })()}
+
+            {/* ── ZONE 2: 3D Floor Plan ── */}
+            {selDept&&(function(){
+              var dept=selDept;
               var activeArea=selArea||(function(){var g=dept.areas.find(function(a){var gap=0;(a.roles||[]).forEach(function(r){gap+=r.gp;});return gap>0;});return g?g.aid:dept.areas[0]?dept.areas[0].aid:null;})();
 
               return (
                 <div style={{marginBottom:20}}>
-                  {/* Location summary bar */}
-                  <div style={{display:"flex",alignItems:"center",gap:14,padding:"10px 16px",borderRadius:12,border:"1px solid "+T.bd,background:T.cd,marginBottom:12}}>
-                    <div style={{width:8,height:8,borderRadius:4,background:statusClr(dR),boxShadow:"0 0 6px "+statusClr(dR)+"80"}}/>
-                    <span style={{fontSize:13,fontWeight:600}}>{dept.dn}</span>
-                    <span style={{fontSize:10,color:bpText,fontFamily:"monospace"}}>{totalFill}/{totalReq} staff</span>
-                    <span style={{fontSize:10,color:statusClr(dR),fontFamily:"monospace",fontWeight:600}}>{dR}%</span>
-                    <div style={{flex:1}}/>
-                    <span style={{fontSize:10,color:bpLabel,fontFamily:"monospace"}}>{dept.areas.length} AREAS</span>
-                  </div>
+                  <FloorPlan3D
+                    dept={dept}
+                    activeArea={activeArea}
+                    hovArea={hovArea}
+                    onSelectArea={function(aid){sSelArea(activeArea===aid?null:aid);}}
+                    onHoverArea={sHovArea}
+                    T={T}
+                    statusClrFn={statusClr}
+                    areaRdFn={areaRd}
+                    areaStaffFn={areaStaff}
+                    areaSkillRdFn={areaSkillRd}
+                    areaCertRdFn={areaCertRd}
+                  />
 
-                  {/* Compact area rows — click to expand */}
-                  <div style={{borderRadius:12,border:"1px solid "+T.bd,overflow:"hidden",background:bpBg}}>
-                    {dept.areas.map(function(area,ai){
-                      var aR=areaRd(area);
-                      var aSk=areaSkillRd(area);
-                      var aCt=areaCertRd(area);
-                      var aSt=areaStaff(area);
-                      var aReq2=0,aFill2=0;
-                      (area.roles||[]).forEach(function(r){aReq2+=r.rq;aFill2+=r.ql;});
-                      var aGap=aReq2-aFill2;
-                      var stClr=statusClr(aR);
-                      var isExpanded=activeArea===area.aid;
+                  {/* ── ZONE 3: Detail Panel ── */}
+                  {activeArea&&(function(){
+                    var area=dept.areas.find(function(a){return a.aid===activeArea;});
+                    if(!area)return null;
+                    var aR=areaRd(area);
+                    var aSt=areaStaff(area);
+                    var aSk=areaSkillRd(area);
+                    var aCt=areaCertRd(area);
+                    var skReqs=area.skillReqs||[];
+                    var ctReqs=area.certReqs||[];
+                    var hasReqs=skReqs.length>0||ctReqs.length>0;
 
-                      return (
-                        <div key={ai}>
-                          {/* Compact row — always visible */}
-                          <div onClick={function(){sSelArea(isExpanded?null:area.aid);}} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",cursor:"pointer",borderBottom:"1px solid "+T.bd+"20",background:isExpanded?T.sa+"80":"transparent",transition:"background 0.2s"}}>
-                            {/* Status indicator + readiness bar */}
-                            <div style={{width:4,height:28,borderRadius:2,background:stClr,flexShrink:0}}/>
-                            {/* Area name */}
-                            <div style={{width:160,flexShrink:0}}>
-                              <div style={{fontSize:12,fontWeight:isExpanded?600:500,color:isExpanded?T.tx:T.tm}}>{area.anm}</div>
-                            </div>
-                            {/* Inline readiness gauge */}
-                            <div style={{flex:1,display:"flex",alignItems:"center",gap:2}}>
-                              <div style={{flex:1,height:6,borderRadius:3,background:T.sa,overflow:"hidden"}}>
-                                <div style={{height:"100%",width:aR+"%",borderRadius:3,background:stClr,transition:"width 0.4s ease"}}/>
-                              </div>
-                            </div>
-                            {/* Key metrics */}
-                            <span style={{fontSize:10,fontFamily:"monospace",color:stClr,fontWeight:700,minWidth:32,textAlign:"right"}}>{aR}%</span>
-                            <span style={{fontSize:10,fontFamily:"monospace",color:T.tm,minWidth:40,textAlign:"right"}}>{aFill2}/{aReq2}</span>
-                            {aGap>0?<span style={{fontSize:9,fontFamily:"monospace",color:T.rd,fontWeight:600,minWidth:40,textAlign:"right"}}>-{aGap} gap</span>:<span style={{fontSize:9,fontFamily:"monospace",color:T.gn,minWidth:40,textAlign:"right"}}>{String.fromCharCode(10003)}</span>}
-                            {/* Expand indicator */}
-                            <span style={{fontSize:8,color:T.tm,transform:isExpanded?"rotate(180deg)":"rotate(0deg)",transition:"transform 0.2s"}}>{String.fromCharCode(9660)}</span>
+                    var aReqD=0,aFillD=0;
+                    (area.roles||[]).forEach(function(r){aReqD+=r.rq;aFillD+=r.ql;});
+                    var aGapD=aReqD-aFillD;
+
+                    return (
+                      <div style={{borderTop:"2px solid "+T.ac,borderRadius:"0 0 12px 12px",background:T.cd,padding:"16px 20px",marginTop:4}}>
+                        {/* Panel header */}
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                          <div style={{display:"flex",alignItems:"center",gap:10}}>
+                            <span style={{fontSize:14,fontWeight:600}}>{area.anm}</span>
+                            <span style={{fontSize:12,fontWeight:700,color:statusClr(aR),fontFamily:"monospace"}}>{aR}% ready</span>
+                            <span style={{fontSize:10,color:T.tm,fontFamily:"monospace"}}>{aFillD}/{aReqD} filled{aGapD>0?" "+String.fromCharCode(183)+" "+aGapD+" gap"+(aGapD!==1?"s":""):""}</span>
                           </div>
-
-                          {/* Expanded detail panel */}
-                          {isExpanded&&(
-                            <div style={{padding:"12px 16px 16px",background:T.cd,borderBottom:"1px solid "+T.bd+"30"}}>
-                              {/* Three mini metric bars */}
-                              <div style={{display:"flex",gap:16,marginBottom:12}}>
-                                {[{lb:"Staff",v:aSt},{lb:"Skills",v:aSk},{lb:"Certs",v:aCt}].map(function(m){
-                                  var mClr=statusClr(m.v);
-                                  return (
-                                    <div key={m.lb} style={{flex:1}}>
-                                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                                        <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.3}}>{m.lb.toUpperCase()}</span>
-                                        <span style={{fontSize:9,color:mClr,fontFamily:"monospace",fontWeight:600}}>{m.v}%</span>
-                                      </div>
-                                      <div style={{height:4,borderRadius:2,background:T.sa,overflow:"hidden"}}>
-                                        <div style={{height:"100%",width:m.v+"%",borderRadius:2,background:mClr,transition:"width 0.4s ease"}}/>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              {/* Roles table */}
-                              <div style={{marginBottom:10}}>
-                                {(area.roles||[]).map(function(r,ri){
-                                  var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
-                                  var rClr=statusClr(rPct);
-                                  var rGap=r.rq-r.ql;
-                                  return (
-                                    <div key={ri} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:ri<(area.roles||[]).length-1?"1px solid "+T.bd+"10":"none"}}>
-                                      <div style={{width:3,height:14,borderRadius:1.5,background:rClr,flexShrink:0}}/>
-                                      <span style={{fontSize:11,color:T.tx,fontWeight:500,width:130,flexShrink:0}}>{r.cn}</span>
-                                      <div style={{flex:1,height:4,borderRadius:2,background:T.sa,overflow:"hidden"}}>
-                                        <div style={{height:"100%",width:Math.min(rPct,100)+"%",borderRadius:2,background:rClr,transition:"width 0.4s"}}/>
-                                      </div>
-                                      <span style={{fontSize:9,fontFamily:"monospace",color:T.tm,minWidth:36,textAlign:"right"}}>{r.ql}/{r.rq}</span>
-                                      <span style={{fontSize:9,fontFamily:"monospace",color:rClr,fontWeight:600,minWidth:28,textAlign:"right"}}>{rPct}%</span>
-                                      {rGap>0?<span style={{fontSize:8,fontFamily:"monospace",color:T.rd,minWidth:18,textAlign:"right"}}>-{rGap}</span>:<span style={{minWidth:18}}/>}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                              {/* Requirements pills */}
-                              {((area.skillReqs&&area.skillReqs.length>0)||(area.certReqs&&area.certReqs.length>0))&&(
-                                <div style={{paddingTop:8,borderTop:"1px dashed "+T.bd+"30"}}>
-                                  <div style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:0.5,marginBottom:4}}>REQUIRES:</div>
-                                  <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
-                                    {(area.skillReqs||[]).map(function(sk){
+                        </div>
+                        {/* Two-column layout */}
+                        <div style={{display:"flex",gap:24}}>
+                          {/* Left: Roles (60%) */}
+                          <div style={{flex:3,minWidth:0}}>
+                            <div style={{fontSize:9,color:T.td,fontFamily:"monospace",letterSpacing:0.5,marginBottom:6}}>ROLES</div>
+                            {(area.roles||[]).map(function(r,ri){
+                              var rPct=r.rq>0?Math.round(r.ql/r.rq*100):100;
+                              var rClr=statusClr(rPct);
+                              var rGap=r.rq-r.ql;
+                              var crClr=r.cr==="Essential"?T.rd:r.cr==="Important"?T.am:T.gn;
+                              return (
+                                <div key={ri} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:ri<(area.roles||[]).length-1?"1px solid "+T.bd+"15":"none"}}>
+                                  <div style={{width:3,height:16,borderRadius:1.5,background:crClr,flexShrink:0}} title={r.cr}/>
+                                  <span style={{fontSize:11,fontWeight:500,width:130,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.cn}</span>
+                                  <div style={{flex:1,height:4,borderRadius:2,background:T.sa,overflow:"hidden"}}>
+                                    <div style={{height:"100%",width:Math.min(rPct,100)+"%",borderRadius:2,background:rClr,transition:"width 0.4s"}}/>
+                                  </div>
+                                  <span style={{fontSize:9,fontFamily:"monospace",color:T.tm,minWidth:32,textAlign:"right"}}>{r.ql}/{r.rq}</span>
+                                  <span style={{fontSize:9,fontFamily:"monospace",color:rClr,fontWeight:600,minWidth:28,textAlign:"right"}}>{rPct}%</span>
+                                  {rGap>0?<span style={{fontSize:8,fontFamily:"monospace",color:T.rd,fontWeight:600,minWidth:20,textAlign:"right"}}>{String.fromCharCode(8722)}{rGap}</span>:<span style={{minWidth:20}}/>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Right: Requirements (40%) */}
+                          {hasReqs&&(
+                            <div style={{flex:2,minWidth:0,paddingLeft:16,borderLeft:"1px solid "+T.bd+"20"}}>
+                              {skReqs.length>0&&(
+                                <div style={{marginBottom:12}}>
+                                  <div style={{fontSize:9,color:T.td,fontFamily:"monospace",letterSpacing:0.5,marginBottom:6}}>SKILLS</div>
+                                  <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                                    {skReqs.map(function(sk){
                                       var skName=typeof sk==="string"?sk:sk.s;
                                       var skLvl=typeof sk==="string"?null:sk.lvl;
                                       return (
-                                        <span key={skName} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.ac+"12",border:"1px solid "+T.ac+"25",color:T.ac,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
+                                        <span key={skName} style={{fontSize:9,padding:"3px 8px",borderRadius:6,background:T.ac+"12",border:"1px solid "+T.ac+"20",color:T.ac,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
                                           {skName}
-                                          {skLvl&&<span style={{display:"inline-flex",gap:1}}>{[1,2,3,4,5].map(function(lv){return <span key={lv} style={{width:3,height:3,borderRadius:2,background:lv<=skLvl?T.ac:T.ac+"30"}}/>;})}</span>}
+                                          {skLvl&&<span style={{display:"inline-flex",gap:1,marginLeft:2}}>{[1,2,3,4,5].map(function(lv){return <span key={lv} style={{width:3,height:3,borderRadius:2,background:lv<=skLvl?T.ac:T.ac+"25"}}/>;})}</span>}
                                         </span>
                                       );
                                     })}
-                                    {(area.certReqs||[]).map(function(ct){return (
-                                      <span key={ct} style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:T.am+"12",border:"1px solid "+T.am+"25",color:T.am,fontFamily:"monospace"}}>{ct}</span>
-                                    );})}
+                                  </div>
+                                </div>
+                              )}
+                              {ctReqs.length>0&&(
+                                <div>
+                                  <div style={{fontSize:9,color:T.td,fontFamily:"monospace",letterSpacing:0.5,marginBottom:6}}>CERTIFICATIONS</div>
+                                  <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+                                    {ctReqs.map(function(ct){
+                                      var ctName=typeof ct==="string"?ct:ct.c;
+                                      var ctCr=typeof ct==="string"?null:ct.cr;
+                                      var ctClr=ctCr==="Essential"?T.rd:ctCr==="Important"?T.am:T.am;
+                                      return (
+                                        <span key={ctName} style={{fontSize:9,padding:"3px 8px",borderRadius:6,background:ctClr+"12",border:"1px solid "+ctClr+"20",color:ctClr,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
+                                          {ctName}
+                                          {ctCr&&<span style={{fontSize:7,opacity:0.7}}>({ctCr})</span>}
+                                        </span>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}
 
-            {/* Cross-location area comparison — schematic style */}
+            {/* ── ZONE 4: Cross-Location Heatmap Matrix ── */}
             {areaDepts.length>1&&allAreaNames.length>0&&(
-              <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20,background:bpBg}}>
-                <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:1}}>CROSS-LOCATION</span>
-                  <span style={{fontSize:12,fontWeight:600}}>Area Comparison</span>
-                </div>
-                {allAreaNames.map(function(anm,ai){
-                  var entries=areaIndex[anm].depts;
-                  var allRolesInArea=[];
-                  entries.forEach(function(e){e.roles.forEach(function(r){allRolesInArea.push(r);});});
-                  var aggRd=wRd(allRolesInArea);
-                  var stClr=statusClr(aggRd);
-                  return (
-                    <div key={ai} style={{padding:"10px 20px",borderBottom:"1px dashed "+T.bd+"40",display:"flex",alignItems:"center",gap:16}}>
-                      {/* Area name */}
-                      <div style={{width:160,display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:8,height:8,borderRadius:4,background:stClr,boxShadow:"0 0 4px "+stClr+"40",flexShrink:0}}/>
-                        <span style={{fontSize:12,fontWeight:500}}>{anm}</span>
-                      </div>
-                      {/* Location readiness bars — horizontal segments */}
-                      <div style={{flex:1,display:"flex",gap:8,alignItems:"center"}}>
-                        {entries.map(function(e,ei){
-                          var eClr=statusClr(e.rd);
-                          return (
-                            <div key={ei} style={{flex:1,display:"flex",alignItems:"center",gap:6}}>
-                              <div style={{flex:1,position:"relative",height:6,borderRadius:3,background:T.sa,overflow:"hidden"}}>
-                                <div style={{position:"absolute",left:0,top:0,height:"100%",width:e.rd+"%",borderRadius:3,background:eClr,opacity:0.7,transition:"width 0.6s"}}/>
-                              </div>
-                              <span style={{fontSize:9,fontFamily:"monospace",color:eClr,fontWeight:600,minWidth:28,textAlign:"right"}}>{e.rd}%</span>
-                              <span style={{fontSize:9,fontFamily:"monospace",color:bpText,minWidth:36}}>{e.dn.substring(0,6)}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {/* Aggregate */}
-                      <div style={{width:50,textAlign:"right"}}>
-                        <span style={{fontSize:12,fontWeight:700,color:stClr,fontFamily:"monospace"}}>{aggRd}%</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Area health summary — schematic with proven MiniGauge rings */}
-            {allAreaNames.length>0&&(
-              <div style={{borderRadius:16,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20,background:bpBg}}>
-                <div style={{padding:"12px 20px",borderBottom:"1px dashed "+bpLine,display:"flex",alignItems:"center",gap:8}}>
-                  <span style={{fontSize:9,color:bpText,fontFamily:"monospace",letterSpacing:1}}>HEALTH</span>
-                  <span style={{fontSize:12,fontWeight:600}}>Area Readiness Summary</span>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat("+Math.min(allAreaNames.length,3)+",1fr)",gap:0}}>
-                  {allAreaNames.map(function(anm,ai){
-                    var entries=areaIndex[anm].depts;
-                    var totalReq2=entries.reduce(function(s,e){return s+e.req;},0);
-                    var totalFill2=entries.reduce(function(s,e){return s+e.fill;},0);
-                    var allRolesInArea2=[];
-                    entries.forEach(function(e){e.roles.forEach(function(r){allRolesInArea2.push(r);});});
-                    var aggRd2=wRd(allRolesInArea2);
-                    var totalGap=totalReq2-totalFill2;
-                    var stClr2=statusClr(aggRd2);
-                    return (
-                      <div key={ai} style={{padding:"16px 20px",borderRight:ai<allAreaNames.length-1?"1px dashed "+T.bd+"40":"none",textAlign:"center"}}>
-                        <div style={{margin:"0 auto 8px",width:48}}><MiniGauge v={aggRd2} sz={48} sw={3}/></div>
-                        <div style={{fontSize:11,fontWeight:600,marginBottom:2}}>{anm}</div>
-                        <div style={{fontSize:9,color:bpText,fontFamily:"monospace"}}>{totalFill2}/{totalReq2} STAFF</div>
-                        <div style={{fontSize:9,fontFamily:"monospace",marginTop:3,color:totalGap>0?T.rd:totalGap<0?T.ac:T.gn}}>
-                          {totalGap>0?String.fromCharCode(9660)+" "+totalGap+" GAP":totalGap<0?String.fromCharCode(9650)+" "+Math.abs(totalGap)+" OVER":String.fromCharCode(10003)+" FULL"}
-                        </div>
-                      </div>
-                    );
-                  })}
+              <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"auto",marginBottom:20}}>
+                <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:14,fontWeight:600,margin:0}}>Area Heatmap</h3><p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>Areas x Locations - color = readiness %</p></div>
+                <div style={{overflowX:"auto",padding:12}}>
+                  <table style={{borderCollapse:"collapse",minWidth:"100%"}}>
+                    <thead><tr>
+                      <th style={{padding:"8px 12px",fontSize:10,color:T.td,textAlign:"left",position:"sticky",left:0,background:T.cd,zIndex:1}}>Area</th>
+                      {areaDepts.map(function(d){return <th key={d.did} style={{padding:"8px 10px",fontSize:10,color:T.td,textAlign:"center",whiteSpace:"nowrap"}}>{d.dn}</th>;})}
+                      <th style={{padding:"8px 10px",fontSize:10,color:T.td,textAlign:"center",whiteSpace:"nowrap"}}>AVG</th>
+                    </tr></thead>
+                    <tbody>{allAreaNames.map(function(anm){
+                      var entries=areaIndex[anm].depts;
+                      var allRolesInArea=[];
+                      entries.forEach(function(e){e.roles.forEach(function(r){allRolesInArea.push(r);});});
+                      var aggRd=wRd(allRolesInArea);
+                      var byDid={};
+                      entries.forEach(function(e){byDid[e.did]=e;});
+                      return (
+                        <tr key={anm}>
+                          <td style={{padding:"8px 12px",fontSize:12,fontWeight:500,whiteSpace:"nowrap",position:"sticky",left:0,background:T.cd,zIndex:1}}>{anm}</td>
+                          {areaDepts.map(function(d){
+                            var e=byDid[d.did];
+                            if(!e)return <td key={d.did} style={{padding:"6px 10px",textAlign:"center"}}><span style={{fontSize:10,color:T.td}}>-</span></td>;
+                            var bg=e.rd>=85?T.gd:e.rd>=60?T.amd:T.rdd;
+                            var fg=e.rd>=85?T.gn:e.rd>=60?T.am:T.rd;
+                            return (
+                              <td key={d.did} style={{padding:"6px 10px",textAlign:"center"}}>
+                                <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",minWidth:44,height:28,borderRadius:6,background:bg,color:fg,fontSize:12,fontWeight:600,padding:"0 6px"}}>{e.rd}%</div>
+                                <div style={{fontSize:8,color:T.tm,marginTop:1}}>{e.fill}/{e.req}</div>
+                              </td>
+                            );
+                          })}
+                          <td style={{padding:"6px 10px",textAlign:"center"}}>
+                            <div style={{display:"inline-flex",alignItems:"center",justifyContent:"center",minWidth:44,height:28,borderRadius:6,background:aggRd>=85?T.gd:aggRd>=60?T.amd:T.rdd,color:aggRd>=85?T.gn:aggRd>=60?T.am:T.rd,fontSize:12,fontWeight:600,padding:"0 6px"}}>{aggRd}%</div>
+                          </td>
+                        </tr>
+                      );
+                    })}</tbody>
+                  </table>
                 </div>
               </div>
             )}
 
             {/* Flat locations note */}
             {flatDepts.length>0&&(
-              <div style={{padding:"10px 20px",borderRadius:10,border:"1px dashed "+T.bd,display:"flex",alignItems:"center",gap:10}}>
+              <div style={{padding:"10px 16px",borderRadius:8,border:"1px dashed "+T.bd,display:"flex",alignItems:"center",gap:8}}>
                 <div style={{width:6,height:6,borderRadius:3,background:T.td,opacity:0.5}}/>
-                <div>
-                  <span style={{fontSize:11,fontWeight:500,color:bpLabel}}>{flatDepts.length} location{flatDepts.length!==1?"s":""} without layout: </span>
-                  <span style={{fontSize:11,color:bpText,fontFamily:"monospace"}}>{flatDepts.map(function(d){return d.dn;}).join(", ")}</span>
-                </div>
+                <span style={{fontSize:11,color:T.tm}}>{flatDepts.length} location{flatDepts.length!==1?"s":""} without layout: </span>
+                <span style={{fontSize:11,color:T.td,fontFamily:"monospace"}}>{flatDepts.map(function(d){return d.dn;}).join(", ")}</span>
               </div>
             )}
           </div>
@@ -573,12 +527,12 @@ export default function DetailPage(p){
             </div>
           )}
 
-          {/* Skill & cert requirements per area */}
+          {/* Skill & cert requirements per area — always show both, nudge when empty */}
           {areaGaps.length>0&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Requirements by Area</h3></div>
-                {areaGaps.map(function(ag,i){return ag.skills.length>0?(
+                {areaGaps.some(function(ag){return ag.skills.length>0;})?areaGaps.map(function(ag,i){return ag.skills.length>0?(
                   <div key={i} style={{padding:"8px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
                     <div style={{fontSize:11,fontWeight:600,color:T.ac,marginBottom:4}}>{ag.anm}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
@@ -595,47 +549,50 @@ export default function DetailPage(p){
                     </div>
                     {ag.staffGap>0&&<div style={{fontSize:10,color:T.rd,marginTop:3}}>{ag.staffGap} staff gap{ag.staffGap>1?"s":""} {String.fromCharCode(8212)} skills not covered</div>}
                   </div>
-                ):null;})}
+                ):null;}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No skill requirements defined</div><div style={{fontSize:11,color:T.tm}}>Add skill requirements to areas for capability tracking</div></div>}
               </div>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Requirements by Area</h3></div>
-                {areaGaps.map(function(ag,i){return ag.certs.length>0?(
+                {areaGaps.some(function(ag){return ag.certs.length>0;})?areaGaps.map(function(ag,i){return ag.certs.length>0?(
                   <div key={i} style={{padding:"8px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
                     <div style={{fontSize:11,fontWeight:600,color:T.ac,marginBottom:4}}>{ag.anm}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                      {ag.certs.map(function(ct){return (
-                        <span key={ct} style={{fontSize:10,padding:"2px 7px",borderRadius:4,background:T.am+"12",border:"1px solid "+T.am+"20",color:T.am}}>{ct}</span>
-                      );})}
+                      {ag.certs.map(function(ct){
+                        var ctName=typeof ct==="string"?ct:ct.c;
+                        var ctCr=typeof ct==="string"?null:ct.cr;
+                        var ctClr=ctCr==="Essential"?T.rd:T.am;
+                        return (
+                          <span key={ctName} style={{fontSize:10,padding:"2px 7px",borderRadius:4,background:ctClr+"12",border:"1px solid "+ctClr+"20",color:ctClr}}>{ctName}{ctCr?" ("+ctCr+")":""}</span>
+                        );
+                      })}
                     </div>
                     {ag.staffGap>0&&<div style={{fontSize:10,color:T.rd,marginTop:3}}>{ag.staffGap} staff gap{ag.staffGap>1?"s":""} {String.fromCharCode(8212)} certs not covered</div>}
                   </div>
-                ):null;})}
-                {areaGaps.every(function(ag){return ag.certs.length===0;})&&<div style={{padding:16,textAlign:"center",color:T.gn,fontSize:12}}>No certificate requirements</div>}
+                ):null;}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No certificate requirements defined</div><div style={{fontSize:11,color:T.tm}}>Add certificate requirements to areas for compliance tracking</div></div>}
               </div>
             </div>
           )}
 
-          {/* Initiative-level skill/cert gaps (non-area or as fallback) */}
+          {/* Initiative-level skill/cert gaps (non-area) — always show both, nudge when empty */}
           {!hasAreas&&(
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gaps ({ini.sg.length})</h3></div>
-                {ini.sg.map(function(g,i){return (
+                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gaps {(ini.sg||[]).length>0?"("+(ini.sg||[]).length+")":""}</h3></div>
+                {(ini.sg||[]).length>0?(ini.sg||[]).map(function(g,i){return (
                   <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:7,height:7,borderRadius:4,background:ic2(g.i,T)}}/><span style={{fontSize:12}}>{g.s}</span></div>
                     <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontSize:11,color:T.tm}}>{g.n} ppl</span><Badge c={ic2(g.i,T)} b={ic2(g.i,T)+"15"}>{g.i}</Badge></div>
                   </div>
-                );})}
+                );}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No skill gaps tracked</div><div style={{fontSize:11,color:T.tm}}>Define skill requirements to measure capability readiness</div></div>}
               </div>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Gaps ({ini.cg.length})</h3></div>
-                {ini.cg.length===0&&<div style={{padding:16,textAlign:"center",color:T.gn,fontSize:12}}>No gaps</div>}
-                {ini.cg.map(function(g,i){return (
+                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Gaps {(ini.cg||[]).length>0?"("+(ini.cg||[]).length+")":""}</h3></div>
+                {(ini.cg||[]).length>0?(ini.cg||[]).map(function(g,i){return (
                   <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:7,height:7,borderRadius:4,background:ic2(g.i,T)}}/><span style={{fontSize:12}}>{g.c}</span></div>
                     <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontSize:11,color:T.tm}}>{g.n} ppl</span><Badge c={ic2(g.i,T)} b={ic2(g.i,T)+"15"}>{g.i}</Badge></div>
                   </div>
-                );})}
+                );}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No certificate gaps tracked</div><div style={{fontSize:11,color:T.tm}}>Add certificate requirements to measure compliance readiness</div></div>}
               </div>
             </div>
           )}
@@ -679,7 +636,7 @@ export default function DetailPage(p){
                   </div>
                   <span style={{fontSize:11,color:T.td}}>{m.content.dur}</span>
                   <span style={{fontSize:13,fontWeight:600,color:T.ac}}>{m.n} ppl</span>
-                  <button onClick={function(e){e.stopPropagation();doAssign(m.content.id);}} disabled={isAssigned} style={{padding:"6px 14px",borderRadius:8,border:"none",background:isAssigned?T.gd:T.ac,color:isAssigned?T.gn:"#0B0F1A",fontSize:11,fontWeight:600,cursor:isAssigned?"default":"pointer",fontFamily:"inherit"}}>{isAssigned?"Assigned":"Assign All"}</button>
+                  <button onClick={function(e){e.stopPropagation();doAssign(m.content.id);}} disabled={isAssigned} style={{padding:"6px 14px",borderRadius:8,border:"none",background:isAssigned?T.gd:T.ac,color:isAssigned?T.gn:"#FFFFFF",fontSize:11,fontWeight:600,cursor:isAssigned?"default":"pointer",fontFamily:"inherit"}}>{isAssigned?"Assigned":"Assign All"}</button>
                 </div>
               );
             })}
@@ -839,7 +796,13 @@ export default function DetailPage(p){
       {/* â”€â”€â”€ CERT PIPELINE TAB â”€â”€â”€ */}
       {tab==="Cert Pipeline"&&(
         <div>
-          {(!ini.certs||ini.certs.length===0)&&<div style={{padding:32,textAlign:"center",color:T.td,fontSize:13}}>No certificate data for projections</div>}
+          {(!ini.certs||ini.certs.length===0)&&(
+            <div style={{padding:32,textAlign:"center"}}>
+              <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>&#x1F4CB;</div>
+              <div style={{fontSize:14,fontWeight:600,color:T.td,marginBottom:6}}>{hCt?"No certificate status data yet":"Compliance not configured"}</div>
+              <div style={{fontSize:12,color:T.tm,maxWidth:360,margin:"0 auto",lineHeight:1.5}}>{hCt?"Certificate requirements exist but no status data has been collected yet. Once employees start earning certificates, their progress will appear here.":"Add certificate requirements to areas or assign certificates to employees to start tracking compliance readiness across this initiative."}</div>
+            </div>
+          )}
           {ini.certs&&ini.certs.length>0&&(
             <div>
               {/* Predictive banner */}
@@ -941,7 +904,7 @@ export default function DetailPage(p){
       })()}
 
       {/* â”€â”€â”€ HISTORY TAB â”€â”€â”€ */}
-      {tab==="History"&&(
+      {tab==="Progress"&&(
         <div>
           {(!ini.hist||ini.hist.length===0)&&<div style={{padding:32,textAlign:"center",color:T.td,fontSize:13}}>No historical data yet (projections)</div>}
           {ini.hist&&ini.hist.length>0&&(
@@ -960,8 +923,8 @@ export default function DetailPage(p){
                         <td style={{padding:"8px 14px",fontSize:13,fontWeight:600}}>{h.q}</td>
                         <td style={{padding:"8px 14px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:50}}><ProgressBar v={h.rd} h={4}/></div><span style={{fontSize:12,fontWeight:600,color:rc(h.rd,T)}}>{h.rd}%</span></div></td>
                         <td style={{padding:"8px 14px",fontSize:12,color:rc(h.staff,T)}}>{h.staff}%</td>
-                        <td style={{padding:"8px 14px",fontSize:12,color:rc(h.skill,T)}}>{h.skill}%</td>
-                        <td style={{padding:"8px 14px",fontSize:12,color:rc(h.cert,T)}}>{h.cert}%</td>
+                        <td style={{padding:"8px 14px",fontSize:12,color:hSk?rc(h.skill,T):T.td}}>{hSk?h.skill+"%":"-"}</td>
+                        <td style={{padding:"8px 14px",fontSize:12,color:hCt?rc(h.cert,T):T.td}}>{hCt?h.cert+"%":"-"}</td>
                         <td style={{padding:"8px 14px",fontSize:12,fontWeight:600,color:delta>0?T.gn:delta<0?T.rd:T.td}}>{delta>0?"+"+delta+"%":delta<0?delta+"%":"-"}</td>
                       </tr>
                     );
