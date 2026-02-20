@@ -123,9 +123,6 @@ export default function OverviewPage(p){
 
   var fState=useState("All");var fl=fState[0],sF=fState[1];
   var vState=useState("cards");var vw=vState[0],sVw=vState[1];
-  var pState=useState("2Q");var period=pState[0],sPeriod=pState[1];
-  var periodN=PERIODS.find(function(p2){return p2.key===period;});
-  var pn=periodN?periodN.n:2;
 
   var fd=ini;
   if(fl==="Operational") fd=ini.filter(function(x){return x.tp==="Operational";});
@@ -133,7 +130,7 @@ export default function OverviewPage(p){
   if(fl==="Projections") fd=ini.filter(function(x){return x.st==="projection";});
 
   /* Pre-compute signals for all filtered initiatives, sort by urgency */
-  var signals=fd.map(function(it){return {it:it,s:iniSignal(it,pn)};});
+  var signals=fd.map(function(it){return {it:it,s:iniSignal(it,999)};});
   var sorted=signals.slice().sort(function(a,b){return b.s.urgency-a.s.urgency||a.s.crd-b.s.crd;});
 
   return (
@@ -145,13 +142,6 @@ export default function OverviewPage(p){
           <p style={{color:T.tm,fontSize:13}}>Workforce readiness across all locations</p>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          {/* Period selector */}
-          <div style={{display:"flex",borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden",background:T.sf}}>
-            {PERIODS.map(function(pr){
-              var isActive=period===pr.key;
-              return <button key={pr.key} onClick={function(){sPeriod(pr.key);}} title={pr.label} style={{padding:"7px 12px",border:"none",cursor:"pointer",fontSize:11,fontWeight:isActive?600:400,fontFamily:"inherit",color:isActive?T.ac:T.tm,background:isActive?T.ad:"transparent",transition:"all 0.15s ease"}}>{pr.key}</button>;
-            })}
-          </div>
           <button onClick={p.onReport} style={{padding:"10px 24px",borderRadius:10,border:"1px solid "+T.bd,cursor:"pointer",background:T.cd,color:T.tx,fontSize:13,fontWeight:500,fontFamily:"inherit"}}>Export PDF</button>
           <button onClick={p.onCreate} style={{padding:"10px 24px",borderRadius:10,border:"none",cursor:"pointer",background:T.ac,color:"#FFFFFF",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>+ Create Initiative</button>
         </div>
@@ -232,7 +222,6 @@ export default function OverviewPage(p){
             if(sd2&&td2) meta.push(it.sd+" \u2013 "+it.td);
             else if(td2) meta.push("Target "+it.td);
             else if(sd2) meta.push("Start "+it.sd);
-            var hPts=s.hPts;
             return (
               <div key={it.id} onClick={function(){p.onOpen(it);}} style={{borderRadius:14,border:"1px solid "+T.bd,background:T.cd,cursor:"pointer",position:"relative",overflow:"hidden",transition:"box-shadow 0.15s ease, border-color 0.15s ease"}}
                 onMouseEnter={function(e){e.currentTarget.style.boxShadow="0 4px 16px "+T.sh;e.currentTarget.style.borderColor=rc(s.crd,T)+"40";}}
@@ -255,13 +244,6 @@ export default function OverviewPage(p){
                   {/* Row 2: Hero readiness + delta chip + action signal */}
                   <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
                     <div style={{fontSize:32,fontWeight:700,lineHeight:1,color:rc(s.crd,T)}}>{s.crd}<span style={{fontSize:14,fontWeight:500}}>%</span></div>
-                    {/* Delta chip */}
-                    {s.delta!==0&&<span style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:12,fontWeight:600,padding:"3px 8px",borderRadius:6,color:s.delta>0?T.gn:T.rd,background:(s.delta>0?T.gn:T.rd)+"12"}}>
-                      <svg width="10" height="10" viewBox="0 0 10 10"><path d={s.delta>0?"M5 2L8 6H2L5 2":"M5 8L2 4H8L5 8"} fill="currentColor"/></svg>
-                      {s.delta>0?"+":""}{s.delta}%
-                    </span>}
-                    {s.delta===0&&hPts.length>=2&&<span style={{fontSize:10,color:T.td,padding:"3px 8px",borderRadius:6,background:T.sa}}>Stable</span>}
-                    {s.delta===0&&hPts.length<2&&<span style={{fontSize:10,color:T.td,padding:"3px 8px",borderRadius:6,background:T.sa}}>No data</span>}
                     {/* Action signal — pushed right */}
                     <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:6,background:actionClr(s.actionType,T)+"10"}}>
                       <ActionIcon type={s.actionType} color={actionClr(s.actionType,T)}/>
@@ -311,7 +293,7 @@ export default function OverviewPage(p){
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
-              {[{h:"#"},{h:"Initiative"},{h:"Readiness",t:"Combined score from staffing, capability, and compliance."},{h:"\u0394",t:"Change over selected period."},{h:"Next Action",t:"The single most impactful next step for this initiative."},{h:"Staff"},{h:"Capability"},{h:"Compliance"},{h:"Risk (DKK)",t:"Revenue at risk due to readiness gaps."},{h:"Gaps",t:"Unfilled positions across all locations."}].map(function(c){return <th key={c.h} style={{padding:"10px 12px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{c.h}{c.t&&<Tip text={c.t} sz={12}/>}</th>;})}
+              {[{h:"#"},{h:"Initiative"},{h:"Readiness",t:"Combined score from staffing, capability, and compliance."},{h:"Next Action",t:"The single most impactful next step for this initiative."},{h:"Staff"},{h:"Capability"},{h:"Compliance"},{h:"Risk (DKK)",t:"Revenue at risk due to readiness gaps."},{h:"Gaps",t:"Unfilled positions across all locations."}].map(function(c){return <th key={c.h} style={{padding:"10px 12px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{c.h}{c.t&&<Tip text={c.t} sz={12}/>}</th>;})}
             </tr></thead>
             <tbody>{sorted.map(function(entry,idx){
               var it=entry.it,s=entry.s;
@@ -320,7 +302,6 @@ export default function OverviewPage(p){
                   <td style={{padding:"10px 12px",fontSize:12,color:T.td}}>{idx+1}</td>
                   <td style={{padding:"10px 12px"}}><span style={{fontSize:13,fontWeight:500}}>{it.nm}</span>{it.st==="projection"&&<span style={{fontSize:10,color:T.pu,marginLeft:6}}>Proj.</span>}</td>
                   <td style={{padding:"10px 12px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:60}}><ProgressBar v={s.crd} h={4}/></div><span style={{fontSize:12,color:rc(s.crd,T),fontWeight:600}}>{s.crd}%</span></div></td>
-                  <td style={{padding:"10px 12px"}}>{s.delta!==0?<span style={{fontSize:11,fontWeight:600,color:s.delta>0?T.gn:T.rd,display:"inline-flex",alignItems:"center",gap:2}}><svg width="8" height="8" viewBox="0 0 10 10"><path d={s.delta>0?"M5 2L8 6H2L5 2":"M5 8L2 4H8L5 8"} fill="currentColor"/></svg>{s.delta>0?"+":""}{s.delta}%</span>:<span style={{fontSize:11,color:T.td}}>{"\u2014"}</span>}</td>
                   <td style={{padding:"10px 12px"}}><div style={{display:"inline-flex",alignItems:"center",gap:4}}><ActionIcon type={s.actionType} color={actionClr(s.actionType,T)}/><span style={{fontSize:11,color:actionClr(s.actionType,T),fontWeight:500}}>{s.action}</span></div></td>
                   <td style={{padding:"10px 12px",fontSize:12,color:rc(s.sR,T)}}>{s.sR}%</td>
                   <td style={{padding:"10px 12px",fontSize:12,color:s.skR!==null?rc(s.skR,T):T.td}}>{s.skR!==null?s.skR+"%":"-"}</td>
