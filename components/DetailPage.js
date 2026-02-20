@@ -938,19 +938,12 @@ export default function DetailPage(p){
         /* Create a lookup from quarter label to hist entry */
         var histMap={};
         hist.forEach(function(h){histMap[h.q]=h;});
+        /* Helper: convert "Q2 2025" to a sortable number for comparison */
+        function qOrd(ql){var m2=ql.match(/Q(\d)\s+(\d{4})/);return m2?parseInt(m2[2],10)*10+parseInt(m2[1],10):0;}
+        var nowOrd=qOrd(nowLabel);
 
         return (
         <div>
-          {/* Year selector — only show when multiple years exist */}
-          {years.length>1&&(
-            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
-              <select value={selYear||""} onChange={function(e){sProgYear(e.target.value);}} style={{padding:"6px 12px",borderRadius:8,border:"1px solid "+T.bd,background:T.cd,color:T.tx,fontSize:12,fontFamily:"inherit",cursor:"pointer"}}>
-                {years.map(function(y){return <option key={y} value={y}>{y}</option>;})}
-                <option value="All">All years</option>
-              </select>
-            </div>
-          )}
-
           {visibleYears.map(function(yr){
             var quarters=["Q1 "+yr,"Q2 "+yr,"Q3 "+yr,"Q4 "+yr];
             return (
@@ -977,19 +970,20 @@ export default function DetailPage(p){
                       var isCur=h&&!!h.isCurrent;
                       var isEmpty=!h;
                       var isTarget=targetQ===qLabel;
+                      var isFuture=qOrd(qLabel)>nowOrd;
                       /* Find previous quarter's data for delta */
                       var prevLabel=qi>0?quarters[qi-1]:null;
                       var prevH=prevLabel?histMap[prevLabel]:null;
                       var delta=(h&&prevH)?h.rd-prevH.rd:0;
                       return (
-                        <tr key={qLabel} style={{borderBottom:isTarget?"2px dashed "+T.ac:"1px solid "+T.bd+"08",background:isCur?T.ad:isEmpty?T.sa+"60":"transparent",opacity:isEmpty?0.5:1}}>
+                        <tr key={qLabel} style={{borderBottom:isTarget?"2px dashed "+T.bd:"1px solid "+T.bd+"08",background:isCur?T.ad:isEmpty?T.sa+"60":"transparent",opacity:isEmpty?0.5:1}}>
                           <td style={{padding:"8px 14px",fontSize:13,fontWeight:600,color:isEmpty?T.td:T.tx}}>
                             {qLabel.replace(" "+yr,"")}
                             {isCur&&<span style={{fontSize:9,marginLeft:6,color:T.ac,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Current</span>}
-                            {isTarget&&<span style={{fontSize:9,marginLeft:6,color:T.am,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Target</span>}
+                            {isTarget&&<span style={{fontSize:9,marginLeft:6,color:T.td,fontWeight:700,textTransform:"uppercase",letterSpacing:0.5}}>Target</span>}
                           </td>
                           {isEmpty?(
-                            <td colSpan={5} style={{padding:"8px 14px",fontSize:11,color:T.td,fontStyle:"italic"}}>Upcoming</td>
+                            <td colSpan={5} style={{padding:"8px 14px",fontSize:11,color:T.td,fontStyle:"italic"}}>{isFuture?"Upcoming":"No snapshot"}</td>
                           ):(
                             [
                               <td key="ov" style={{padding:"8px 14px"}}><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:50}}><ProgressBar v={h.rd} h={4}/></div><span style={{fontSize:12,fontWeight:600,color:rc(h.rd,T)}}>{h.rd}%</span></div></td>,
@@ -1025,8 +1019,8 @@ export default function DetailPage(p){
                           </div>
                           <span style={{fontSize:10,fontWeight:isCur?700:400,color:isCur?T.ac:T.td}}>{qLabel.replace(" "+yr,"")}</span>
                           {/* Target deadline marker — dashed line on right edge */}
-                          {isTarget&&<div style={{position:"absolute",top:-8,right:-6,bottom:-4,width:0,borderRight:"2px dashed "+T.am,pointerEvents:"none"}}>
-                            <span style={{position:"absolute",top:-2,right:4,fontSize:8,color:T.am,fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,whiteSpace:"nowrap"}}>Target</span>
+                          {isTarget&&<div style={{position:"absolute",top:-8,right:-6,bottom:-4,width:0,borderRight:"2px dashed "+T.bd,pointerEvents:"none"}}>
+                            <span style={{position:"absolute",top:-2,right:4,fontSize:8,color:T.td,fontWeight:700,textTransform:"uppercase",letterSpacing:0.3,whiteSpace:"nowrap"}}>Target</span>
                           </div>}
                         </div>
                       );
