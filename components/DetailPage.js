@@ -1025,10 +1025,10 @@ export default function DetailPage(p){
                     {isEmpty?(
                       <span style={{fontSize:11,color:T.td}}>{"\u2014"}</span>
                     ):(
-                      <span style={{fontSize:showAll?9:11,fontWeight:isCur?700:600,color:isCarried?T.td:rc(h.rd,T)}}>{h.rd}%</span>
+                      <span style={{fontSize:showAll?9:11,fontWeight:isCur?700:600,color:rc(h.rd,T)}}>{h.rd}%</span>
                     )}
-                    <div style={{width:"100%",height:isEmpty?12:Math.max(h.rd*1.1,8),borderRadius:6,background:isEmpty?T.sa:isCarried?T.sa:rc(h.rd,T)+(isCur?"40":"30"),position:"relative",border:isCur?"2px solid "+rc(h.rd,T):isCarried?"1px dashed "+T.bd:"none",transition:"height 0.3s ease"}}>
-                      {!isEmpty&&!isCarried&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:"100%",borderRadius:isCur?4:6,background:rc(h.rd,T),opacity:isCur?0.85:0.6}}/>}
+                    <div style={{width:"100%",height:isEmpty?12:Math.max(h.rd*1.1,8),borderRadius:6,background:isEmpty?T.sa:rc(h.rd,T)+(isCur?"40":"30"),position:"relative",border:isCur?"2px solid "+rc(h.rd,T):isCarried?"1px dashed "+rc(h.rd,T)+"60":"none",transition:"height 0.3s ease"}}>
+                      {!isEmpty&&<div style={{position:"absolute",bottom:0,left:0,right:0,height:"100%",borderRadius:isCur?4:6,background:rc(h.rd,T),opacity:isCur?0.85:isCarried?0.35:0.6}}/>}
                     </div>
                     <span style={{fontSize:showAll?8:10,fontWeight:isCur?700:400,color:isCur?T.ac:T.td}}>{showAll?qLabel:qLabel.replace(" "+qm2[2],"")}</span>
                     {/* Target deadline marker */}
