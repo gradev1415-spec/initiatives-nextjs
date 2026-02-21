@@ -1,16 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useT } from "@/lib/theme";
-import { fmt, fD, rc, cc2, cw, ic2, forEachRole } from "@/lib/utils";
-import { allRoles, wRd, staffRd, skillRd, certRd, iRd, hasSkillData, hasCertData, portfolioRoles, portfolioCoverage, portfolioPriorities } from "@/lib/readiness";
-import { genActions, matchContent } from "@/lib/actions";
-import { LIBRARY } from "@/lib/data";
-import Badge from "./Badge";
-import ProgressBar from "./ProgressBar";
-import Gauge from "./Gauge";
-import MiniGauge from "./MiniGauge";
-import TabBar from "./TabBar";
-import KPICard from "./KPICard";
+import { fD, forEachRole } from "@/lib/utils";
+import { allRoles, staffRd, skillRd, certRd, iRd, hasSkillData, hasCertData, portfolioRoles, portfolioCoverage, portfolioPriorities } from "@/lib/readiness";
 
 /* ─── Compute initiative signal (mirrors OverviewPage) ─── */
 function iniSignal(it) {
