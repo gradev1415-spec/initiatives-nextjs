@@ -1,20 +1,30 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useT } from "@/lib/theme";
 
 /* Inline tooltip — hover ? or i icon to reveal explanatory text.
+   Uses fixed positioning to escape overflow:hidden containers.
    Usage: <Tip text="Explanation here" />
           <Tip text="Explanation" icon="i" />  */
 export default function Tip(p) {
   var T = useT();
   var _h = useState(false); var show = _h[0]; var setShow = _h[1];
+  var _pos = useState(null); var pos = _pos[0]; var setPos = _pos[1];
+  var ref = useRef(null);
   var icon = p.icon || "?";
   var sz = p.sz || 14;
 
+  useEffect(function() {
+    if (show && ref.current) {
+      var rect = ref.current.getBoundingClientRect();
+      setPos({ top: rect.top, left: rect.left + rect.width / 2 });
+    }
+  }, [show]);
+
   return (
-    <span style={{ position:"relative", display:"inline-flex", alignItems:"center", marginLeft:p.ml !== undefined ? p.ml : 4 }}
+    <span ref={ref} style={{ position:"relative", display:"inline-flex", alignItems:"center", marginLeft:p.ml !== undefined ? p.ml : 4 }}
       onMouseEnter={function(){ setShow(true); }}
-      onMouseLeave={function(){ setShow(false); }}
+      onMouseLeave={function(){ setShow(false); setPos(null); }}
     >
       <span style={{
         width:sz, height:sz, borderRadius:sz,
@@ -25,12 +35,12 @@ export default function Tip(p) {
         fontStyle: icon === "i" ? "italic" : "normal",
         fontFamily: icon === "i" ? "Georgia,serif" : "inherit"
       }}>{icon}</span>
-      {show && (
+      {show && pos && (
         <span style={{
-          position:"absolute", bottom:"calc(100% + 8px)", left:"50%", transform:"translateX(-50%)",
+          position:"fixed", top:pos.top - 8, left:pos.left, transform:"translate(-50%, -100%)",
           padding:"8px 12px", borderRadius:8, fontSize:11, lineHeight:1.45, fontWeight:400,
           color:"#fff", background:"#1c253f", whiteSpace:"normal", width:"max-content",
-          maxWidth:240, zIndex:50, pointerEvents:"none",
+          maxWidth:240, zIndex:9999, pointerEvents:"none",
           boxShadow:"0 4px 12px rgba(0,0,0,0.15)",
           fontStyle:"normal", textTransform:"none", letterSpacing:0
         }}>
