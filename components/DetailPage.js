@@ -98,7 +98,7 @@ export default function DetailPage(p){
       <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16,padding:"6px 0",fontSize:11,color:T.td}}>
         <span><span style={{color:T.tm}}>Revenue</span> <span style={{fontWeight:600,color:T.tx}}>{fD(ini.rev)}</span><Tip text="Total revenue value tied to this initiative." icon="i" sz={12}/></span>
         <span style={{color:T.bd}}>{String.fromCharCode(124)}</span>
-        <span><span style={{color:T.tm}}>Risk</span> <span style={{fontWeight:600,color:T.am}}>{fD(mr)}</span><Tip text="Revenue at risk due to readiness gaps. Calculated as Revenue \u00D7 (1 \u2212 Readiness%)." icon="i" sz={12}/></span>
+        <span><span style={{color:T.tm}}>Risk</span> <span style={{fontWeight:600,color:T.am}}>{fD(mr)}</span><Tip text={"Revenue at risk due to readiness gaps. Calculated as Revenue \u00D7 (1 \u2212 Readiness%)."} icon="i" sz={12}/></span>
         <span style={{color:T.bd}}>{String.fromCharCode(124)}</span>
         <span><span style={{color:T.tm}}>Timeline</span> <span style={{fontWeight:500,color:T.tx}}>{function(){var s=ini.sd&&ini.sd!=="TBD",e=ini.td&&ini.td!=="TBD";if(s&&e)return ini.sd+" "+String.fromCharCode(183)+" "+ini.td;if(e)return "Target "+ini.td;if(s)return "Start "+ini.sd;return "Not set";}()}</span></span>
       </div>
