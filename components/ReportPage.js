@@ -189,7 +189,7 @@ export default function ReportPage(p){
           {/* Risk Exposure */}
           <div style={{background:C.card,padding:"18px 22px"}}>
             <div style={{fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Risk Exposure</div>
-            <div style={{fontSize:22,fontWeight:700,color:C.navy,lineHeight:1}}>{fD(totalRisk)}</div>
+            <div style={{fontSize:22,fontWeight:700,color:C.navy,lineHeight:1}}>{fD(opp2)}</div>
             <div style={{fontSize:10,color:C.muted,marginTop:6}}>{ini.length} initiatives tracked</div>
           </div>
           {/* Workforce Fill */}
