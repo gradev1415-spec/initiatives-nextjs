@@ -11,9 +11,10 @@ import Gauge from "./Gauge";
 import MiniGauge from "./MiniGauge";
 import TabBar from "./TabBar";
 import Overlay from "./Overlay";
+import useIsMobile from "@/lib/useIsMobile";
 
 export default function RiskActionsTab(p){
-  var T=useT();
+  var T=useT();var mob=useIsMobile();
   var ini=p.ini,acts=p.acts,crd=p.crd,selLoc=p.selLoc,sSelLoc=p.sSelLoc;
 
   /* Location-aware filtering */
@@ -95,7 +96,7 @@ export default function RiskActionsTab(p){
       {hasAreas&&areaDepts.length>0&&(
         <div style={{marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
           <div style={{position:"relative",flex:1,maxWidth:320}}>
-            <select value={riskDept?riskDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:8,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
+            <select value={riskDept?riskDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
               {areaDepts.map(function(d){
                 var dr=deptRd(d);
                 return <option key={d.did} value={d.did}>{d.dn+" "+String.fromCharCode(183)+" "+dr+"% ready"}</option>;
@@ -106,8 +107,8 @@ export default function RiskActionsTab(p){
         </div>
       )}
       {/* Risk level banner */}
-      <div style={{padding:16,borderRadius:8,border:"1px solid "+riskColor+"30",background:riskColor+"10",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
-        <div style={{width:56,height:56,borderRadius:8,background:riskColor+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+      <div style={{padding:mob?12:16,borderRadius:14,border:"1px solid "+riskColor+"30",background:riskColor+"10",marginBottom:16,display:"flex",alignItems:mob?"flex-start":"center",gap:mob?12:16,flexWrap:mob?"wrap":"nowrap"}}>
+        <div style={{width:56,height:56,borderRadius:14,background:riskColor+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <span style={{fontSize:24}}>{riskLevel==="Critical"?"!!":riskLevel==="High"?"!":riskLevel==="Medium"?"~":"OK"}</span>
         </div>
         <div style={{flex:1}}>
@@ -133,9 +134,9 @@ export default function RiskActionsTab(p){
         <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Risk Forecast</h3>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:20}}>
         {/* Cert expiry timeline */}
-        <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden"}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Expiry Forecast</h4>
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Predicted certification readiness if no action taken</p>
@@ -169,7 +170,7 @@ export default function RiskActionsTab(p){
         </div>
 
         {/* Essential role exposure */}
-        <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden"}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Staffing Exposure{riskDept?" \u2014 "+riskDept.dn:""}</h4>
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Unfilled positions by criticality</p>
@@ -220,7 +221,7 @@ export default function RiskActionsTab(p){
 
       {/* Skill gaps by criticality */}
       {sortedSkillGaps.length>0&&(
-        <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gap Exposure ({sortedSkillGaps.length})</h4>
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by impact</p>
@@ -248,7 +249,7 @@ export default function RiskActionsTab(p){
 
       {/* Quick wins — content already exists */}
       {quickWins.length>0&&(
-        <div style={{borderRadius:8,border:"1px solid "+T.gn+"30",background:T.gd,overflow:"hidden",marginBottom:14}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.gn+"30",background:T.gd,overflow:"hidden",marginBottom:14}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.gn+"20"}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0,color:T.gn}}>Quick Wins — Assign Existing Content</h4>
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>These gaps can be closed using content already in your library</p>
@@ -270,7 +271,7 @@ export default function RiskActionsTab(p){
 
       {/* Hiring actions */}
       {acts.filter(function(a){return a.tp==="hire";}).length>0&&(
-        <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:14}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:14}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Hiring Needed</h4>
           </div>
@@ -294,7 +295,7 @@ export default function RiskActionsTab(p){
 
       {/* Content gaps — need creation */}
       {contentGaps.length>0&&(
-        <div style={{borderRadius:8,border:"1px solid "+T.am+"40",background:T.amd,overflow:"hidden"}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.am+"40",background:T.amd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.am+"20"}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0,color:T.am}}>Content Gaps — Creation Needed</h4>
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>No existing learning content matches these skill requirements</p>
@@ -316,7 +317,7 @@ export default function RiskActionsTab(p){
 
       {/* All clear state */}
       {totalGaps===0&&sortedSkillGaps.length===0&&te30===0&&(
-        <div style={{padding:32,textAlign:"center",borderRadius:8,border:"1px solid "+T.gn+"30",background:T.gd}}>
+        <div style={{padding:32,textAlign:"center",borderRadius:14,border:"1px solid "+T.gn+"30",background:T.gd}}>
           <div style={{fontSize:18,fontWeight:700,color:T.gn,marginBottom:4}}>All Clear</div>
           <div style={{fontSize:12,color:T.tm}}>No immediate risks detected. All positions filled, no expiring certificates, and no critical skill gaps.</div>
         </div>

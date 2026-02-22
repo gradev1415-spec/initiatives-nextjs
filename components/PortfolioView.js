@@ -4,9 +4,10 @@ import { rc, fD, forEachRole } from "@/lib/utils";
 import { allRoles, wRd, iRd } from "@/lib/readiness";
 import Badge from "./Badge";
 import MiniGauge from "./MiniGauge";
+import useIsMobile from "@/lib/useIsMobile";
 
 export default function PortfolioView(p){
-  var T=useT();
+  var T=useT();var mob=useIsMobile();
   var totalGaps=0,topSkillGaps={},topCertGaps={};
   p.ini.forEach(function(it){
     forEachRole(it.depts,function(r){totalGaps+=r.gp;});
@@ -19,8 +20,8 @@ export default function PortfolioView(p){
   return (
     <div>
       {/* Systemic gaps — always show both panels, nudge when empty */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
-        <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden"}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:20}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:14,fontWeight:600,margin:0}}>Systemic Skill Gaps</h3><p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>Aggregated across all initiatives</p></div>
           {sgArr.length>0?sgArr.slice(0,6).map(function(g,i){
             var affected=p.ini.filter(function(it){return it.sg.find(function(x){return x.s===g.s;});}).length;
@@ -34,7 +35,7 @@ export default function PortfolioView(p){
             );
           }):<div style={{padding:24,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No skill gaps detected</div><div style={{fontSize:11,color:T.tm}}>Define skill requirements on initiatives to track capability gaps across the portfolio</div></div>}
         </div>
-        <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden"}}>
+        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:14,fontWeight:600,margin:0}}>Systemic Cert Gaps</h3><p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>Aggregated across all initiatives</p></div>
           {cgArr.length>0?cgArr.slice(0,6).map(function(g,i){
             var affected=p.ini.filter(function(it){return it.cg.find(function(x){return x.c===g.c;});}).length;
