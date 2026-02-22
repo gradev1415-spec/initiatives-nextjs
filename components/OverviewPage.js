@@ -135,7 +135,7 @@ export default function OverviewPage(p){
   var sorted=signals.slice().sort(function(a,b){return b.s.urgency-a.s.urgency||a.s.crd-b.s.crd;});
 
   return (
-    <div style={{padding:mob?"16px 12px":"32px 32px",maxWidth:1400,margin:"0 auto"}}>
+    <div style={{padding:mob?"16px 12px":"32px 32px",maxWidth:1400,margin:"0 auto",overflow:"hidden"}}>
       {/* ═══ HEADER ═══ */}
       <div style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:mob?"flex-start":"center",marginBottom:mob?24:48,gap:mob?12:0}}>
         <div>
@@ -156,7 +156,7 @@ export default function OverviewPage(p){
       `}</style>
       <div className="kpi-grid">
         {/* Hero readiness */}
-        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd}}>
+        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd,overflow:"hidden",minWidth:0}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Portfolio Readiness<Tip text="Weighted average readiness across all initiatives, combining staffing, capability, and compliance." icon="i" sz={12}/></div>
           <div style={{display:"flex",alignItems:"baseline",gap:mob?8:4,flexWrap:"wrap"}}>
             <div>
@@ -171,13 +171,13 @@ export default function OverviewPage(p){
           </div>
         </div>
         {/* Risk exposure */}
-        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd}}>
+        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd,overflow:"hidden",minWidth:0}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Risk Exposure<Tip text="Total revenue at risk across all initiatives due to readiness gaps." icon="i" sz={12}/></div>
           <div style={{fontSize:mob?18:24,fontWeight:700,color:T.tx,lineHeight:1}}>{fD(totalRisk)}</div>
           <div style={{fontSize:mob?10:11,color:T.tm,marginTop:4}}>{ini.length} initiatives tracked</div>
         </div>
         {/* Workforce fill */}
-        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd}}>
+        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd,overflow:"hidden",minWidth:0}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Workforce Fill<Tip text="Total qualified employees vs. required positions across all initiatives." icon="i" sz={12}/></div>
           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
             <span style={{fontSize:mob?18:24,fontWeight:700,lineHeight:1,color:T.tx}}>{pR.filled}</span>
@@ -189,7 +189,7 @@ export default function OverviewPage(p){
           </div>
         </div>
         {/* Capability coverage */}
-        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd}}>
+        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd,overflow:"hidden",minWidth:0}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Skills Covered<Tip text="Skill and certificate requirement slots filled by qualified staff." icon="i" sz={12}/></div>
           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
             <span style={{fontSize:mob?18:24,fontWeight:700,lineHeight:1,color:T.tx}}>{pC.total>0?pC.covered:"\u2014"}</span>
@@ -200,7 +200,7 @@ export default function OverviewPage(p){
           </div>
         </div>
         {/* Urgent priorities */}
-        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd}}>
+        <div style={{background:T.cd,padding:mob?"12px 14px":"20px 24px",borderRadius:mob?10:14,border:"1px solid "+T.bd,overflow:"hidden",minWidth:0}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Urgent Priorities<Tip text="Essential or Critical skill and certificate gaps requiring immediate attention." icon="i" sz={12}/></div>
           <div style={{fontSize:mob?18:24,fontWeight:700,lineHeight:1,color:T.tx}}>{pP}</div>
           <div style={{fontSize:mob?10:11,color:T.tm,marginTop:4}}>{pP>0?"Essential gaps to close":"All critical gaps resolved"}</div>
@@ -208,11 +208,11 @@ export default function OverviewPage(p){
       </div>
 
       {/* ═══ FILTERS + VIEW SWITCH ═══ */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,gap:8,flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",msOverflowStyle:"none"}} className="tabbar-scroll">
+      <div style={{display:"flex",flexDirection:mob?"column":"row",justifyContent:"space-between",alignItems:mob?"stretch":"center",marginBottom:20,gap:mob?8:12}}>
         <TabBar tabs={["All","Operational","Administrative","Projections"]} a={fl} on={sF}/>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <TabBar tabs={["cards","ranking","heatmap","portfolio"]} a={vw} on={sVw}/>
-          <span style={{fontSize:11,color:T.td}}>{fd.length} items</span>
+          <span style={{fontSize:11,color:T.td,whiteSpace:"nowrap",flexShrink:0}}>{fd.length} items</span>
         </div>
       </div>
 
