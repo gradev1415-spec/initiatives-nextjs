@@ -7,9 +7,10 @@ import Badge from "./Badge";
 import ProgressBar from "./ProgressBar";
 import Gauge from "./Gauge";
 import Overlay from "./Overlay";
+import useIsMobile from "@/lib/useIsMobile";
 
 export default function WizardPage(p){
-  var T=useT();
+  var T=useT();var mob=useIsMobile();
   var st=useState(1);var step=st[0],sStep=st[1];
   var _n=useState("");var name=_n[0],sName=_n[1];
   var _d=useState("");var desc=_d[0],sDesc=_d[1];
@@ -506,7 +507,7 @@ export default function WizardPage(p){
   }
 
   return (
-    <div ref={wizRef} onKeyDown={handleWizKey} style={{padding:"24px 32px",maxWidth:900,margin:"0 auto"}}>
+    <div ref={wizRef} onKeyDown={handleWizKey} style={{padding:mob?"16px 12px":"24px 32px",maxWidth:900,margin:"0 auto"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
         <h1 style={{fontSize:22,fontWeight:700,margin:0}}>Create Initiative</h1>
         <button onClick={p.onClose} style={{background:"none",border:"none",color:T.td,cursor:"pointer",fontSize:18,fontFamily:"inherit"}}>{CROSS}</button>
@@ -517,7 +518,7 @@ export default function WizardPage(p){
           <div key={s.n} style={{display:"flex",alignItems:"center",flex:idx<stps.length-1?1:0}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{width:26,height:26,borderRadius:13,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:600,background:isActive?T.ac:isDone?T.gn:T.sa,color:isActive||isDone?"#FFFFFF":T.td,transition:"all 0.4s ease",animation:isActive?"wizGlow 2.5s ease infinite":"none"}}>{isDone?<span style={{animation:"wizPop 0.3s ease"}}>{CHK}</span>:idx+1}</div>
-              <span style={{fontSize:11,fontWeight:isActive?600:400,color:isActive?T.tx:T.td,whiteSpace:"nowrap",transition:"color 0.3s"}}>{s.l}</span>
+              {!mob&&<span style={{fontSize:11,fontWeight:isActive?600:400,color:isActive?T.tx:T.td,whiteSpace:"nowrap",transition:"color 0.3s"}}>{s.l}</span>}
             </div>
             {idx<stps.length-1&&<div style={{flex:1,height:2,margin:"0 8px",background:T.bd,position:"relative",overflow:"hidden",borderRadius:1}}><div style={{position:"absolute",top:0,left:0,height:"100%",background:isDone?T.gn:isActive?T.ac:"transparent",width:isDone?"100%":isActive?"50%":"0%",transition:"width 0.6s ease",borderRadius:1}}/></div>}
           </div>
@@ -558,7 +559,7 @@ export default function WizardPage(p){
         {/* ===== Step 25: Store Layout ===== */}
         {step===25&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
           {/* Decision cards */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:16}}>
+          <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:16}}>
             {(function(){
               var multiSel=useLayout===true;var uniSel=useLayout===false;
               /* Mini diagram: multi-area — 3 stacked sections with labels */
@@ -814,7 +815,7 @@ export default function WizardPage(p){
                     </div>
                     {roles.length===0&&<div style={{padding:8,paddingLeft:hasAreas?28:14,textAlign:"center",color:T.td,fontSize:11}}>{"No "+(roleSrc==="circle"?"circles":"profiles")+" added"}</div>}
                     {roles.map(function(r,ri){return (<div key={r.cid} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px",paddingLeft:hasAreas?28:14,borderBottom:"1px solid "+T.bd+"08",animation:"wizSlideIn 0.3s ease",animationDelay:(ri*60)+"ms",animationFillMode:"backwards"}}>
-                      <span style={{fontSize:12,fontWeight:500,width:180,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.cnm}</span>
+                      <span style={{fontSize:12,fontWeight:500,width:mob?100:180,flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.cnm}</span>
                       <select value={r.cr} onChange={function(e){updC(slot.key,r.cid,"cr",e.target.value);}} style={{padding:"3px 6px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:11,fontFamily:"inherit",width:110,flexShrink:0}}><option>Essential</option><option>Important</option><option>Nice to have</option></select>
                       <span style={{fontSize:10,color:T.td,flexShrink:0}}>Qty:</span>
                       <input type="number" min={1} value={r.rq} onChange={function(e){updC(slot.key,r.cid,"rq",Math.max(1,parseInt(e.target.value)||1));}} style={{width:42,padding:"3px 4px",borderRadius:6,border:"1px solid "+T.bd,background:T.ib,color:T.tx,fontSize:12,textAlign:"center",flexShrink:0}}/>
@@ -906,14 +907,14 @@ export default function WizardPage(p){
         </div>)}
 
         {step===timelineN&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14}}>
             <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Start Quarter</label><select value={sq} onChange={function(e){sSq(e.target.value);}} style={iS}><option value="">Select...</option>{qs.map(function(q){return <option key={q} value={q}>{q}</option>;})}</select></div>
             <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Target Quarter</label><select value={tq} onChange={function(e){sTq(e.target.value);}} style={iS}><option value="">Select...</option>{qs.map(function(q){return <option key={q} value={q}>{q}</option>;})}</select></div>
           </div>
           {sq&&tq&&<div style={{marginTop:10,padding:"8px 14px",borderRadius:8,background:T.ad,fontSize:11,color:T.ac,animation:"wizSlideIn 0.3s ease"}}>{"Timeline: "+sq+" "+ARROW+" "+tq+". Quarterly readiness snapshots enabled."}</div>}
           <div style={{marginTop:18,padding:14,borderRadius:10,border:"1px solid "+T.bd,background:T.sa+"80"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}><span style={{fontSize:12,fontWeight:600,color:T.tm}}>Financial context</span><span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.amd,color:T.am}}>Optional</span></div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+            <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14}}>
               <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Revenue Potential (DKK)</label><input value={rev} onChange={function(e){sRev(e.target.value);}} placeholder="e.g. 16M or 4500K" style={iS}/></div>
               <div><label style={{fontSize:11,color:T.td,display:"block",marginBottom:6,textTransform:"uppercase"}}>Investment Required (DKK)</label><input value={inv} onChange={function(e){sInv(e.target.value);}} placeholder="e.g. 2.5M or 800K" style={iS}/></div>
             </div>

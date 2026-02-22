@@ -11,9 +11,10 @@ import Gauge from "./Gauge";
 import MiniGauge from "./MiniGauge";
 import TabBar from "./TabBar";
 import Overlay from "./Overlay";
+import useIsMobile from "@/lib/useIsMobile";
 
 export default function RiskActionsTab(p){
-  var T=useT();
+  var T=useT();var mob=useIsMobile();
   var ini=p.ini,acts=p.acts,crd=p.crd,selLoc=p.selLoc,sSelLoc=p.sSelLoc;
 
   /* Location-aware filtering */
@@ -106,7 +107,7 @@ export default function RiskActionsTab(p){
         </div>
       )}
       {/* Risk level banner */}
-      <div style={{padding:16,borderRadius:14,border:"1px solid "+riskColor+"30",background:riskColor+"10",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
+      <div style={{padding:mob?12:16,borderRadius:14,border:"1px solid "+riskColor+"30",background:riskColor+"10",marginBottom:16,display:"flex",alignItems:mob?"flex-start":"center",gap:mob?12:16,flexWrap:mob?"wrap":"nowrap"}}>
         <div style={{width:56,height:56,borderRadius:14,background:riskColor+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <span style={{fontSize:24}}>{riskLevel==="Critical"?"!!":riskLevel==="High"?"!":riskLevel==="Medium"?"~":"OK"}</span>
         </div>
@@ -133,7 +134,7 @@ export default function RiskActionsTab(p){
         <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Risk Forecast</h3>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:20}}>
         {/* Cert expiry timeline */}
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>

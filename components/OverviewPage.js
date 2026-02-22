@@ -11,6 +11,7 @@ import Tip from "./Tip";
 import TabBar from "./TabBar";
 import HeatmapView from "./HeatmapView";
 import PortfolioView from "./PortfolioView";
+import useIsMobile from "@/lib/useIsMobile";
 
 /* ─── Period options for trend analysis ─── */
 var PERIODS = [
@@ -105,7 +106,7 @@ function actionClr(type, T) {
 }
 
 export default function OverviewPage(p){
-  var T=useT();var ini=p.ini;
+  var T=useT();var mob=useIsMobile();var ini=p.ini;
   var trr=0;
   ini.forEach(function(it){trr+=iRd(it);});
   var ar=ini.length?Math.round(trr/ini.length):0;
@@ -134,21 +135,21 @@ export default function OverviewPage(p){
   var sorted=signals.slice().sort(function(a,b){return b.s.urgency-a.s.urgency||a.s.crd-b.s.crd;});
 
   return (
-    <div style={{padding:"32px 32px",maxWidth:1400,margin:"0 auto"}}>
+    <div style={{padding:mob?"16px 12px":"32px 32px",maxWidth:1400,margin:"0 auto"}}>
       {/* ═══ HEADER ═══ */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:48}}>
+      <div style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:mob?"flex-start":"center",marginBottom:mob?24:48,gap:mob?12:0}}>
         <div>
-          <h1 style={{fontSize:24,fontWeight:700,marginBottom:4}}>Initiatives</h1>
+          <h1 style={{fontSize:mob?20:24,fontWeight:700,marginBottom:4}}>Initiatives</h1>
           <p style={{color:T.tm,fontSize:13}}>Workforce readiness across all locations</p>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={p.onReport} style={{padding:"10px 24px",borderRadius:10,border:"1px solid "+T.bd,cursor:"pointer",background:T.cd,color:T.tx,fontSize:13,fontWeight:500,fontFamily:"inherit"}}>Export PDF</button>
-          <button onClick={p.onCreate} style={{padding:"10px 24px",borderRadius:10,border:"none",cursor:"pointer",background:T.ac,color:"#FFFFFF",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>+ Create Initiative</button>
+          <button onClick={p.onReport} style={{padding:mob?"8px 14px":"10px 24px",borderRadius:10,border:"1px solid "+T.bd,cursor:"pointer",background:T.cd,color:T.tx,fontSize:mob?12:13,fontWeight:500,fontFamily:"inherit"}}>Export PDF</button>
+          <button onClick={p.onCreate} style={{padding:mob?"8px 14px":"10px 24px",borderRadius:10,border:"none",cursor:"pointer",background:T.ac,color:"#FFFFFF",fontSize:mob?12:13,fontWeight:600,fontFamily:"inherit"}}>+ Create Initiative</button>
         </div>
       </div>
 
       {/* ═══ COMMAND CENTER: Portfolio Pulse ═══ */}
-      <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 1fr 1fr 1fr",gap:1,marginBottom:52,borderRadius:14,overflow:"hidden",border:"1px solid "+T.bd,background:T.bd}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"1.4fr 1fr 1fr 1fr 1fr",gap:1,marginBottom:mob?24:52,borderRadius:14,overflow:"hidden",border:"1px solid "+T.bd,background:T.bd}}>
         {/* Hero readiness */}
         <div style={{background:T.cd,padding:"20px 24px",display:"flex",alignItems:"center",gap:16}}>
           <div>
@@ -202,7 +203,7 @@ export default function OverviewPage(p){
       </div>
 
       {/* ═══ FILTERS + VIEW SWITCH ═══ */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,gap:12,flexWrap:"wrap"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:mob?"flex-start":"center",marginBottom:20,gap:12,flexWrap:"wrap",flexDirection:mob?"column":"row"}}>
         <TabBar tabs={["All","Operational","Administrative","Projections"]} a={fl} on={sF}/>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <TabBar tabs={["cards","ranking","heatmap","portfolio"]} a={vw} on={sVw}/>
@@ -212,7 +213,7 @@ export default function OverviewPage(p){
 
       {/* ═══ CARDS VIEW — Signal-Ranked Initiative Cards ═══ */}
       {vw==="cards" && (
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(360px,1fr))",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(auto-fill,minmax(360px,1fr))",gap:14}}>
           {sorted.map(function(entry){
             var it=entry.it,s=entry.s;
             /* Build meta string */
@@ -291,7 +292,8 @@ export default function OverviewPage(p){
       {/* ═══ RANKING VIEW ═══ */}
       {vw==="ranking" && (
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:mob?700:"auto"}}>
             <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
               {[{h:"#"},{h:"Initiative"},{h:"Readiness",t:"Combined score from staffing, capability, and compliance."},{h:"Next Action",t:"The single most impactful next step for this initiative."},{h:"Staff"},{h:"Capability"},{h:"Compliance"},{h:"Risk (DKK)",t:"Revenue at risk due to readiness gaps."},{h:"Gaps",t:"Unfilled positions across all locations."}].map(function(c){return <th key={c.h} style={{padding:"10px 12px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{c.h}{c.t&&<Tip text={c.t} sz={12}/>}</th>;})}
             </tr></thead>
@@ -312,6 +314,7 @@ export default function OverviewPage(p){
               );
             })}</tbody>
           </table>
+          </div>
         </div>
       )}
 

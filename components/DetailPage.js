@@ -16,9 +16,10 @@ import Overlay from "./Overlay";
 import dynamic from "next/dynamic";
 var FloorPlan3D = dynamic(function(){ return import("./FloorPlan3D"); }, { ssr: false });
 import RiskActionsTab from "./RiskActionsTab";
+import useIsMobile from "@/lib/useIsMobile";
 
 export default function DetailPage(p){
-  var ini=p.ini;var T=useT();
+  var ini=p.ini;var T=useT();var mob=useIsMobile();
   var tState=useState("Overview");var tab=tState[0],sTab=tState[1];
   var aState=useState([]);var assigned=aState[0],sAssigned=aState[1];
   var eaState=useState(null);var enabledActs=eaState[0],sEnabledActs=eaState[1];
@@ -48,11 +49,11 @@ export default function DetailPage(p){
   }
 
   return (
-    <div style={{padding:"24px 32px",maxWidth:1400,margin:"0 auto"}}>
+    <div style={{padding:mob?"16px 12px":"24px 32px",maxWidth:1400,margin:"0 auto"}}>
       <button onClick={p.onBack} style={{background:"none",border:"none",color:T.tm,fontSize:12,cursor:"pointer",fontFamily:"inherit",marginBottom:12,display:"flex",alignItems:"center",gap:4,padding:0}}><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>Initiatives</button>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <h1 style={{fontSize:22,fontWeight:700,margin:0}}>{ini.nm}</h1>
+      <div style={{display:"flex",flexWrap:"wrap",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4,gap:mob?8:0}}>
+        <div style={{display:"flex",alignItems:mob?"flex-start":"center",gap:mob?6:10,flexWrap:"wrap"}}>
+          <h1 style={{fontSize:mob?18:22,fontWeight:700,margin:0}}>{ini.nm}</h1>
           <Badge c={T.gn} b={T.gd}>{ini.tp}</Badge>
           {ini.st==="projection"&&<Badge c={T.pu} b={T.pd}>Projection</Badge>}
         </div>
@@ -64,7 +65,7 @@ export default function DetailPage(p){
       <p style={{color:T.tm,fontSize:12,marginBottom:20}}>{ini.ds}</p>
 
       {/* KPI row with three-part readiness */}
-      <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr 1fr 1fr",gap:12,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1.5fr 1fr 1fr 1fr",gap:12,marginBottom:20}}>
         <div style={{padding:16,borderRadius:14,border:"1px solid "+T.bd,background:T.cd,display:"flex",alignItems:"center",gap:14}}>
           <Gauge v={crd} sz={64} sw={5}/>
           <div style={{minWidth:0}}>
@@ -95,7 +96,7 @@ export default function DetailPage(p){
         })}
       </div>
 
-      <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16,padding:"6px 0",fontSize:11,color:T.td}}>
+      <div style={{display:"flex",alignItems:"center",gap:mob?8:16,marginBottom:16,padding:"6px 0",fontSize:11,color:T.td,flexWrap:"wrap"}}>
         <span><span style={{color:T.tm}}>Revenue</span> <span style={{fontWeight:600,color:T.tx}}>{fD(ini.rev)}</span><Tip text="Total revenue value tied to this initiative." icon="i" sz={12}/></span>
         <span style={{color:T.bd}}>{String.fromCharCode(124)}</span>
         <span><span style={{color:T.tm}}>Risk</span> <span style={{fontWeight:600,color:T.am}}>{fD(mr)}</span><Tip text={"Revenue at risk due to readiness gaps. Calculated as Revenue \u00D7 (1 \u2212 Readiness%)."} icon="i" sz={12}/></span>
@@ -117,7 +118,8 @@ export default function DetailPage(p){
       {tab==="Overview"&&(
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between"}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Role Requirements</h3><span style={{fontSize:12,color:T.td}}>{tql}/{trq} filled</span></div>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",minWidth:mob?600:"auto"}}>
             <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
               {[{h:"Role"},{h:"Criticality",t:"How critical this role is to operations. Essential roles weigh more in readiness."},{h:"Required"},{h:"Qualified"},{h:"Surplus / Gap",t:"Positive means overstaffed, negative means unfilled positions."},{h:"Readiness"}].map(function(c){return <th key={c.h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{c.h}{c.t&&<Tip text={c.t} sz={12}/>}</th>;})}
             </tr></thead>
@@ -136,6 +138,7 @@ export default function DetailPage(p){
               );
             })}</tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -159,7 +162,7 @@ export default function DetailPage(p){
         return (
           <div>
             {/* Location cards side-by-side */}
-            <div style={{display:"grid",gridTemplateColumns:ini.depts.length<=3?"repeat("+ini.depts.length+",1fr)":"repeat(2,1fr)",gap:14,marginBottom:16}}>
+            <div style={{display:"grid",gridTemplateColumns:mob?"1fr":ini.depts.length<=3?"repeat("+ini.depts.length+",1fr)":"repeat(2,1fr)",gap:14,marginBottom:16}}>
               {deptStats.map(function(ds){
                 var surpColor=ds.surplus>0?T.ac:ds.surplus===0?T.gn:T.rd;
                 var surpLabel=ds.surplus>0?"Over capacity":ds.surplus===0?"Fully staffed":"Understaffed";
@@ -228,11 +231,12 @@ export default function DetailPage(p){
 
             {/* Ranking table */}
             <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:4}}>
                 <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Location Ranking</h3>
                 <span style={{fontSize:11,color:T.td}}>Sorted by readiness (lowest first)</span>
               </div>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",minWidth:mob?600:"auto"}}>
                 <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
                   {["#","Location","Readiness","Staffing","Required","Filled","Surplus / Gap"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
                 </tr></thead>
@@ -251,6 +255,7 @@ export default function DetailPage(p){
                   );
                 })}</tbody>
               </table>
+              </div>
             </div>
           </div>
         );
@@ -353,7 +358,7 @@ export default function DetailPage(p){
                           </div>
                         </div>
                         {/* Two-column layout */}
-                        <div style={{display:"flex",gap:24}}>
+                        <div style={{display:"flex",gap:mob?16:24,flexDirection:mob?"column":"row"}}>
                           {/* Left: Roles (60%) */}
                           <div style={{flex:3,minWidth:0}}>
                             <div style={{fontSize:9,color:T.td,fontFamily:"monospace",letterSpacing:0.5,marginBottom:6}}>ROLES</div>
@@ -530,7 +535,7 @@ export default function DetailPage(p){
 
           {/* Skill & cert requirements per area — always show both, nudge when empty */}
           {areaGaps.length>0&&(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+            <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Requirements by Area</h3></div>
                 {areaGaps.some(function(ag){return ag.skills.length>0;})?areaGaps.map(function(ag,i){return ag.skills.length>0?(
@@ -576,7 +581,7 @@ export default function DetailPage(p){
 
           {/* Initiative-level skill/cert gaps (non-area) — always show both, nudge when empty */}
           {!hasAreas&&(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+            <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gaps {(ini.sg||[]).length>0?"("+(ini.sg||[]).length+")":""}</h3></div>
                 {(ini.sg||[]).length>0?(ini.sg||[]).map(function(g,i){return (
@@ -713,17 +718,17 @@ export default function DetailPage(p){
                 <button onClick={function(){sEnabledActs([]);}} style={{padding:"6px 14px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Clear All</button>
               </div>
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:24}}>
+            <div style={{display:"flex",alignItems:"center",gap:mob?12:24,flexWrap:mob?"wrap":"nowrap"}}>
               <div style={{textAlign:"center"}}>
-                <Gauge v={crd} sz={72} sw={5}/>
+                <Gauge v={crd} sz={mob?56:72} sw={5}/>
                 <div style={{fontSize:10,color:T.td,marginTop:4}}>Current</div>
               </div>
-              <div style={{fontSize:24,color:T.td}}>&#8594;</div>
+              <div style={{fontSize:mob?18:24,color:T.td}}>&#8594;</div>
               <div style={{textAlign:"center"}}>
-                <Gauge v={Math.round(simRd)} sz={72} sw={5} clr={simRd>crd?T.gn:rc(simRd,T)}/>
+                <Gauge v={Math.round(simRd)} sz={mob?56:72} sw={5} clr={simRd>crd?T.gn:rc(simRd,T)}/>
                 <div style={{fontSize:10,color:T.td,marginTop:4}}>Projected</div>
               </div>
-              <div style={{flex:1,padding:"0 20px"}}>
+              <div style={{flex:1,padding:mob?"0":"0 20px",minWidth:mob?"100%":0}}>
                 <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
                   <span style={{fontSize:12,color:T.tm}}>Total lift from selected actions</span>
                   <span style={{fontSize:16,fontWeight:700,color:simLift>0?T.gn:T.td}}>+{Math.round(simLift*10)/10}%</span>
@@ -818,19 +823,20 @@ export default function DetailPage(p){
                 return (
                   <div style={{padding:16,borderRadius:12,border:"1px solid "+T.am+"30",background:T.amd,marginBottom:16}}>
                     <h4 style={{fontSize:13,fontWeight:600,margin:"0 0 10px",color:T.am}}>Certification Readiness Forecast</h4>
-                    <div style={{display:"flex",gap:20}}>
-                      <div><div style={{fontSize:10,color:T.td,textTransform:"uppercase"}}>Today</div><div style={{fontSize:20,fontWeight:700,color:rc(pctNow,T)}}>{pctNow}%</div></div>
-                      <div style={{fontSize:18,color:T.td,alignSelf:"center"}}>--&gt;</div>
-                      <div><div style={{fontSize:10,color:T.td,textTransform:"uppercase"}}>In 30 days</div><div style={{fontSize:20,fontWeight:700,color:rc(pct30,T)}}>{pct30}%</div><div style={{fontSize:10,color:T.am}}>{te30>0?"-"+te30+" expiring":"OK"}</div></div>
-                      <div style={{fontSize:18,color:T.td,alignSelf:"center"}}>--&gt;</div>
-                      <div><div style={{fontSize:10,color:T.td,textTransform:"uppercase"}}>In 60 days</div><div style={{fontSize:20,fontWeight:700,color:rc(pct60,T)}}>{pct60}%</div><div style={{fontSize:10,color:T.am}}>{te60>0?"-"+te60+" more":"OK"}</div></div>
+                    <div style={{display:"flex",gap:mob?12:20,flexWrap:"wrap"}}>
+                      <div><div style={{fontSize:10,color:T.td,textTransform:"uppercase"}}>Today</div><div style={{fontSize:mob?16:20,fontWeight:700,color:rc(pctNow,T)}}>{pctNow}%</div></div>
+                      <div style={{fontSize:mob?14:18,color:T.td,alignSelf:"center"}}>--&gt;</div>
+                      <div><div style={{fontSize:10,color:T.td,textTransform:"uppercase"}}>In 30 days</div><div style={{fontSize:mob?16:20,fontWeight:700,color:rc(pct30,T)}}>{pct30}%</div><div style={{fontSize:10,color:T.am}}>{te30>0?"-"+te30+" expiring":"OK"}</div></div>
+                      <div style={{fontSize:mob?14:18,color:T.td,alignSelf:"center"}}>--&gt;</div>
+                      <div><div style={{fontSize:10,color:T.td,textTransform:"uppercase"}}>In 60 days</div><div style={{fontSize:mob?16:20,fontWeight:700,color:rc(pct60,T)}}>{pct60}%</div><div style={{fontSize:10,color:T.am}}>{te60>0?"-"+te60+" more":"OK"}</div></div>
                     </div>
                   </div>
                 );
               })()}
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Status Breakdown</h3></div>
-                <table style={{width:"100%",borderCollapse:"collapse"}}>
+                <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",minWidth:mob?500:"auto"}}>
                   <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
                     {["Certificate","Total","Valid","Expiring (30d)","Expiring (60d)","Expired"].map(function(h){return <th key={h} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{h}</th>;})}
                   </tr></thead>
@@ -847,6 +853,7 @@ export default function DetailPage(p){
                     );
                   })}</tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -868,7 +875,7 @@ export default function DetailPage(p){
             var initials=f.nm.split(" ").map(function(w){return w[0];}).join("");
             var destLabel=f.loc+(f.area?" \u203A "+f.area:"");
             return (
-              <div key={fi} style={{display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
+              <div key={fi} style={{display:"flex",alignItems:mob?"flex-start":"center",gap:mob?10:14,padding:mob?"12px 12px":"14px 16px",borderBottom:"1px solid "+T.bd+"08",flexWrap:mob?"wrap":"nowrap"}}>
                 <div style={{width:36,height:36,borderRadius:18,background:T.ac+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:T.ac,flexShrink:0}}>{initials}</div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:13,fontWeight:500}}>{f.nm}</div>
@@ -884,7 +891,7 @@ export default function DetailPage(p){
                   <MiniGauge v={f.mp} sz={36} sw={2}/>
                   <span style={{fontSize:10,color:rc(f.mp,T)}}>{f.mp}%</span>
                 </div>
-                <div style={{flexShrink:0,width:180}}>
+                <div style={{flexShrink:0,width:mob?"100%":180}}>
                   {(f.ms.length>0||f.mc.length>0)?(<div>
                     <div style={{fontSize:10,color:T.td,textTransform:"uppercase",marginBottom:3}}>Needs Training</div>
                     <div style={{display:"flex",gap:3,flexWrap:"wrap"}}>{f.ms.map(function(s,si){return <Badge key={si} c={T.am} b={T.amd}>{s}</Badge>;})}{f.mc.map(function(c,ci){return <Badge key={ci} c={T.rd} b={T.rdd}>{c}</Badge>;})}</div>
@@ -967,7 +974,8 @@ export default function DetailPage(p){
                 </select>
               )}
             </div>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:mob?500:"auto"}}>
               <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
                 {["Quarter","Overall","Staffing","Skill","Certification","Change"].map(function(col){return <th key={col} style={{padding:"8px 14px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{col}</th>;})}
               </tr></thead>
@@ -1008,6 +1016,7 @@ export default function DetailPage(p){
                 );
               })}</tbody>
             </table>
+            </div>
           </div>
           {/* Bar chart — all visible quarters in one row */}
           <div style={{borderRadius:14,border:"1px solid "+T.bd,padding:20}}>
