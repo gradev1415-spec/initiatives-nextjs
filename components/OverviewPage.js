@@ -142,8 +142,8 @@ export default function OverviewPage(p){
           <p style={{color:T.tm,fontSize:13}}>Workforce readiness across all locations</p>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <button onClick={p.onReport} style={{padding:"10px 24px",borderRadius:10,border:"1px solid "+T.bd,cursor:"pointer",background:T.cd,color:T.tx,fontSize:13,fontWeight:500,fontFamily:"inherit"}}>Export PDF</button>
-          <button onClick={p.onCreate} style={{padding:"10px 24px",borderRadius:10,border:"none",cursor:"pointer",background:T.ac,color:"#FFFFFF",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>+ Create Initiative</button>
+          <button onClick={p.onReport} style={{padding:"10px 24px",borderRadius:6,border:"1px solid "+T.bd,cursor:"pointer",background:T.cd,color:T.tx,fontSize:13,fontWeight:500,fontFamily:"inherit"}}>Export PDF</button>
+          <button onClick={p.onCreate} style={{padding:"10px 24px",borderRadius:6,border:"none",cursor:"pointer",background:T.ac,color:"#FFFFFF",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>+ Create Initiative</button>
         </div>
       </div>
 
@@ -226,7 +226,7 @@ export default function OverviewPage(p){
             else if(td2) meta.push("Target "+it.td);
             else if(sd2) meta.push("Start "+it.sd);
             return (
-              <div key={it.id} onClick={function(){p.onOpen(it);}} style={{borderRadius:14,border:"1px solid "+T.bd,background:T.cd,cursor:"pointer",position:"relative",overflow:"hidden",transition:"box-shadow 0.15s ease, border-color 0.15s ease"}}
+              <div key={it.id} onClick={function(){p.onOpen(it);}} style={{borderRadius:8,border:"1px solid "+T.bd,background:T.cd,cursor:"pointer",position:"relative",overflow:"hidden",transition:"box-shadow 0.15s ease, border-color 0.15s ease"}}
                 onMouseEnter={function(e){e.currentTarget.style.boxShadow="0 4px 16px "+T.sh;e.currentTarget.style.borderColor=rc(s.crd,T)+"40";}}
                 onMouseLeave={function(e){e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor=T.bd;}}>
                 {/* Status accent bar */}
@@ -293,7 +293,7 @@ export default function OverviewPage(p){
 
       {/* ═══ RANKING VIEW ═══ */}
       {vw==="ranking" && (
-        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
+        <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr style={{borderBottom:"1px solid "+T.bd}}>
               {[{h:"#"},{h:"Initiative"},{h:"Readiness",t:"Combined score from staffing, capability, and compliance."},{h:"Next Action",t:"The single most impactful next step for this initiative."},{h:"Staff"},{h:"Capability"},{h:"Compliance"},{h:"Risk (DKK)",t:"Revenue at risk due to readiness gaps."},{h:"Gaps",t:"Unfilled positions across all locations."}].map(function(c){return <th key={c.h} style={{padding:"10px 12px",fontSize:10,color:T.td,textTransform:"uppercase",textAlign:"left"}}>{c.h}{c.t&&<Tip text={c.t} sz={12}/>}</th>;})}

@@ -32,7 +32,7 @@ export default function App() {
 
   return (
     <ThemeCtx.Provider value={T}>
-      <div style={{ minHeight:"100vh", background:T.bg, color:T.tx, fontFamily:"system-ui,sans-serif" }}>
+      <div style={{ minHeight:"100vh", background:T.bg, color:T.tx, fontFamily:"'Noto Sans',sans-serif" }}>
         <div style={{ height:48, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 32px", borderBottom:"1px solid "+T.bd, background:T.sf }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             {mode==="dark"
@@ -43,7 +43,7 @@ export default function App() {
             <span style={{ fontSize:11, color:T.td, marginLeft:6 }}>/ Initiatives</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <button onClick={function() { sMode(function(m) { return m === "dark" ? "light" : "dark"; }); }} style={{ padding:"5px 12px", borderRadius:16, border:"1px solid "+T.bd, background:T.sa, cursor:"pointer", color:T.tm, fontSize:11, fontFamily:"inherit" }}>
+            <button onClick={function() { sMode(function(m) { return m === "dark" ? "light" : "dark"; }); }} style={{ padding:"5px 12px", borderRadius:50, border:"1px solid "+T.bd, background:T.sa, cursor:"pointer", color:T.tm, fontSize:11, fontFamily:"inherit" }}>
               {mode === "dark" ? "Light" : "Dark"}
             </button>
             <span style={{ fontSize:11, color:T.td }}>Jane Doe</span>
@@ -56,7 +56,7 @@ export default function App() {
         {view === "wizard" && <WizardPage onClose={function() { sView("overview"); }} onDone={handleCreate} deptTree={deptTree} setDT={sDT} circlesList={circles} setCL={sCL} jobProfilesList={jobProfiles} setJP={sJP} layoutTemplates={layoutTemplates} setLT={setLT} />}
         {view === "report" && <ReportPage ini={initiatives} onBack={function() { sView("overview"); }} />}
 
-        {toast && <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", padding:"10px 20px", borderRadius:10, background:T.gn, color:"#FFFFFF", fontSize:13, fontWeight:600, zIndex:100 }}>{toast}</div>}
+        {toast && <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", padding:"10px 20px", borderRadius:6, background:T.gn, color:"#FFFFFF", fontSize:13, fontWeight:600, zIndex:100 }}>{toast}</div>}
       </div>
     </ThemeCtx.Provider>
   );

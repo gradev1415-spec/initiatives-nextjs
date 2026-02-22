@@ -86,16 +86,16 @@ export default function ReportPage(p){
   /* ─── Shared print-safe colors ─── */
   var C = {
     bg: "#FFFFFF",
-    card: "#FAFBFC",
-    navy: "#1c253f",
-    border: "#E1E3E6",
-    muted: "#797C91",
-    sub: "#A0A3B0",
+    card: "#F8F8FB",
+    navy: "#03024E",
+    border: "#D8D8D8",
+    muted: "#686868",
+    sub: "#A0A0A0",
     blue: "#73A6FF",
-    green: "#34B77A",
-    red: "#E07A6E",
-    amber: "#D4A017",
-    lightBg: "#EEF4FC",
+    green: "#6BAC54",
+    red: "#DD614D",
+    amber: "#E4A24E",
+    lightBg: "#EAF1FF",
     purpleBg: "#F3EEFF",
     purple: "#7C3AED"
   };
@@ -118,15 +118,15 @@ export default function ReportPage(p){
       <style>{printCSS}</style>
 
       <div className="report-no-print" style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,maxWidth:1100,margin:"0 auto 20px"}}>
-        <button onClick={p.onBack} style={{padding:"8px 20px",borderRadius:10,border:"1px solid "+C.border,background:"white",color:C.muted,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>Back to Initiatives</button>
+        <button onClick={p.onBack} style={{padding:"8px 20px",borderRadius:6,border:"1px solid "+C.border,background:"white",color:C.muted,cursor:"pointer",fontSize:13,fontFamily:"inherit"}}>Back to Initiatives</button>
         <div style={{display:"flex",gap:8}}>
           <span style={{fontSize:12,color:C.sub,lineHeight:"36px"}}>Use Ctrl+P / Cmd+P to save as PDF</span>
-          <button onClick={function(){window.print();}} style={{padding:"8px 24px",borderRadius:10,border:"none",background:C.navy,color:"white",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>Print / Save PDF</button>
+          <button onClick={function(){window.print();}} style={{padding:"8px 24px",borderRadius:6,border:"none",background:C.navy,color:"white",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"inherit"}}>Print / Save PDF</button>
         </div>
       </div>
 
       {/* ═══ PAGE 1: COVER ═══ */}
-      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:C.navy,color:"white",borderRadius:14,padding:"56px 60px",minHeight:400,position:"relative"}}>
+      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:C.navy,color:"white",borderRadius:8,padding:"56px 60px",minHeight:400,position:"relative"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:56}}>
           <svg width="36" height="36" viewBox="0 0 1000 1000" style={{borderRadius:8,flexShrink:0}}><rect fill="rgba(255,255,255,0.1)" width="1000" height="1000" rx="140"/><path fill="#FAD461" d="M414.7,522.5l-190.3,26.8c-9.6,1.5-16.2,10.1-14.6,19.7l13.1,92.9c1,8.6,8.6,15.1,17.2,15.1c1,0,1.5,0,2.5,0l533.1-74.7c9.6-1.5,16.2-10.1,14.6-19.7l-13.1-92.9c-1-8.6-8.6-15.1-17.2-15.1c-1,0-1.5,0-2.5,0l-120.7,16.7c-39.4,28.8-87.8,45.9-140.3,45.9C467.7,537.1,440.4,532.1,414.7,522.5z"/><path fill="#fff" d="M608,662.3l-232.2,32.3C314.2,738,271.8,807.2,265.8,887c-1,10.1,7.1,19.2,17.7,19.2h95.9c8.6,0,16.2-6.6,17.2-15.1c7.6-63.1,61.6-112.6,126.7-112.6S642.4,827.9,649.9,891c1,8.6,8.6,15.1,17.2,15.1H763c10.1,0,18.2-9.1,17.7-19.2C773.6,782.5,702.9,695.1,608,662.3z"/><path fill="#66DDB5" d="M496.5,502.3c112.6,0,204.5-91.4,204.5-204S609.6,93.9,496.5,93.9C383.9,93.9,292,185.2,292,298.3C292.5,410.9,383.9,502.3,496.5,502.3z M496.5,218.5c43.9,0,79.8,35.8,79.8,79.8s-35.8,79.8-79.8,79.8c-43.9,0-79.8-35.8-79.8-79.8C417.2,254.4,452.5,218.5,496.5,218.5z"/></svg>
           <span style={{fontSize:18,fontWeight:600}}>Learningbank</span>
@@ -136,7 +136,7 @@ export default function ReportPage(p){
         <p style={{fontSize:16,color:C.sub,marginBottom:40}}>Executive Summary &nbsp;|&nbsp; POWER</p>
         <p style={{fontSize:12,color:C.sub}}>{dateStr}</p>
 
-        <div style={{position:"absolute",right:60,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:14,padding:"24px 28px",minWidth:200}}>
+        <div style={{position:"absolute",right:60,top:"50%",transform:"translateY(-50%)",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:8,padding:"24px 28px",minWidth:200}}>
           <h4 style={{fontSize:10,color:C.border,textTransform:"uppercase",letterSpacing:1,marginBottom:16,paddingBottom:8,borderBottom:"1px solid rgba(255,255,255,0.15)"}}>Portfolio Snapshot</h4>
           <div style={{marginBottom:14}}><div style={{fontSize:10,color:C.sub,marginBottom:2}}>Portfolio Readiness</div><div style={{fontSize:28,fontWeight:800,color:rdClr(ar2)}}>{ar2}%</div></div>
           <div style={{marginBottom:10}}><div style={{fontSize:10,color:C.sub,marginBottom:1}}>Initiatives</div><div style={{fontSize:18,fontWeight:700,color:"#FFFFFF"}}>{ini.length}<span style={{fontSize:11,fontWeight:400,color:C.sub,marginLeft:6}}>{activeC} active, {projC} projected</span></div></div>
@@ -149,7 +149,7 @@ export default function ReportPage(p){
       </div>
 
       {/* ═══ PAGE 2: PORTFOLIO OVERVIEW — matches OverviewPage layout ═══ */}
-      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:"white",borderRadius:14,padding:"48px 56px",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}>
+      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:"white",borderRadius:8,padding:"48px 56px",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}>
         {/* Header — like OverviewPage header */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:32}}>
           <div>
@@ -160,7 +160,7 @@ export default function ReportPage(p){
         </div>
 
         {/* ═══ KPI Bar — unified grid matching Portfolio Pulse ═══ */}
-        <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 1fr 1fr 1fr",gap:1,marginBottom:32,borderRadius:14,overflow:"hidden",border:"1px solid "+C.border,background:C.border}}>
+        <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 1fr 1fr 1fr",gap:1,marginBottom:32,borderRadius:8,overflow:"hidden",border:"1px solid "+C.border,background:C.border}}>
           {/* Hero: Portfolio Readiness */}
           <div style={{background:C.card,padding:"18px 22px",display:"flex",alignItems:"center",gap:14}}>
             <div>
@@ -216,7 +216,7 @@ export default function ReportPage(p){
         </div>
 
         {/* ═══ Initiative Breakdown — matches ranking view ═══ */}
-        <div style={{borderRadius:14,border:"1px solid "+C.border,overflow:"hidden"}}>
+        <div style={{borderRadius:8,border:"1px solid "+C.border,overflow:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr style={{borderBottom:"1px solid "+C.border}}>
               {["#","Initiative","Readiness","Next Action","Staff","Capability","Compliance","Risk (DKK)","Gaps"].map(function(h){return <th key={h} style={{padding:"10px 12px",fontSize:9,color:C.muted,textTransform:"uppercase",letterSpacing:0.5,fontWeight:700,textAlign:"left"}}>{h}</th>;})}
@@ -261,7 +261,7 @@ export default function ReportPage(p){
       </div>
 
       {/* ═══ PAGE 3: RISK & GAPS ═══ */}
-      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:"white",borderRadius:14,padding:"48px 56px",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}>
+      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:"white",borderRadius:8,padding:"48px 56px",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
           <div>
             <h2 style={{fontSize:20,fontWeight:700,color:C.navy}}>Risk Analysis &amp; Systemic Gaps</h2>
@@ -271,7 +271,7 @@ export default function ReportPage(p){
         </div>
 
         {/* Risk summary KPIs — unified bar like Portfolio Pulse */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,marginBottom:24,borderRadius:14,overflow:"hidden",border:"1px solid "+C.border,background:C.border}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,marginBottom:24,borderRadius:8,overflow:"hidden",border:"1px solid "+C.border,background:C.border}}>
           <div style={{background:C.lightBg,padding:"16px 20px"}}>
             <div style={{fontSize:9,color:C.navy,textTransform:"uppercase",letterSpacing:0.5,fontWeight:600}}>Total Opportunity Cost</div>
             <div style={{fontSize:22,fontWeight:700,color:C.blue,marginTop:4}}>{fD(opp2)}</div>
@@ -283,7 +283,7 @@ export default function ReportPage(p){
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
-          <div style={{border:"1px solid "+C.border,borderRadius:14,overflow:"hidden"}}>
+          <div style={{border:"1px solid "+C.border,borderRadius:8,overflow:"hidden"}}>
             <div style={{padding:"10px 14px",background:C.card,borderBottom:"1px solid "+C.border,fontWeight:700,fontSize:13,color:C.navy}}>Top Skill Gaps</div>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,color:C.navy}}>
               <thead><tr>
@@ -300,7 +300,7 @@ export default function ReportPage(p){
               </tbody>
             </table>
           </div>
-          <div style={{border:"1px solid "+C.border,borderRadius:14,overflow:"hidden"}}>
+          <div style={{border:"1px solid "+C.border,borderRadius:8,overflow:"hidden"}}>
             <div style={{padding:"10px 14px",background:C.card,borderBottom:"1px solid "+C.border,fontWeight:700,fontSize:13,color:C.navy}}>Top Certificate Gaps</div>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,color:C.navy}}>
               <thead><tr>
@@ -320,7 +320,7 @@ export default function ReportPage(p){
         </div>
 
         <h3 style={{fontSize:13,fontWeight:700,marginBottom:10,color:C.navy}}>Initiatives by Risk (highest first)</h3>
-        <div style={{borderRadius:14,border:"1px solid "+C.border,overflow:"hidden"}}>
+        <div style={{borderRadius:8,border:"1px solid "+C.border,overflow:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,color:C.navy}}>
             <thead><tr>
               <th style={{textAlign:"left",padding:"8px 12px",fontSize:9,textTransform:"uppercase",color:C.muted,fontWeight:700,letterSpacing:0.5,borderBottom:"2px solid "+C.border}}>Initiative</th>
@@ -343,7 +343,7 @@ export default function ReportPage(p){
       </div>
 
       {/* ═══ PAGE 4: RECOMMENDATIONS ═══ */}
-      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:"white",borderRadius:14,padding:"48px 56px",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}>
+      <div className="report-page" style={{maxWidth:1100,margin:"0 auto 24px",background:"white",borderRadius:8,padding:"48px 56px",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
           <div>
             <h2 style={{fontSize:20,fontWeight:700,color:C.navy}}>Strategic Recommendations</h2>
@@ -353,31 +353,31 @@ export default function ReportPage(p){
         </div>
 
         {totalGaps>0 && (
-          <div style={{padding:"14px 18px",borderRadius:14,background:C.lightBg,marginBottom:10,border:"1px solid "+C.border}}>
+          <div style={{padding:"14px 18px",borderRadius:8,background:C.lightBg,marginBottom:10,border:"1px solid "+C.border}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><span style={{fontWeight:700,fontSize:12,color:C.navy}}>HIRING <span style={{fontWeight:500,fontSize:9,padding:"2px 7px",borderRadius:6,background:C.navy+"12",marginLeft:4}}>High</span></span><span style={{fontSize:11,color:C.muted}}>{totalGaps} hires needed</span></div>
             <div style={{fontSize:12,color:C.navy}}>Recruit {totalGaps} positions across all initiatives to close staffing gaps</div>
           </div>
         )}
         {sgArr.length>0 && (
-          <div style={{padding:"14px 18px",borderRadius:14,background:C.lightBg,marginBottom:10,border:"1px solid "+C.border}}>
+          <div style={{padding:"14px 18px",borderRadius:8,background:C.lightBg,marginBottom:10,border:"1px solid "+C.border}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><span style={{fontWeight:700,fontSize:12,color:C.navy}}>TRAINING <span style={{fontWeight:500,fontSize:9,padding:"2px 7px",borderRadius:6,background:C.navy+"12",marginLeft:4}}>High</span></span><span style={{fontSize:11,color:C.muted}}>{sgArr.reduce(function(s,g){return s+g.n;},0)} people to train</span></div>
             <div style={{fontSize:12,color:C.navy}}>Address top skill gaps: {sgArr.slice(0,3).map(function(g){return g.s;}).join(", ")}</div>
           </div>
         )}
         {cgArr.length>0 && (
-          <div style={{padding:"14px 18px",borderRadius:14,background:"#FFF5F5",marginBottom:10,border:"1px solid #FECACA"}}>
+          <div style={{padding:"14px 18px",borderRadius:8,background:"#FFF5F5",marginBottom:10,border:"1px solid #FECACA"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><span style={{fontWeight:700,fontSize:12,color:C.red}}>CERTIFICATION <span style={{fontWeight:500,fontSize:9,padding:"2px 7px",borderRadius:6,background:C.red+"12",marginLeft:4}}>Critical</span></span><span style={{fontSize:11,color:C.muted}}>{cgArr.reduce(function(s,g){return s+g.n;},0)} certifications needed</span></div>
             <div style={{fontSize:12,color:C.navy}}>Close certificate gaps: {cgArr.slice(0,3).map(function(g){return g.c;}).join(", ")}</div>
           </div>
         )}
         {projC>0 && (
-          <div style={{padding:"14px 18px",borderRadius:14,background:C.purpleBg,marginBottom:10,border:"1px solid "+C.border}}>
+          <div style={{padding:"14px 18px",borderRadius:8,background:C.purpleBg,marginBottom:10,border:"1px solid "+C.border}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}><span style={{fontWeight:700,fontSize:12,color:C.navy}}>PROJECTIONS <span style={{fontWeight:500,fontSize:9,padding:"2px 7px",borderRadius:6,background:C.navy+"12",marginLeft:4}}>Medium</span></span><span style={{fontSize:11,color:C.muted}}>{projC} new openings</span></div>
             <div style={{fontSize:12,color:C.navy}}>{projC} new location(s) in pipeline. Begin recruitment and training 6+ months before target.</div>
           </div>
         )}
 
-        <div style={{padding:"18px 22px",borderRadius:14,background:C.navy,color:"white",marginTop:24}}>
+        <div style={{padding:"18px 22px",borderRadius:8,background:C.navy,color:"white",marginTop:24}}>
           <h4 style={{color:C.blue,fontSize:12,marginBottom:4}}>Key Takeaway</h4>
           <p style={{fontSize:12,color:C.border}}>{takeaway}</p>
         </div>
