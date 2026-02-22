@@ -148,30 +148,33 @@ export default function OverviewPage(p){
       </div>
 
       {/* ═══ COMMAND CENTER: Portfolio Pulse ═══ */}
-      <div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 1fr 1fr 1fr",gap:1,marginBottom:52,borderRadius:14,overflow:"hidden",border:"1px solid "+T.bd,background:T.bd}}>
+      <style>{`
+        .kpi-grid { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr 1fr; gap:12px; margin-bottom:52px; }
+        @media(max-width:900px){ .kpi-grid { grid-template-columns:repeat(2,1fr); } .kpi-grid>:first-child { grid-column:1/-1; } }
+        @media(max-width:480px){ .kpi-grid { grid-template-columns:1fr; } .kpi-grid>:first-child { grid-column:auto; } }
+      `}</style>
+      <div className="kpi-grid">
         {/* Hero readiness */}
-        <div style={{background:T.cd,padding:"20px 24px",display:"flex",alignItems:"center",gap:16}}>
-          <div>
-            <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Portfolio Readiness<Tip text="Weighted average readiness across all initiatives, combining staffing, capability, and compliance." icon="i" sz={12}/></div>
-            <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-              <span style={{fontSize:36,fontWeight:700,lineHeight:1,color:rc(ar,T)}}>{ar}</span>
-              <span style={{fontSize:16,fontWeight:500,color:rc(ar,T)}}>%</span>
-            </div>
-            <div style={{display:"flex",gap:6,marginTop:6}}>
-              <span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.rdd,color:T.rd,fontWeight:600}}>{critical} critical</span>
-              <span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.amd,color:T.am,fontWeight:600}}>{atRisk} at risk</span>
-              <span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.gd,color:T.gn,fontWeight:600}}>{onTrack} on track</span>
-            </div>
+        <div style={{background:T.cd,padding:"20px 24px",borderRadius:14,border:"1px solid "+T.bd}}>
+          <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Portfolio Readiness<Tip text="Weighted average readiness across all initiatives, combining staffing, capability, and compliance." icon="i" sz={12}/></div>
+          <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+            <span style={{fontSize:36,fontWeight:700,lineHeight:1,color:rc(ar,T)}}>{ar}</span>
+            <span style={{fontSize:16,fontWeight:500,color:rc(ar,T)}}>%</span>
+          </div>
+          <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
+            <span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.rdd,color:T.rd,fontWeight:600,whiteSpace:"nowrap"}}>{critical} critical</span>
+            <span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.amd,color:T.am,fontWeight:600,whiteSpace:"nowrap"}}>{atRisk} at risk</span>
+            <span style={{fontSize:10,padding:"2px 8px",borderRadius:4,background:T.gd,color:T.gn,fontWeight:600,whiteSpace:"nowrap"}}>{onTrack} on track</span>
           </div>
         </div>
         {/* Risk exposure */}
-        <div style={{background:T.cd,padding:"20px 24px"}}>
+        <div style={{background:T.cd,padding:"20px 24px",borderRadius:14,border:"1px solid "+T.bd}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Risk Exposure<Tip text="Total revenue at risk across all initiatives due to readiness gaps." icon="i" sz={12}/></div>
           <div style={{fontSize:24,fontWeight:700,color:T.tx,lineHeight:1}}>{fD(totalRisk)}</div>
           <div style={{fontSize:11,color:T.tm,marginTop:6}}>{ini.length} initiatives tracked</div>
         </div>
         {/* Workforce fill */}
-        <div style={{background:T.cd,padding:"20px 24px"}}>
+        <div style={{background:T.cd,padding:"20px 24px",borderRadius:14,border:"1px solid "+T.bd}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Workforce Fill<Tip text="Total qualified employees vs. required positions across all initiatives." icon="i" sz={12}/></div>
           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
             <span style={{fontSize:24,fontWeight:700,lineHeight:1,color:T.tx}}>{pR.filled}</span>
@@ -183,7 +186,7 @@ export default function OverviewPage(p){
           </div>
         </div>
         {/* Capability coverage */}
-        <div style={{background:T.cd,padding:"20px 24px"}}>
+        <div style={{background:T.cd,padding:"20px 24px",borderRadius:14,border:"1px solid "+T.bd}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Skills Covered<Tip text="Skill and certificate requirement slots filled by qualified staff." icon="i" sz={12}/></div>
           <div style={{display:"flex",alignItems:"baseline",gap:4}}>
             <span style={{fontSize:24,fontWeight:700,lineHeight:1,color:T.tx}}>{pC.total>0?pC.covered:"\u2014"}</span>
@@ -194,7 +197,7 @@ export default function OverviewPage(p){
           </div>
         </div>
         {/* Urgent priorities */}
-        <div style={{background:T.cd,padding:"20px 24px"}}>
+        <div style={{background:T.cd,padding:"20px 24px",borderRadius:14,border:"1px solid "+T.bd}}>
           <div style={{fontSize:9,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Urgent Priorities<Tip text="Essential or Critical skill and certificate gaps requiring immediate attention." icon="i" sz={12}/></div>
           <div style={{fontSize:24,fontWeight:700,lineHeight:1,color:T.tx}}>{pP}</div>
           <div style={{fontSize:11,color:T.tm,marginTop:6}}>{pP>0?"Essential gaps to close":"All critical gaps resolved"}</div>
