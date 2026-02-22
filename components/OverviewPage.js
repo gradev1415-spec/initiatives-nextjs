@@ -208,7 +208,7 @@ export default function OverviewPage(p){
       </div>
 
       {/* ═══ FILTERS + VIEW SWITCH ═══ */}
-      <div style={{display:"flex",flexDirection:mob?"column":"row",justifyContent:"space-between",alignItems:mob?"stretch":"center",marginBottom:20,gap:mob?8:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20,gap:mob?8:12}}>
         <TabBar tabs={["All","Operational","Administrative","Projections"]} a={fl} on={sF}/>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
           <TabBar tabs={["cards","ranking","heatmap","portfolio"]} a={vw} on={sVw}/>
