@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/theme";
-import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
+import { fmt, fD, rc, cc2, cw } from "@/lib/utils";
 import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff, areaRd, areaStaff, areaSkillRd, areaCertRd, hasSkillData, hasCertData } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
 import { LIBRARY, FITS, LAYOUT_TEMPLATES } from "@/lib/data";
@@ -20,7 +20,7 @@ import useIsMobile from "@/lib/useIsMobile";
 
 export default function DetailPage(p){
   var ini=p.ini;var T=useT();var mob=useIsMobile();
-  var tState=useState("Overview");var tab=tState[0],sTab=tState[1];
+  var tState=useState(p.initTab||"Overview");var tab=tState[0],sTab=tState[1];
   var aState=useState([]);var assigned=aState[0],sAssigned=aState[1];
   var eaState=useState(null);var enabledActs=eaState[0],sEnabledActs=eaState[1];
   var _sloc=useState(null);var selLoc=_sloc[0],sSelLoc=_sloc[1];
@@ -407,12 +407,9 @@ export default function DetailPage(p){
                                   <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                                     {ctReqs.map(function(ct){
                                       var ctName=typeof ct==="string"?ct:ct.c;
-                                      var ctCr=typeof ct==="string"?null:ct.cr;
-                                      var ctClr=ctCr==="Essential"?T.rd:ctCr==="Important"?T.am:T.am;
                                       return (
-                                        <span key={ctName} style={{fontSize:9,padding:"3px 8px",borderRadius:6,background:ctClr+"12",border:"1px solid "+ctClr+"20",color:ctClr,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
+                                        <span key={ctName} style={{fontSize:9,padding:"3px 8px",borderRadius:6,background:T.pu+"12",border:"1px solid "+T.pu+"20",color:T.pu,fontFamily:"monospace",display:"inline-flex",alignItems:"center",gap:3}}>
                                           {ctName}
-                                          {ctCr&&<span style={{fontSize:7,opacity:0.7}}>({ctCr})</span>}
                                         </span>
                                       );
                                     })}
@@ -565,10 +562,8 @@ export default function DetailPage(p){
                     <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                       {ag.certs.map(function(ct){
                         var ctName=typeof ct==="string"?ct:ct.c;
-                        var ctCr=typeof ct==="string"?null:ct.cr;
-                        var ctClr=ctCr==="Essential"?T.rd:T.am;
                         return (
-                          <span key={ctName} style={{fontSize:10,padding:"2px 7px",borderRadius:4,background:ctClr+"12",border:"1px solid "+ctClr+"20",color:ctClr}}>{ctName}{ctCr?" ("+ctCr+")":""}</span>
+                          <span key={ctName} style={{fontSize:10,padding:"2px 7px",borderRadius:4,background:T.pu+"12",border:"1px solid "+T.pu+"20",color:T.pu}}>{ctName}</span>
                         );
                       })}
                     </div>
@@ -584,19 +579,19 @@ export default function DetailPage(p){
             <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gaps {(ini.sg||[]).length>0?"("+(ini.sg||[]).length+")":""}</h3></div>
-                {(ini.sg||[]).length>0?(ini.sg||[]).map(function(g,i){return (
+                {(ini.sg||[]).length>0?(ini.sg||[]).slice().sort(function(a,b){return b.n-a.n;}).map(function(g,i){var sevClr=g.n>=10?T.rd:g.n>=5?T.am:T.ac;return (
                   <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:7,height:7,borderRadius:4,background:ic2(g.i,T)}}/><span style={{fontSize:12}}>{g.s}</span></div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontSize:11,color:T.tm}}>{g.n} ppl</span><Badge c={ic2(g.i,T)} b={ic2(g.i,T)+"15"}>{g.i}</Badge></div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:7,height:7,borderRadius:4,background:sevClr}}/><span style={{fontSize:12}}>{g.s}</span></div>
+                    <span style={{fontSize:11,fontWeight:600,color:sevClr}}>{g.n} ppl</span>
                   </div>
                 );}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No skill gaps tracked</div><div style={{fontSize:11,color:T.tm}}>Define skill requirements to measure capability readiness</div></div>}
               </div>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Gaps {(ini.cg||[]).length>0?"("+(ini.cg||[]).length+")":""}</h3></div>
-                {(ini.cg||[]).length>0?(ini.cg||[]).map(function(g,i){return (
+                {(ini.cg||[]).length>0?(ini.cg||[]).slice().sort(function(a,b){return b.n-a.n;}).map(function(g,i){var sevClr=g.n>=10?T.rd:g.n>=5?T.am:T.ac;return (
                   <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:7,height:7,borderRadius:4,background:ic2(g.i,T)}}/><span style={{fontSize:12}}>{g.c}</span></div>
-                    <div style={{display:"flex",gap:6,alignItems:"center"}}><span style={{fontSize:11,color:T.tm}}>{g.n} ppl</span><Badge c={ic2(g.i,T)} b={ic2(g.i,T)+"15"}>{g.i}</Badge></div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:7,height:7,borderRadius:4,background:sevClr}}/><span style={{fontSize:12}}>{g.c}</span></div>
+                    <span style={{fontSize:11,fontWeight:600,color:sevClr}}>{g.n} ppl</span>
                   </div>
                 );}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No certificate gaps tracked</div><div style={{fontSize:11,color:T.tm}}>Add certificate requirements to measure compliance readiness</div></div>}
               </div>
@@ -659,7 +654,6 @@ export default function DetailPage(p){
                       <div style={{fontSize:13,fontWeight:500}}>{g.gap}</div>
                       <div style={{fontSize:11,color:T.tm}}>No content teaches this skill at the required level</div>
                     </div>
-                    <Badge c={ic2(g.impact,T)} b={ic2(g.impact,T)+"15"}>{g.impact}</Badge>
                     <span style={{fontSize:12,color:T.am,fontWeight:600}}>{g.n} people affected</span>
                   </div>
                 );

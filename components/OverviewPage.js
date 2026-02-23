@@ -122,8 +122,8 @@ export default function OverviewPage(p){
   var critical=0,atRisk=0,onTrack=0;
   ini.forEach(function(it){var c=iRd(it);if(c<40)critical++;else if(c<85)atRisk++;else onTrack++;});
 
-  var fState=useState("All");var fl=fState[0],sF=fState[1];
-  var vState=useState("cards");var vw=vState[0],sVw=vState[1];
+  var fState=useState(p.initFilter||"All");var fl=fState[0],sF=fState[1];
+  var vState=useState(p.initSubview||"cards");var vw=vState[0],sVw=vState[1];
 
   var fd=ini;
   if(fl==="Operational") fd=ini.filter(function(x){return x.tp==="Operational";});

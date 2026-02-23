@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/theme";
-import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
+import { fmt, fD, rc, cc2, cw } from "@/lib/utils";
 import { allRoles, wRd, staffRd, skillRd, certRd, deptRd } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
 import { LIBRARY, FITS } from "@/lib/data";
@@ -56,29 +56,28 @@ export default function RiskActionsTab(p){
   var certPct60=totalCerts>0?Math.round((validNow-te30-te60)/totalCerts*100):100;
   var certPct90=totalCerts>0?Math.round((validNow-te30-te60-te90)/totalCerts*100):100;
 
-  /* Skill gaps sorted by impact */
+  /* Skill gaps sorted by people affected (largest first) */
   var sortedSkillGaps=(ini.sg||[]).slice().sort(function(a,b){
-    var order={Critical:4,High:3,Medium:2,Low:1};
-    return (order[b.i]||0)-(order[a.i]||0);
+    return b.n-a.n;
   });
 
   /* Content matches for quick wins */
   var quickWins=[];
   (ini.sg||[]).forEach(function(g){
     var found=LIBRARY.filter(function(l){return l.sk===g.s;});
-    if(found.length>0) quickWins.push({gap:g.s,impact:g.i,n:g.n,content:found[0],type:"skill"});
+    if(found.length>0) quickWins.push({gap:g.s,n:g.n,content:found[0],type:"skill"});
   });
   (ini.cg||[]).forEach(function(g){
     if(g.c==="All certs")return;
     var found=LIBRARY.filter(function(l){return l.ct&&(l.ct.indexOf(g.c.split(" ")[0])!==-1||l.ct===g.c);});
-    if(found.length>0) quickWins.push({gap:g.c,impact:g.i,n:g.n,content:found[0],type:"cert"});
+    if(found.length>0) quickWins.push({gap:g.c,n:g.n,content:found[0],type:"cert"});
   });
 
   /* Content gaps — no matching content exists */
   var contentGaps=[];
   (ini.sg||[]).forEach(function(g){
     var found=LIBRARY.filter(function(l){return l.sk===g.s;});
-    if(found.length===0) contentGaps.push({gap:g.s,impact:g.i,n:g.n});
+    if(found.length===0) contentGaps.push({gap:g.s,n:g.n});
   });
 
   /* Overall risk level */
@@ -86,7 +85,7 @@ export default function RiskActionsTab(p){
   riskScore+=essentialGaps.reduce(function(s,r){return s+r.gp*3;},0);
   riskScore+=importantGaps.reduce(function(s,r){return s+r.gp;},0);
   riskScore+=te30*2;
-  riskScore+=sortedSkillGaps.filter(function(g){return g.i==="Critical";}).length*3;
+  riskScore+=sortedSkillGaps.filter(function(g){return g.n>=10;}).length*3;
   var riskLevel=riskScore>=10?"Critical":riskScore>=5?"High":riskScore>=2?"Medium":"Low";
   var riskColor=riskLevel==="Critical"?T.rd:riskLevel==="High"?T.am:riskLevel==="Medium"?T.ac:T.gn;
 
@@ -224,16 +223,16 @@ export default function RiskActionsTab(p){
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gap Exposure ({sortedSkillGaps.length})</h4>
-            <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by impact</p>
+            <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by people affected</p>
           </div>
           {sortedSkillGaps.map(function(g,i){
             var hasContent=LIBRARY.some(function(l){return l.sk===g.s;});
+            var sevClr=g.n>=10?T.rd:g.n>=5?T.am:T.ac;
             return (
               <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                <div style={{width:22,height:22,borderRadius:6,background:ic2(g.i,T)+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:ic2(g.i,T),flexShrink:0}}>{i+1}</div>
+                <div style={{width:22,height:22,borderRadius:6,background:sevClr+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:sevClr,flexShrink:0}}>{i+1}</div>
                 <span style={{fontSize:12,fontWeight:500,flex:1}}>{g.s}</span>
-                <span style={{fontSize:11,color:T.tm}}>{g.n} people</span>
-                <Badge c={ic2(g.i,T)} b={ic2(g.i,T)+"15"}>{g.i}</Badge>
+                <span style={{fontSize:11,fontWeight:600,color:sevClr}}>{g.n} people</span>
                 <Badge c={hasContent?T.gn:T.am} b={hasContent?T.gd:T.amd}>{hasContent?"Content available":"No content"}</Badge>
               </div>
             );
@@ -255,6 +254,7 @@ export default function RiskActionsTab(p){
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>These gaps can be closed using content already in your library</p>
           </div>
           {quickWins.map(function(w,i){
+            var wClr=w.n>=10?T.rd:w.n>=5?T.am:T.ac;
             return (
               <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:"1px solid "+T.gn+"10"}}>
                 <div style={{width:28,height:28,borderRadius:7,background:w.type==="skill"?T.ac+"20":T.pu+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:w.type==="skill"?T.ac:T.pu,flexShrink:0}}>{w.type==="skill"?"S":"C"}</div>
@@ -262,7 +262,7 @@ export default function RiskActionsTab(p){
                   <div style={{fontSize:12,fontWeight:500}}>Assign "{w.content.nm}" to {w.n} people</div>
                   <div style={{fontSize:10,color:T.tm}}>Closes {w.type} gap: {w.gap} | Duration: {w.content.dur}</div>
                 </div>
-                <Badge c={ic2(w.impact,T)} b={ic2(w.impact,T)+"15"}>{w.impact}</Badge>
+                <span style={{fontSize:12,fontWeight:600,color:wClr}}>{w.n} ppl</span>
               </div>
             );
           })}
@@ -308,7 +308,7 @@ export default function RiskActionsTab(p){
                   <div style={{fontSize:12,fontWeight:500}}>{g.gap}</div>
                   <div style={{fontSize:10,color:T.tm}}>{g.n} people need this skill — no content available to assign</div>
                 </div>
-                <Badge c={ic2(g.impact,T)} b={ic2(g.impact,T)+"15"}>{g.impact}</Badge>
+                <span style={{fontSize:12,fontWeight:600,color:T.am}}>{g.n} ppl</span>
               </div>
             );
           })}

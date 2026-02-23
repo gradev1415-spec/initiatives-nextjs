@@ -14,9 +14,25 @@ function loadLT() {
   return LAYOUT_TEMPLATES;
 }
 
+/* Parse URL search params for Figma capture routing */
+function getCapParams() {
+  if (typeof window === "undefined") return {};
+  var sp = new URLSearchParams(window.location.search);
+  var o = {};
+  if (sp.get("view")) o.view = sp.get("view");
+  if (sp.get("ini")) o.ini = sp.get("ini");
+  if (sp.get("tab")) o.tab = sp.get("tab");
+  if (sp.get("subview")) o.subview = sp.get("subview");
+  if (sp.get("filter")) o.filter = sp.get("filter");
+  if (sp.get("step")) o.step = parseInt(sp.get("step"), 10);
+  if (sp.get("mobile")) o.mobile = sp.get("mobile") === "1";
+  return o;
+}
+
 export default function App() {
+  var cap = getCapParams();
   var _m = useState("light"); var mode = _m[0], sMode = _m[1];
-  var _v = useState("overview"); var view = _v[0], sView = _v[1];
+  var _v = useState(cap.view || "overview"); var view = _v[0], sView = _v[1];
   var _si = useState(null); var selIni = _si[0], sSel = _si[1];
   var _t = useState(null); var toast = _t[0], sToast = _t[1];
   var _ini = useState(mkIni); var initiatives = _ini[0], sIni = _ini[1];
@@ -26,15 +42,22 @@ export default function App() {
   var _lt = useState(loadLT); var layoutTemplates = _lt[0], setLT = _lt[1];
   /* Persist layout templates (with role presets) to localStorage */
   useEffect(function() { try { localStorage.setItem("lb_lt", JSON.stringify(layoutTemplates)); } catch (e) {} }, [layoutTemplates]);
+  /* Set selected initiative from URL param */
+  useEffect(function() {
+    if (cap.ini) {
+      var found = initiatives.find(function(x) { return x.id === cap.ini; });
+      if (found) { sSel(found); if (!cap.view) sView("detail"); }
+    }
+  }, []);
   var T = TH[mode];
-  var mob = useIsMobile();
+  var mob = useIsMobile(cap.mobile ? 99999 : undefined);
 
   function showToast(m) { sToast(m); setTimeout(function() { sToast(null); }, 3000); }
   function handleCreate(ni) { sIni(function(pr) { return [ni].concat(pr); }); sView("overview"); showToast(ni.nm + " created!"); }
 
   return (
     <ThemeCtx.Provider value={T}>
-      <div style={{ minHeight:"100vh", background:T.bg, color:T.tx, fontFamily:"system-ui,sans-serif" }}>
+      <div id="app-root" style={{ minHeight:"100vh", background:T.bg, color:T.tx, fontFamily:"system-ui,sans-serif", width:cap.mobile?390:"auto", maxWidth:cap.mobile?390:"none" }}>
         <div style={{ height:48, display:"flex", alignItems:"center", justifyContent:"space-between", padding:mob?"0 12px":"0 32px", borderBottom:"1px solid "+T.bd, background:T.sf }}>
           <div style={{ display:"flex", alignItems:"center", gap:mob?6:10 }}>
             {mode==="dark"
@@ -53,9 +76,9 @@ export default function App() {
           </div>
         </div>
 
-        {view === "overview" && <OverviewPage ini={initiatives} onOpen={function(i) { sSel(i); sView("detail"); }} onCreate={function() { sView("wizard"); }} onReport={function() { sView("report"); }} onToast={showToast} />}
-        {view === "detail" && selIni && <DetailPage ini={selIni} onBack={function() { sSel(null); sView("overview"); }} onDelete={function(id) { sIni(function(pr) { return pr.filter(function(x) { return x.id !== id; }); }); sSel(null); sView("overview"); showToast("Deleted"); }} />}
-        {view === "wizard" && <WizardPage onClose={function() { sView("overview"); }} onDone={handleCreate} deptTree={deptTree} setDT={sDT} circlesList={circles} setCL={sCL} jobProfilesList={jobProfiles} setJP={sJP} layoutTemplates={layoutTemplates} setLT={setLT} />}
+        {view === "overview" && <OverviewPage ini={initiatives} onOpen={function(i) { sSel(i); sView("detail"); }} onCreate={function() { sView("wizard"); }} onReport={function() { sView("report"); }} onToast={showToast} initSubview={cap.subview} initFilter={cap.filter} />}
+        {view === "detail" && selIni && <DetailPage ini={selIni} onBack={function() { sSel(null); sView("overview"); }} onDelete={function(id) { sIni(function(pr) { return pr.filter(function(x) { return x.id !== id; }); }); sSel(null); sView("overview"); showToast("Deleted"); }} initTab={cap.tab} />}
+        {view === "wizard" && <WizardPage onClose={function() { sView("overview"); }} onDone={handleCreate} deptTree={deptTree} setDT={sDT} circlesList={circles} setCL={sCL} jobProfilesList={jobProfiles} setJP={sJP} layoutTemplates={layoutTemplates} setLT={setLT} initStep={cap.step} />}
         {view === "report" && <ReportPage ini={initiatives} onBack={function() { sView("overview"); }} />}
 
         {toast && <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", padding:"10px 20px", borderRadius:10, background:T.gn, color:"#FFFFFF", fontSize:13, fontWeight:600, zIndex:100 }}>{toast}</div>}

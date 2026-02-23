@@ -11,7 +11,7 @@ import useIsMobile from "@/lib/useIsMobile";
 
 export default function WizardPage(p){
   var T=useT();var mob=useIsMobile();
-  var st=useState(1);var step=st[0],sStep=st[1];
+  var st=useState(p.initStep||1);var step=st[0],sStep=st[1];
   var _n=useState("");var name=_n[0],sName=_n[1];
   var _d=useState("");var desc=_d[0],sDesc=_d[1];
   var _tp=useState("Operational");var type=_tp[0],sType=_tp[1];
@@ -309,9 +309,9 @@ export default function WizardPage(p){
       }
     }
     return Object.keys(gaps).map(function(s){
-      var n=gaps[s];var impact=n>=20?"Critical":n>=10?"High":n>=3?"Medium":"Low";
-      return {s:s,n:n,i:impact};
-    }).sort(function(a,b){var o={Critical:4,High:3,Medium:2,Low:1};return (o[b.i]||0)-(o[a.i]||0);});
+      var n=gaps[s];
+      return {s:s,n:n};
+    }).sort(function(a,b){return b.n-a.n;});
   }
   function computeCertGaps(){
     var gaps={};var keys=Object.keys(jpTargets);
@@ -328,9 +328,9 @@ export default function WizardPage(p){
       }
     }
     return Object.keys(gaps).map(function(c){
-      var n=gaps[c];var impact=n>=20?"Critical":n>=10?"High":n>=3?"Medium":"Low";
-      return {c:c,n:n,i:impact};
-    });
+      var n=gaps[c];
+      return {c:c,n:n};
+    }).sort(function(a,b){return b.n-a.n;});
   }
   function computeSkillRd(){
     var totalN=0,totalM=0;var keys=Object.keys(jpTargets);
@@ -389,9 +389,9 @@ export default function WizardPage(p){
     if(roleSrc==="jobprofile"){
       var skg=computeSkillGaps();var ckg=computeCertGaps();var skRd=computeSkillRd();var ctRd=computeCertRd();
       arr.push({tp:"info",tx:"Job Profile targets defined. Measuring against "+targetSummary().skills+" skill"+(targetSummary().skills!==1?"s":"")+" and "+targetSummary().certs+" certificate"+(targetSummary().certs!==1?"s":"")+"."});
-      if(skg.length>0){var critSk=skg.filter(function(g){return g.i==="Critical"||g.i==="High";});arr.push({tp:critSk.length>0?"critical":"warn",tx:skg.length+" skill gap"+(skg.length!==1?"s":"")+". "+skg.reduce(function(s,g){return s+g.n;},0)+" people need upskilling."});}
+      if(skg.length>0){var largeSk=skg.filter(function(g){return g.n>=10;});arr.push({tp:largeSk.length>0?"critical":"warn",tx:skg.length+" skill gap"+(skg.length!==1?"s":"")+". "+skg.reduce(function(s,g){return s+g.n;},0)+" people need upskilling."});}
       else arr.push({tp:"success",tx:"No skill gaps detected. All positions meet target levels."});
-      if(ckg.length>0){arr.push({tp:ckg.some(function(g){return g.i==="Critical";})?
+      if(ckg.length>0){arr.push({tp:ckg.some(function(g){return g.n>=10;})?
         "critical":"warn",tx:ckg.length+" certificate gap"+(ckg.length!==1?"s":"")+". "+ckg.reduce(function(s,g){return s+g.n;},0)+" certifications needed."});}
       else arr.push({tp:"success",tx:"All certificate requirements met across targeted profiles."});
       arr.push({tp:skRd>=85?"success":skRd>=60?"warn":"critical",tx:"Skill readiness: "+skRd+"%. Certificate readiness: "+ctRd+"%."});
