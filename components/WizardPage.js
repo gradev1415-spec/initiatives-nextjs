@@ -49,6 +49,7 @@ export default function WizardPage(p){
   /* Roles step: dept expand/collapse — first dept open by default */
   var _rdx=useState({});var roleDeptExp=_rdx[0],sRoleDeptExp=_rdx[1];
   var _pss=useState(null);var presetSavedId=_pss[0],sPresetSavedId=_pss[1];
+  var _tps=useState(false);var tgtPresetSaved=_tps[0],sTgtPresetSaved=_tps[1];
 
   useState(function(){if(document.getElementById("wiz-css"))return;var s=document.createElement("style");s.id="wiz-css";s.textContent="@keyframes wizFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes wizPulse{0%,100%{opacity:1}50%{opacity:0.5}}@keyframes wizSlideIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}@keyframes wizGlow{0%,100%{box-shadow:0 0 0 0 rgba(28,37,63,0)}50%{box-shadow:0 0 12px 2px rgba(28,37,63,0.12)}}@keyframes wizPop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}";document.head.appendChild(s);});
 
@@ -288,6 +289,45 @@ export default function WizardPage(p){
   function addCtProf(pid,cn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];var ex=pr[pid].certs;if(ex.some(function(c){return c.c===cn;}))return pr;n[pid]={skills:pr[pid].skills,certs:ex.concat([{c:cn,on:true}])};return n;});}
   function remSkProf(pid,sn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[pid]={skills:pr[pid].skills.filter(function(s){return s.s!==sn;}),certs:pr[pid].certs};return n;});}
   function remCtProf(pid,cn){sJpTargets(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[pid]={skills:pr[pid].skills,certs:pr[pid].certs.filter(function(c){return c.c!==cn;})};return n;});}
+  /* Save current jpTargets as a target preset on the selected layout template */
+  function saveTargetPreset(){
+    if(!selLayout||selLayout==="new")return;
+    var preset={};
+    var keys=Object.keys(jpTargets);
+    for(var i=0;i<keys.length;i++){
+      var pid=keys[i];var tgt=jpTargets[pid];
+      if(tgt){preset[pid]={skills:tgt.skills.map(function(s){return {s:s.s,on:s.on,tgtLvl:s.tgtLvl};}),certs:tgt.certs.map(function(c){return {c:c.c,on:c.on};})};}
+    }
+    p.setLT(function(prev){return prev.map(function(t){
+      if(t.id===selLayout)return Object.assign({},t,{targetPreset:preset});
+      return t;
+    });});
+    sTgtPresetSaved(true);
+    setTimeout(function(){sTgtPresetSaved(false);},2000);
+  }
+  /* Apply saved target preset from the selected layout template */
+  function applyTargetPreset(){
+    if(!selLayout||selLayout==="new")return;
+    var tmpl=(p.layoutTemplates||[]).find(function(t){return t.id===selLayout;});
+    if(!tmpl||!tmpl.targetPreset)return;
+    var preset=tmpl.targetPreset;
+    sJpTargets(function(prev){
+      var n={};for(var k in prev)n[k]=prev[k];
+      var pkeys=Object.keys(preset);
+      for(var i=0;i<pkeys.length;i++){
+        var pid=pkeys[i];
+        if(n[pid]!==undefined){
+          n[pid]={skills:preset[pid].skills.map(function(s){return {s:s.s,on:s.on,tgtLvl:s.tgtLvl};}),certs:preset[pid].certs.map(function(c){return {c:c.c,on:c.on};})};
+        }
+      }
+      return n;
+    });
+  }
+  function hasTargetPreset(){
+    if(!selLayout||selLayout==="new")return false;
+    var tmpl=(p.layoutTemplates||[]).find(function(t){return t.id===selLayout;});
+    return tmpl&&tmpl.targetPreset&&Object.keys(tmpl.targetPreset).length>0;
+  }
 
   /* ===== Gap computation for job profiles ===== */
   function computeSkillGaps(){
@@ -465,8 +505,8 @@ export default function WizardPage(p){
         p.setLT(function(prev){return prev.concat([newTmpl]);});
       }
     }
-    /* Auto-save role preset for existing layout templates */
-    if(useLayout&&selLayout&&selLayout!=="new"){saveRolePreset();}
+    /* Auto-save role + target presets for existing layout templates */
+    if(useLayout&&selLayout&&selLayout!=="new"){saveRolePreset();if(roleSrc==="jobprofile"&&Object.keys(jpTargets).length>0)saveTargetPreset();}
     var sg,cg,skillRdVal,certRdVal;
     if(roleSrc==="jobprofile"){
       sg=computeSkillGaps();cg=computeCertGaps();skillRdVal=isProj?0:computeSkillRd();certRdVal=isProj?0:computeCertRd();
@@ -830,6 +870,13 @@ export default function WizardPage(p){
 
         {/* ===== NEW: Define Targets step (job profiles only) ===== */}
         {step===4&&roleSrc==="jobprofile"&&(<div style={{animation:"wizFadeUp 0.4s ease"}}>
+          {/* Preset buttons */}
+          {useLayout&&selLayout&&selLayout!=="new"&&(
+            <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,marginBottom:12}}>
+              {hasTargetPreset()&&<button onClick={applyTargetPreset} style={{padding:"5px 14px",borderRadius:8,border:"1px solid "+T.ac+"40",background:T.ad,color:T.ac,fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>Apply Preset</button>}
+              {Object.keys(jpTargets).length>0&&(function(){return <button onClick={saveTargetPreset} style={{padding:"5px 14px",borderRadius:8,border:"1px solid "+(tgtPresetSaved?T.gn+"40":T.bd),background:tgtPresetSaved?T.gd:T.sf,color:tgtPresetSaved?T.gn:T.tx,fontSize:11,cursor:"pointer",fontFamily:"inherit",fontWeight:500,transition:"all 0.2s"}}>{tgtPresetSaved?CHK+" Saved":"Save Preset"}</button>;})()}
+            </div>
+          )}
           {getUniqueProfiles().map(function(prof,pi){
             var tgt=jpTargets[prof.id];if(!tgt)return null;
             var data=JOB_PROFILE_SKILLS[prof.id];
