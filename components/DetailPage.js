@@ -524,11 +524,11 @@ export default function DetailPage(p){
             </div>
           )}
 
-          {/* Skill & cert requirements per area — always show both, nudge when empty */}
+          {/* Skill & cert gaps per area — always show both, nudge when empty */}
           {areaGaps.length>0&&(
             <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:14}}>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Requirements by Area</h3></div>
+                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gaps by Area</h3></div>
                 {areaGaps.some(function(ag){return ag.skills.length>0;})?areaGaps.map(function(ag,i){return ag.skills.length>0?(
                   <div key={i} style={{padding:"8px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
                     <div style={{fontSize:11,fontWeight:600,color:T.ac,marginBottom:4}}>{ag.anm}</div>
@@ -546,10 +546,10 @@ export default function DetailPage(p){
                     </div>
                     {ag.staffGap>0&&<div style={{fontSize:10,color:T.rd,marginTop:3}}>{ag.staffGap} staff gap{ag.staffGap>1?"s":""} {String.fromCharCode(8212)} skills not covered</div>}
                   </div>
-                ):null;}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No skill requirements defined</div><div style={{fontSize:11,color:T.tm}}>Add skill requirements to areas for capability tracking</div></div>}
+                ):null;}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No skill gaps found</div><div style={{fontSize:11,color:T.tm}}>All areas are fully covered on skills</div></div>}
               </div>
               <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Requirements by Area</h3></div>
+                <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Gaps by Area</h3></div>
                 {areaGaps.some(function(ag){return ag.certs.length>0;})?areaGaps.map(function(ag,i){return ag.certs.length>0?(
                   <div key={i} style={{padding:"8px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
                     <div style={{fontSize:11,fontWeight:600,color:T.ac,marginBottom:4}}>{ag.anm}</div>
@@ -563,7 +563,7 @@ export default function DetailPage(p){
                     </div>
                     {ag.staffGap>0&&<div style={{fontSize:10,color:T.rd,marginTop:3}}>{ag.staffGap} staff gap{ag.staffGap>1?"s":""} {String.fromCharCode(8212)} certs not covered</div>}
                   </div>
-                ):null;}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No certificate requirements defined</div><div style={{fontSize:11,color:T.tm}}>Add certificate requirements to areas for compliance tracking</div></div>}
+                ):null;}):<div style={{padding:20,textAlign:"center"}}><div style={{fontSize:12,color:T.td,marginBottom:4}}>No certificate gaps found</div><div style={{fontSize:11,color:T.tm}}>All areas are fully covered on certificates</div></div>}
               </div>
             </div>
           )}
