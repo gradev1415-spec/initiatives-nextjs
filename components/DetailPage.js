@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useT } from "@/lib/theme";
 import { fmt, fD, rc, cc2, cw } from "@/lib/utils";
 import { allRoles, wRd, staffRd, skillRd, certRd, iRd, deptRd, deptStaff, areaRd, areaStaff, areaSkillRd, areaCertRd, hasSkillData, hasCertData } from "@/lib/readiness";
-import { genActions, matchContent } from "@/lib/actions";
+import { genActions } from "@/lib/actions";
 import { LIBRARY, FITS, LAYOUT_TEMPLATES } from "@/lib/data";
 import Badge from "./Badge";
 import ProgressBar from "./ProgressBar";
@@ -22,7 +22,6 @@ export default function DetailPage(p){
   var ini=p.ini;var T=useT();var mob=useIsMobile();
   var tState=useState(p.initTab||"Overview");var tab=tState[0],sTab=tState[1];
   var aState=useState([]);var assigned=aState[0],sAssigned=aState[1];
-  var eaState=useState(null);var enabledActs=eaState[0],sEnabledActs=eaState[1];
   var _sloc=useState(null);var selLoc=_sloc[0],sSelLoc=_sloc[1];
   var _sarea=useState(null);var selArea=_sarea[0],sSelArea=_sarea[1];
   var _hov=useState(null);var hovArea=_hov[0],sHovArea=_hov[1];
@@ -38,12 +37,6 @@ export default function DetailPage(p){
   function statusClr(rd){return rd>=85?T.gn:rd>=60?T.am:T.rd;}
   var bn=ar.filter(function(r){return r.gp>0;});
   var acts=genActions(ini);
-  var content=matchContent(ini);
-  var recSG=(ini.sg||[]).slice().sort(function(a,b){return b.n-a.n;});
-  var projRd=Math.min(100,crd+acts.reduce(function(s,a){return s+a.lift;},0));
-  var simActs=enabledActs||acts.map(function(_,i){return i;});
-  var simLift=simActs.reduce(function(s,idx){return s+(acts[idx]?acts[idx].lift:0);},0);
-  var simRd=crd+simLift;
 
   function doAssign(contentId){
     sAssigned(function(pr){return pr.concat([contentId]);});
@@ -111,7 +104,7 @@ export default function DetailPage(p){
         var t=["Overview"];
         if(multiLoc)t.push("Locations");
         if(hasAreas)t.push("Store Layout");
-        t.push("Gaps & Bottlenecks","Recommendations","Simulation","Risk & Actions","Cert Pipeline","Mobility","Progress");
+        t.push("Gaps & Bottlenecks","Risk & Actions","Cert Pipeline","Mobility","Progress");
         return t;
       })()} a={tab} on={sTab}/></div>
 
@@ -621,179 +614,6 @@ export default function DetailPage(p){
         );
       })()}
 
-      {/* â"€â"€â"€ RECOMMENDATIONS TAB â"€â"€â"€ */}
-      {tab==="Recommendations"&&(
-        <div>
-          {/* Skill Gap Exposure */}
-          {recSG.length>0&&(
-            <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:14}}>
-              <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
-                <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gap Exposure ({recSG.length})</h4>
-                <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by people affected</p>
-              </div>
-              {recSG.map(function(g,i){
-                var hasContent=LIBRARY.some(function(l){return l.sk===g.s;});
-                var sevClr=g.n>=10?T.rd:g.n>=5?T.am:T.ac;
-                return (
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                    <div style={{width:22,height:22,borderRadius:6,background:sevClr+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:sevClr,flexShrink:0}}>{i+1}</div>
-                    <span style={{fontSize:12,fontWeight:500,flex:1}}>{g.s}</span>
-                    <span style={{fontSize:11,fontWeight:600,color:sevClr}}>{g.n} people</span>
-                    <Badge c={hasContent?T.gn:T.am} b={hasContent?T.gd:T.amd}>{hasContent?"Content available":"No content"}</Badge>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {/* Content gaps */}
-          {content.filter(function(c){return c.type==="content_gap";}).length>0&&(
-            <div style={{borderRadius:14,border:"1px solid "+T.am+"40",background:T.amd,overflow:"hidden"}}>
-              <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.am+"30"}}><h3 style={{fontSize:13,fontWeight:600,margin:0,color:T.am}}>Content Gaps Detected</h3><p style={{fontSize:11,color:T.tm,margin:"2px 0 0"}}>No matching content exists - creation recommended</p></div>
-              {content.filter(function(c){return c.type==="content_gap";}).map(function(g,i){
-                return (
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"12px 16px",borderBottom:"1px solid "+T.am+"15"}}>
-                    <div style={{width:32,height:32,borderRadius:8,background:T.am+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:T.am}}>!</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:500}}>{g.gap}</div>
-                      <div style={{fontSize:11,color:T.tm}}>No content teaches this skill at the required level</div>
-                    </div>
-                    <span style={{fontSize:12,color:T.am,fontWeight:600}}>{g.n} people affected</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-            {/* --- SIMULATION TAB --- */}
-      {tab==="Simulation"&&(function(){
-        var hasAreas3=ini.depts.some(function(d){return d.areas;});
-        var areaDepts3=ini.depts.filter(function(d){return d.areas;});
-        var simDept=(function(){
-          if(!hasAreas3)return null;
-          var locId=selLoc||areaDepts3[0]&&areaDepts3[0].did;
-          return areaDepts3.find(function(d){return d.did===locId;})||areaDepts3[0]||null;
-        })();
-        /* Filter actions to selected location context */
-        var simFilteredActs=acts;
-        if(simDept){
-          var deptRoleNames={};
-          (simDept.areas||[]).forEach(function(a){(a.roles||[]).forEach(function(r){deptRoleNames[r.cn]=true;});});
-          simFilteredActs=acts.filter(function(a){
-            if(a.desc.indexOf(simDept.dn)!==-1)return true;
-            for(var k in deptRoleNames){if(a.desc.indexOf(k)!==-1)return true;}
-            return !hasAreas3;
-          });
-          if(simFilteredActs.length===0)simFilteredActs=acts;
-        }
-        return (
-        <div>
-          {/* Location selector for area-based */}
-          {hasAreas3&&areaDepts3.length>0&&(
-            <div style={{marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
-              <div style={{position:"relative",flex:1,maxWidth:320}}>
-                <select value={simDept?simDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
-                  {areaDepts3.map(function(d){
-                    var dr=deptRd(d);
-                    return <option key={d.did} value={d.did}>{d.dn+" "+String.fromCharCode(183)+" "+dr+"% ready"}</option>;
-                  })}
-                </select>
-                <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:T.tm}}>{String.fromCharCode(9660)}</div>
-              </div>
-            </div>
-          )}
-          {/* Simulation header with gauge */}
-          <div style={{padding:20,borderRadius:14,border:"1px solid "+T.ac+"30",background:T.ad,marginBottom:16}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-              <div>
-                <div style={{fontSize:11,color:T.td,textTransform:"uppercase",letterSpacing:0.5,marginBottom:4}}>Readiness Simulator{simDept?" \u2014 "+simDept.dn:""}</div>
-                <div style={{fontSize:13,color:T.tm}}>Toggle actions on/off to see projected readiness change in real-time</div>
-              </div>
-              <div style={{display:"flex",gap:8}}>
-                <button onClick={function(){sEnabledActs(acts.map(function(_,i){return i;}));}} style={{padding:"6px 14px",borderRadius:8,border:"1px solid "+T.ac+"40",background:"transparent",color:T.ac,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Select All</button>
-                <button onClick={function(){sEnabledActs([]);}} style={{padding:"6px 14px",borderRadius:8,border:"1px solid "+T.bd,background:"transparent",color:T.tm,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>Clear All</button>
-              </div>
-            </div>
-            <div style={{display:"flex",alignItems:"center",gap:mob?12:24,flexWrap:mob?"wrap":"nowrap"}}>
-              <div style={{textAlign:"center"}}>
-                <Gauge v={crd} sz={mob?56:72} sw={5}/>
-                <div style={{fontSize:10,color:T.td,marginTop:4}}>Current</div>
-              </div>
-              <div style={{fontSize:mob?18:24,color:T.td}}>&#8594;</div>
-              <div style={{textAlign:"center"}}>
-                <Gauge v={Math.round(simRd)} sz={mob?56:72} sw={5} clr={simRd>crd?T.gn:rc(simRd,T)}/>
-                <div style={{fontSize:10,color:T.td,marginTop:4}}>Projected</div>
-              </div>
-              <div style={{flex:1,padding:mob?"0":"0 20px",minWidth:mob?"100%":0}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
-                  <span style={{fontSize:12,color:T.tm}}>Total lift from selected actions</span>
-                  <span style={{fontSize:16,fontWeight:700,color:simLift>0?T.gn:T.td}}>+{Math.round(simLift*10)/10}%</span>
-                </div>
-                <div style={{height:8,borderRadius:4,background:T.sa,overflow:"hidden",position:"relative"}}>
-                  <div style={{width:crd+"%",height:"100%",background:rc(crd,T),borderRadius:4,position:"absolute",left:0}}/>
-                  {simLift>0&&<div style={{width:Math.min(simLift,100-crd)+"%",height:"100%",background:T.gn,borderRadius:"0 4px 4px 0",position:"absolute",left:crd+"%",opacity:0.6}}/>}
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
-                  <span style={{fontSize:10,color:T.td}}>{crd}%</span>
-                  <span style={{fontSize:10,color:simRd>=85?T.gn:simRd>=60?T.am:T.rd}}>{Math.round(simRd)}%</span>
-                </div>
-              </div>
-              <div style={{flexShrink:0,textAlign:"center",padding:"8px 16px",borderRadius:10,background:simActs.length===acts.length?T.gd:T.sa,border:"1px solid "+(simActs.length===acts.length?T.gn+"40":T.bd)}}>
-                <div style={{fontSize:20,fontWeight:700,color:simActs.length===acts.length?T.gn:T.tx}}>{simActs.length}/{acts.length}</div>
-                <div style={{fontSize:10,color:T.td}}>Actions</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Action items with toggles */}
-          <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
-            <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <h3 style={{fontSize:13,fontWeight:600,margin:0}}>Action Plan ({simFilteredActs.length} recommendations{simDept?" for "+simDept.dn:""})</h3>
-              <span style={{fontSize:11,color:T.tm}}>{simActs.filter(function(idx){return simFilteredActs.indexOf(acts[idx])!==-1;}).length} selected</span>
-            </div>
-            {simFilteredActs.map(function(a){
-              var i=acts.indexOf(a);
-              var isOn=simActs.indexOf(i)!==-1;
-              var icon=a.tp==="hire"?"H":a.tp==="train"?"T":a.tp==="recert"?"R":"C";
-              var color=a.tp==="hire"?T.pu:a.tp==="train"?T.ac:a.tp==="recert"?T.gn:T.am;
-              var label=a.tp==="hire"?"Hire":a.tp==="train"?"Train":a.tp==="recert"?"Recertify":"Create";
-              return (
-                <div key={i} onClick={function(){sEnabledActs(function(prev){var cur=prev||acts.map(function(_,j){return j;});var has=cur.indexOf(i)!==-1;return has?cur.filter(function(x){return x!==i;}):cur.concat([i]);});}} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"1px solid "+T.bd+"08",cursor:"pointer",opacity:isOn?1:0.45,background:isOn?"transparent":T.sa+"40",transition:"opacity 0.2s, background 0.2s"}}>
-                  {/* Toggle switch */}
-                  <div style={{width:36,height:20,borderRadius:10,background:isOn?T.gn:T.bd,position:"relative",flexShrink:0,transition:"background 0.2s"}}>
-                    <div style={{width:16,height:16,borderRadius:8,background:"white",position:"absolute",top:2,left:isOn?18:2,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.2)"}}/>
-                  </div>
-                  <div style={{width:28,height:28,borderRadius:7,background:color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:color,flexShrink:0}}>{icon}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:500}}>{a.desc}</div>
-                    {a.content&&<div style={{fontSize:11,color:T.tm,marginTop:1}}>Content: {a.content}</div>}
-                  </div>
-                  <Badge c={color} b={color+"15"}>{label}</Badge>
-                  <div style={{textAlign:"right",flexShrink:0,minWidth:70}}>
-                    <div style={{fontSize:14,fontWeight:700,color:isOn?T.gn:T.td}}>{isOn?"+":""}{a.lift}%</div>
-                    <div style={{fontSize:10,color:T.td}}>readiness lift</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Simulation summary */}
-          {simActs.length>0&&simActs.length<acts.length&&(
-            <div style={{marginTop:16,padding:16,borderRadius:12,border:"1px solid "+T.gn+"30",background:T.gd}}>
-              <div style={{fontSize:13,fontWeight:600,color:T.gn,marginBottom:6}}>Simulation Summary</div>
-              <div style={{fontSize:12,color:T.tm}}>
-                With {simActs.length} of {acts.length} actions selected, readiness improves from <span style={{fontWeight:700,color:rc(crd,T)}}>{crd}%</span> to <span style={{fontWeight:700,color:rc(Math.round(simRd),T)}}>{Math.round(simRd)}%</span>.
-                {simRd>=85?" This achieves healthy readiness status.":simRd>=60?" Additional actions recommended to reach target readiness.":" Significant gap remains - consider enabling more actions."}
-              </div>
-            </div>
-          )}
-        </div>
-        );
-      })()}
-
-      {/* --- COST IMPACT TAB --- */}
       {tab==="Risk & Actions"&&<RiskActionsTab ini={ini} acts={acts} crd={crd} selLoc={selLoc} sSelLoc={sSelLoc}/>}
 
       {/* â"€â"€â"€ CERT PIPELINE TAB â"€â"€â"€ */}

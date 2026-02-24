@@ -218,6 +218,28 @@ export default function RiskActionsTab(p){
         </div>
       </div>
 
+      {/* Skill Gap Exposure */}
+      {sortedSkillGaps.length>0&&(
+        <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
+          <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
+            <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gap Exposure ({sortedSkillGaps.length})</h4>
+            <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by people affected</p>
+          </div>
+          {sortedSkillGaps.map(function(g,i){
+            var hasContent=LIBRARY.some(function(l){return l.sk===g.s;});
+            var sevClr=g.n>=10?T.rd:g.n>=5?T.am:T.ac;
+            return (
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
+                <div style={{width:22,height:22,borderRadius:6,background:sevClr+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:sevClr,flexShrink:0}}>{i+1}</div>
+                <span style={{fontSize:12,fontWeight:500,flex:1}}>{g.s}</span>
+                <span style={{fontSize:11,fontWeight:600,color:sevClr}}>{g.n} people</span>
+                <Badge c={hasContent?T.gn:T.am} b={hasContent?T.gd:T.amd}>{hasContent?"Content available":"No content"}</Badge>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* === PROACTIVE ACTIONS SECTION === */}
       <div style={{marginBottom:8,marginTop:28,paddingTop:20,borderTop:"1px solid "+T.bd}}>
         <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 4px"}}>Proactive Actions</h3>
