@@ -39,6 +39,7 @@ export default function DetailPage(p){
   var bn=ar.filter(function(r){return r.gp>0;});
   var acts=genActions(ini);
   var content=matchContent(ini);
+  var recSG=(ini.sg||[]).slice().sort(function(a,b){return b.n-a.n;});
   var projRd=Math.min(100,crd+acts.reduce(function(s,a){return s+a.lift;},0));
   var simActs=enabledActs||acts.map(function(_,i){return i;});
   var simLift=simActs.reduce(function(s,idx){return s+(acts[idx]?acts[idx].lift:0);},0);
@@ -114,7 +115,7 @@ export default function DetailPage(p){
         return t;
       })()} a={tab} on={sTab}/></div>
 
-      {/* â”€â”€â”€ OVERVIEW TAB â”€â”€â”€ */}
+      {/* â"€â"€â"€ OVERVIEW TAB â"€â"€â"€ */}
       {tab==="Overview"&&(
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd,display:"flex",justifyContent:"space-between"}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Role Requirements</h3><span style={{fontSize:12,color:T.td}}>{tql}/{trq} filled</span></div>
@@ -620,28 +621,30 @@ export default function DetailPage(p){
         );
       })()}
 
-      {/* â”€â”€â”€ RECOMMENDATIONS TAB â”€â”€â”€ */}
+      {/* â"€â"€â"€ RECOMMENDATIONS TAB â"€â"€â"€ */}
       {tab==="Recommendations"&&(
         <div>
-          {/* Content matches */}
-          <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:14}}>
-            <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Learning Content Matches</h3><p style={{fontSize:11,color:T.tm,margin:"2px 0 0"}}>Existing content that can close gaps</p></div>
-            {content.filter(function(c){return c.type!=="content_gap";}).map(function(m,i){
-              var isAssigned=assigned.indexOf(m.content.id)!==-1;
-              return (
-                <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                  <div style={{width:32,height:32,borderRadius:8,background:m.content.tp==="Event"?T.amd:T.ad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,flexShrink:0}}>{m.content.tp==="Event"?"E":"P"}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,fontWeight:500,marginBottom:3}}>{m.content.nm}</div>
-                    <div style={{display:"flex",gap:4}}><Badge c={T.ac} b={T.ad}>{m.gap}</Badge>{m.content.ct&&<Badge c={T.gn} b={T.gd}>{m.content.ct}</Badge>}<Badge c={T.td}>{m.type==="skill"?"Skill":"Cert"} gap</Badge></div>
+          {/* Skill Gap Exposure */}
+          {recSG.length>0&&(
+            <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:14}}>
+              <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
+                <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gap Exposure ({recSG.length})</h4>
+                <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by people affected</p>
+              </div>
+              {recSG.map(function(g,i){
+                var hasContent=LIBRARY.some(function(l){return l.sk===g.s;});
+                var sevClr=g.n>=10?T.rd:g.n>=5?T.am:T.ac;
+                return (
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
+                    <div style={{width:22,height:22,borderRadius:6,background:sevClr+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:sevClr,flexShrink:0}}>{i+1}</div>
+                    <span style={{fontSize:12,fontWeight:500,flex:1}}>{g.s}</span>
+                    <span style={{fontSize:11,fontWeight:600,color:sevClr}}>{g.n} people</span>
+                    <Badge c={hasContent?T.gn:T.am} b={hasContent?T.gd:T.amd}>{hasContent?"Content available":"No content"}</Badge>
                   </div>
-                  <span style={{fontSize:11,color:T.td}}>{m.content.dur}</span>
-                  <span style={{fontSize:13,fontWeight:600,color:T.ac}}>{m.n} ppl</span>
-                  <button onClick={function(e){e.stopPropagation();doAssign(m.content.id);}} disabled={isAssigned} style={{padding:"6px 14px",borderRadius:8,border:"none",background:isAssigned?T.gd:T.ac,color:isAssigned?T.gn:"#FFFFFF",fontSize:11,fontWeight:600,cursor:isAssigned?"default":"pointer",fontFamily:"inherit"}}>{isAssigned?"Assigned":"Assign All"}</button>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
           {/* Content gaps */}
           {content.filter(function(c){return c.type==="content_gap";}).length>0&&(
             <div style={{borderRadius:14,border:"1px solid "+T.am+"40",background:T.amd,overflow:"hidden"}}>
@@ -793,7 +796,7 @@ export default function DetailPage(p){
       {/* --- COST IMPACT TAB --- */}
       {tab==="Risk & Actions"&&<RiskActionsTab ini={ini} acts={acts} crd={crd} selLoc={selLoc} sSelLoc={sSelLoc}/>}
 
-      {/* â”€â”€â”€ CERT PIPELINE TAB â”€â”€â”€ */}
+      {/* â"€â"€â"€ CERT PIPELINE TAB â"€â"€â"€ */}
       {tab==="Cert Pipeline"&&(
         <div>
           {(!ini.certs||ini.certs.length===0)&&(
@@ -854,7 +857,7 @@ export default function DetailPage(p){
         </div>
       )}
 
-      {/* â”€â”€â”€ MOBILITY TAB â”€â”€â”€ */}
+      {/* â"€â"€â"€ MOBILITY TAB â"€â"€â"€ */}
       {tab==="Mobility"&&(function(){
         var iniFits=FITS.filter(function(f){return f.from===ini.id;});
         var hasAreas=ini.depts.some(function(d){return d.areas;});
