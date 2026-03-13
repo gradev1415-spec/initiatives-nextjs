@@ -1,7 +1,9 @@
 "use client";
-import { useState, useContext } from "react";
+import { useState, useContext, useMemo } from "react";
 import { ThemeCtx } from "@/lib/theme";
-import { ALL_SKILLS, ALL_CERTS } from "@/lib/data";
+import { ALL_SKILLS, ALL_CERTS, matchCapSet, totalWorkforce } from "@/lib/data";
+import MiniGauge from "@/components/MiniGauge";
+import { rc } from "@/lib/utils";
 
 function useT(){return useContext(ThemeCtx);}
 
@@ -24,6 +26,15 @@ export default function CapabilitySetsPage(p){
   var _dr=useState(null); var draft=_dr[0],sDraft=_dr[1];
   var _cf=useState(false); var showConfirm=_cf[0],sShowConfirm=_cf[1];
   var _adding=useState(false); var adding=_adding[0],sAdding=_adding[1];
+  var _sel=useState(null); var selSet=_sel[0],sSelSet=_sel[1];
+
+  /* Compute match data for all sets */
+  var matchData=useMemo(function(){
+    var m={};
+    p.capSets.forEach(function(cs){m[cs.id]=matchCapSet(cs,p.jpSkills);});
+    return m;
+  },[p.capSets,p.jpSkills]);
+  var totalWf=useMemo(function(){return totalWorkforce(p.jpSkills);},[p.jpSkills]);
 
   function startEdit(cs){
     sEditId(cs.id);
@@ -83,6 +94,127 @@ export default function CapabilitySetsPage(p){
   var lvlColors=["",T.rd||"#E53E3E",T.am||"#DD6B20",T.yl||"#D69E2E",T.ac||"#3182CE",T.gn||"#38A169"];
   var lvlLabels=["","Basic","Intermediate","Proficient","Advanced","Expert"];
 
+  /* ——— Detail sub-view ——— */
+  if(selSet){
+    var cs=p.capSets.find(function(c){return c.id===selSet;});
+    if(!cs){sSelSet(null);return null;}
+    var md=matchData[cs.id]||{readiness:0,pool:0,fullMatch:0,total:totalWf,skills:[],certs:[]};
+    var usage=getUsage(cs.id,p.initiatives);
+
+    return (
+      <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
+          <button onClick={function(){sSelSet(null);}} style={{padding:"6px 14px",borderRadius:8,border:"1px solid "+T.bd,background:T.sf,cursor:"pointer",color:T.tx,fontSize:12,fontFamily:"inherit"}}>Back</button>
+          <div style={{flex:1}}>
+            <h1 style={{fontSize:22,fontWeight:700,margin:0}}>{cs.nm}</h1>
+            {cs.desc&&<p style={{fontSize:12,color:T.td,margin:"2px 0 0"}}>{cs.desc}</p>}
+          </div>
+          <MiniGauge v={md.readiness} sz={56} sw={4} />
+        </div>
+
+        {/* KPI row */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:24}}>
+          <div style={{padding:"16px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf}}>
+            <div style={{fontSize:10,color:T.td,fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>Set Readiness</div>
+            <div style={{fontSize:28,fontWeight:700,color:rc(md.readiness,T)}}>{md.readiness}%</div>
+            <div style={{fontSize:10,color:T.td,marginTop:2}}>Weighted skill + cert coverage</div>
+          </div>
+          <div style={{padding:"16px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf}}>
+            <div style={{fontSize:10,color:T.td,fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>Workforce Pool</div>
+            <div style={{fontSize:28,fontWeight:700,color:T.ac}}>{md.pool}</div>
+            <div style={{fontSize:10,color:T.td,marginTop:2}}>of {totalWf} have at least 1 match</div>
+          </div>
+          <div style={{padding:"16px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf}}>
+            <div style={{fontSize:10,color:T.td,fontWeight:600,marginBottom:4,textTransform:"uppercase",letterSpacing:"0.5px"}}>Full Matches</div>
+            <div style={{fontSize:28,fontWeight:700,color:T.gn}}>{md.fullMatch}</div>
+            <div style={{fontSize:10,color:T.td,marginTop:2}}>of {totalWf} meet all requirements</div>
+          </div>
+        </div>
+
+        {/* Skills table */}
+        <div style={{marginBottom:24}}>
+          <h3 style={{fontSize:13,fontWeight:600,margin:"0 0 10px",color:T.tx}}>Skills Breakdown</h3>
+          <div style={{border:"1px solid "+T.bd,borderRadius:10,overflow:"hidden",background:T.sf}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 1fr",gap:0,padding:"8px 14px",background:T.bg,borderBottom:"1px solid "+T.bd,fontSize:10,fontWeight:600,color:T.td,textTransform:"uppercase",letterSpacing:"0.5px"}}>
+              <span>Skill</span><span>Required</span><span style={{textAlign:"right"}}>Qualified</span><span style={{textAlign:"right"}}>Total</span><span style={{paddingLeft:12}}>Coverage</span>
+            </div>
+            {md.skills.map(function(sk){
+              var barClr=rc(sk.pct,T);
+              return (
+                <div key={sk.s} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 80px 1fr",gap:0,padding:"10px 14px",borderBottom:"1px solid "+T.bd+"60",fontSize:12,alignItems:"center"}}>
+                  <span style={{fontWeight:500,color:T.tx}}>{sk.s}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:4}}>
+                    <span style={{display:"inline-flex",gap:2}}>
+                      {[1,2,3,4,5].map(function(l){return <span key={l} style={{width:6,height:6,borderRadius:3,background:l<=sk.reqLvl?lvlColors[sk.reqLvl]:T.bd}} />;})}
+                    </span>
+                    <span style={{fontSize:10,color:T.td}}>L{sk.reqLvl}</span>
+                  </span>
+                  <span style={{textAlign:"right",fontWeight:600,color:T.tx}}>{sk.have}</span>
+                  <span style={{textAlign:"right",color:T.td}}>{sk.total}</span>
+                  <span style={{paddingLeft:12,display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{flex:1,height:6,borderRadius:3,background:T.bd+"40",overflow:"hidden"}}>
+                      <span style={{display:"block",height:"100%",width:Math.min(sk.pct,100)+"%",borderRadius:3,background:barClr,transition:"width 0.3s"}} />
+                    </span>
+                    <span style={{fontSize:11,fontWeight:600,color:barClr,minWidth:32,textAlign:"right"}}>{sk.pct}%</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Certs table */}
+        {md.certs.length>0&&(
+          <div style={{marginBottom:24}}>
+            <h3 style={{fontSize:13,fontWeight:600,margin:"0 0 10px",color:T.tx}}>Certifications Breakdown</h3>
+            <div style={{border:"1px solid "+T.bd,borderRadius:10,overflow:"hidden",background:T.sf}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 1fr",gap:0,padding:"8px 14px",background:T.bg,borderBottom:"1px solid "+T.bd,fontSize:10,fontWeight:600,color:T.td,textTransform:"uppercase",letterSpacing:"0.5px"}}>
+                <span>Certification</span><span style={{textAlign:"right"}}>Holders</span><span style={{textAlign:"right"}}>Total</span><span style={{paddingLeft:12}}>Coverage</span>
+              </div>
+              {md.certs.map(function(ct){
+                var barClr=rc(ct.pct,T);
+                return (
+                  <div key={ct.c} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 1fr",gap:0,padding:"10px 14px",borderBottom:"1px solid "+T.bd+"60",fontSize:12,alignItems:"center"}}>
+                    <span style={{fontWeight:500,color:T.tx}}>{ct.c}</span>
+                    <span style={{textAlign:"right",fontWeight:600,color:T.tx}}>{ct.have}</span>
+                    <span style={{textAlign:"right",color:T.td}}>{ct.total}</span>
+                    <span style={{paddingLeft:12,display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{flex:1,height:6,borderRadius:3,background:T.bd+"40",overflow:"hidden"}}>
+                        <span style={{display:"block",height:"100%",width:Math.min(ct.pct,100)+"%",borderRadius:3,background:barClr,transition:"width 0.3s"}} />
+                      </span>
+                      <span style={{fontSize:11,fontWeight:600,color:barClr,minWidth:32,textAlign:"right"}}>{ct.pct}%</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Used in Initiatives */}
+        <div>
+          <h3 style={{fontSize:13,fontWeight:600,margin:"0 0 10px",color:T.tx}}>Used in Initiatives</h3>
+          {usage.length>0?(
+            <div style={{border:"1px solid "+T.bd,borderRadius:10,overflow:"hidden",background:T.sf}}>
+              {usage.map(function(u,i){
+                return (
+                  <div key={i} style={{padding:"10px 14px",borderBottom:i<usage.length-1?"1px solid "+T.bd+"60":"none",fontSize:12,display:"flex",justifyContent:"space-between"}}>
+                    <span style={{fontWeight:500,color:T.tx}}>{u.iniNm}</span>
+                    <span style={{color:T.td}}>{u.areaNm} ({u.deptNm})</span>
+                  </div>
+                );
+              })}
+            </div>
+          ):(
+            <div style={{padding:"16px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,fontSize:12,color:T.td,textAlign:"center"}}>Not used in any initiative</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ——— List view ——— */
   return (
     <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
       {/* Header */}
@@ -98,12 +230,13 @@ export default function CapabilitySetsPage(p){
       {p.capSets.map(function(cs){
         var usage=getUsage(cs.id,p.initiatives);
         var isEditing=editId===cs.id&&!draft._isNew;
+        var md=matchData[cs.id]||{readiness:0,pool:0,fullMatch:0};
 
         return (
-          <div key={cs.id} style={{border:"1px solid "+T.bd,borderRadius:12,padding:16,marginBottom:12,background:T.sf}}>
+          <div key={cs.id} style={{border:"1px solid "+T.bd,borderRadius:12,padding:16,marginBottom:12,background:T.sf,cursor:isEditing?undefined:"pointer"}} onClick={isEditing?undefined:function(){sSelSet(cs.id);}}>
             {isEditing ? (
               /* ——— Edit mode ——— */
-              <div>
+              <div onClick={function(e){e.stopPropagation();}}>
                 <div style={{display:"flex",gap:12,marginBottom:12}}>
                   <div style={{flex:1}}>
                     <label style={{fontSize:10,color:T.td,fontWeight:600,display:"block",marginBottom:3}}>NAME</label>
@@ -193,13 +326,23 @@ export default function CapabilitySetsPage(p){
               /* ——— View mode ——— */
               <div>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div>
+                  <div style={{flex:1}}>
                     <div style={{fontSize:14,fontWeight:600,marginBottom:2}}>{cs.nm}</div>
                     {cs.desc&&<div style={{fontSize:11,color:T.td,marginBottom:8}}>{cs.desc}</div>}
                   </div>
-                  <div style={{display:"flex",gap:6}}>
-                    <button onClick={function(){startEdit(cs);}} style={{padding:"4px 12px",borderRadius:6,border:"1px solid "+T.bd,background:T.bg,cursor:"pointer",color:T.tx,fontSize:11,fontFamily:"inherit"}}>Edit</button>
-                    <button onClick={function(){deleteSet(cs.id);}} style={{padding:"4px 12px",borderRadius:6,border:"1px solid "+(usage.length>0?T.bd:T.rd+"40"),background:T.bg,cursor:usage.length>0?"not-allowed":"pointer",color:usage.length>0?T.td:T.rd,fontSize:11,fontFamily:"inherit",opacity:usage.length>0?0.5:1}} title={usage.length>0?"In use by "+usage.length+" area(s)":""}>Delete</button>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{textAlign:"center"}}>
+                      <MiniGauge v={md.readiness} sz={32} sw={3} />
+                      <div style={{fontSize:9,color:T.td,marginTop:2}}>{md.readiness}%</div>
+                    </div>
+                    <div style={{textAlign:"right",fontSize:10,color:T.td,lineHeight:"16px",minWidth:60}}>
+                      <div>Pool: <span style={{fontWeight:600,color:T.tx}}>{md.pool}</span></div>
+                      <div>Full: <span style={{fontWeight:600,color:T.gn}}>{md.fullMatch}</span></div>
+                    </div>
+                    <div style={{display:"flex",gap:6}} onClick={function(e){e.stopPropagation();}}>
+                      <button onClick={function(){startEdit(cs);}} style={{padding:"4px 12px",borderRadius:6,border:"1px solid "+T.bd,background:T.bg,cursor:"pointer",color:T.tx,fontSize:11,fontFamily:"inherit"}}>Edit</button>
+                      <button onClick={function(){deleteSet(cs.id);}} style={{padding:"4px 12px",borderRadius:6,border:"1px solid "+(usage.length>0?T.bd:T.rd+"40"),background:T.bg,cursor:usage.length>0?"not-allowed":"pointer",color:usage.length>0?T.td:T.rd,fontSize:11,fontFamily:"inherit",opacity:usage.length>0?0.5:1}} title={usage.length>0?"In use by "+usage.length+" area(s)":""}>Delete</button>
+                    </div>
                   </div>
                 </div>
 
