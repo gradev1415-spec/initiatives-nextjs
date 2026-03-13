@@ -25,7 +25,8 @@ export default function CapabilitySetsPage(p){
   var _ed=useState(null); var editId=_ed[0],sEditId=_ed[1];
   var _dr=useState(null); var draft=_dr[0],sDraft=_dr[1];
   var _cf=useState(false); var showConfirm=_cf[0],sShowConfirm=_cf[1];
-  var _adding=useState(false); var adding=_adding[0],sAdding=_adding[1];
+  var _wiz=useState(null); var wizStep=_wiz[0],sWizStep=_wiz[1];
+  var _wl=useState(""); var wizLane=_wl[0],sWizLane=_wl[1];
   var _sel=useState(null); var selSet=_sel[0],sSelSet=_sel[1];
   var _collapsed=useState({}); var collapsed=_collapsed[0],sCollapsed=_collapsed[1];
   var _addLane=useState(false); var addingLane=_addLane[0],sAddingLane=_addLane[1];
@@ -85,20 +86,30 @@ export default function CapabilitySetsPage(p){
     if(p.onToast)p.onToast("Capability set updated");
   }
 
-  function startAdd(laneId){
-    sAdding(true);
+  function startAdd(laneId){sWizLane(laneId||"");sWizStep(1);}
+  function pickPreset(preset){
     var newId="cs_"+Date.now();
     sEditId(newId);
-    sDraft({nm:"",desc:"",lane:laneId||"",reqHc:0,skillReqs:[],certReqs:[],_isNew:true,_newId:newId});
+    sDraft({nm:preset.nm,desc:preset.desc,lane:wizLane||preset.lane||"",reqHc:preset.reqHc||0,
+      skillReqs:preset.skillReqs.map(function(s){return {s:s.s,lvl:s.lvl};}),
+      certReqs:preset.certReqs.map(function(c){return {c:c.c};}),
+      _isNew:true,_newId:newId});
+    sWizStep(2);
+  }
+  function startBlank(){
+    var newId="cs_"+Date.now();
+    sEditId(newId);
+    sDraft({nm:"",desc:"",lane:wizLane||"",reqHc:0,skillReqs:[],certReqs:[],_isNew:true,_newId:newId});
+    sWizStep(2);
   }
   function saveNew(){
     if(!draft.nm.trim())return;
     var newCs={id:draft._newId,nm:draft.nm.trim(),desc:draft.desc,lane:draft.lane,reqHc:draft.reqHc,skillReqs:draft.skillReqs,certReqs:draft.certReqs};
     p.setCS(function(prev){return prev.concat([newCs]);});
-    sEditId(null);sDraft(null);sAdding(false);
+    sEditId(null);sDraft(null);sWizStep(null);sWizLane("");
     if(p.onToast)p.onToast("Capability set created");
   }
-  function cancelAdd(){sEditId(null);sDraft(null);sAdding(false);}
+  function cancelWiz(){sEditId(null);sDraft(null);sWizStep(null);sWizLane("");}
 
   function deleteSet(csId){
     var usage=getUsage(csId,p.initiatives);
@@ -293,7 +304,7 @@ export default function CapabilitySetsPage(p){
         )}
 
         {/* Action buttons */}
-        {!showConfirm&&(
+        {!showConfirm&&!(draft&&draft._isNew)&&(
           <div style={{display:"flex",gap:6}}>
             <button onClick={trySave} style={{padding:"5px 14px",borderRadius:5,border:"none",background:T.ac,color:"#FFF",fontSize:10,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>Save</button>
             <button onClick={cancelEdit} style={{padding:"5px 14px",borderRadius:5,border:"1px solid "+T.bd,background:T.bg,color:T.tx,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
@@ -303,14 +314,76 @@ export default function CapabilitySetsPage(p){
     );
   }
 
-  /* ——— Shared: render the add-new form ——— */
-  function renderAddForm(){
+  /* ——— Wizard: step 1 preset picker + step 2 review ——— */
+  function renderWizard(){
+    var presetLane=wizLane?(p.lanes||[]).find(function(ln){return ln.id===wizLane;}):null;
+
+    if(wizStep===1){
+      return (
+        <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
+            <button onClick={cancelWiz} style={{padding:"6px 14px",borderRadius:8,border:"1px solid "+T.bd,background:T.sf,cursor:"pointer",color:T.tx,fontSize:12,fontFamily:"inherit"}}>Back</button>
+            <div style={{flex:1}}>
+              <h1 style={{fontSize:22,fontWeight:700,margin:0}}>Create Capability Set</h1>
+              <p style={{fontSize:12,color:T.td,margin:"2px 0 0"}}>
+                Pick a template to get started{presetLane?" in "+presetLane.nm:""}, or start from scratch.
+              </p>
+            </div>
+          </div>
+
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+            {/* Start Blank card */}
+            <div onClick={startBlank} style={{border:"2px dashed "+T.bd,borderRadius:10,padding:"20px 16px",cursor:"pointer",background:T.sf,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",gap:6,transition:"border-color 0.15s"}}
+              onMouseEnter={function(e){e.currentTarget.style.borderColor=T.ac;}}
+              onMouseLeave={function(e){e.currentTarget.style.borderColor=T.bd;}}>
+              <span style={{fontSize:28,lineHeight:1}}>✨</span>
+              <span style={{fontSize:13,fontWeight:600,color:T.tx}}>Start Blank</span>
+              <span style={{fontSize:10,color:T.td}}>Create from scratch</span>
+            </div>
+
+            {/* Preset cards */}
+            {(p.presets||[]).map(function(pr){
+              var prLane=(p.lanes||[]).find(function(ln){return ln.id===pr.lane;});
+              return (
+                <div key={pr.id} onClick={function(){pickPreset(pr);}} style={{border:"1px solid "+T.bd,borderRadius:10,padding:"20px 16px",cursor:"pointer",background:T.sf,display:"flex",flexDirection:"column",gap:4,transition:"border-color 0.15s,box-shadow 0.15s"}}
+                  onMouseEnter={function(e){e.currentTarget.style.borderColor=T.ac;e.currentTarget.style.boxShadow="0 2px 8px "+T.ac+"18";}}
+                  onMouseLeave={function(e){e.currentTarget.style.borderColor=T.bd;e.currentTarget.style.boxShadow="none";}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <span style={{fontSize:24,lineHeight:1}}>{pr.icon}</span>
+                    <span style={{fontSize:13,fontWeight:600,color:T.tx}}>{pr.nm}</span>
+                  </div>
+                  <div style={{fontSize:10,color:T.td,lineHeight:"14px"}}>{pr.desc}</div>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>
+                    <span style={{padding:"2px 6px",borderRadius:4,background:T.ac+"12",fontSize:9,color:T.ac}}>{pr.skillReqs.length} skill{pr.skillReqs.length!==1?"s":""}</span>
+                    {pr.certReqs.length>0&&<span style={{padding:"2px 6px",borderRadius:4,background:"#9F7AEA12",fontSize:9,color:"#9F7AEA"}}>{pr.certReqs.length} cert{pr.certReqs.length!==1?"s":""}</span>}
+                    {prLane&&<span style={{padding:"2px 6px",borderRadius:4,background:prLane.clr+"14",fontSize:9,color:prLane.clr}}>{prLane.nm}</span>}
+                    {pr.reqHc>0&&<span style={{padding:"2px 6px",borderRadius:4,background:T.gn+"12",fontSize:9,color:T.gn}}>{pr.reqHc} people</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    /* Step 2: review & adjust */
     return (
-      <div style={{border:"1px solid "+T.ac+"40",borderRadius:10,padding:14,marginBottom:8,background:T.sf}}>
-        {renderEditMode(null,[])}
-        <div style={{display:"flex",gap:6,marginTop:10}}>
-          <button onClick={saveNew} disabled={!draft.nm.trim()} style={{padding:"5px 14px",borderRadius:5,border:"none",background:draft.nm.trim()?T.ac:"#AAA",color:"#FFF",fontSize:10,fontWeight:600,cursor:draft.nm.trim()?"pointer":"not-allowed",fontFamily:"inherit"}}>Create</button>
-          <button onClick={cancelAdd} style={{padding:"5px 14px",borderRadius:5,border:"1px solid "+T.bd,background:T.bg,color:T.tx,fontSize:10,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+      <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:24}}>
+          <button onClick={function(){sWizStep(1);sEditId(null);sDraft(null);}} style={{padding:"6px 14px",borderRadius:8,border:"1px solid "+T.bd,background:T.sf,cursor:"pointer",color:T.tx,fontSize:12,fontFamily:"inherit"}}>Back</button>
+          <div style={{flex:1}}>
+            <h1 style={{fontSize:22,fontWeight:700,margin:0}}>Review & Adjust</h1>
+            <p style={{fontSize:12,color:T.td,margin:"2px 0 0"}}>Customize the capability set before creating.</p>
+          </div>
+        </div>
+
+        <div style={{border:"1px solid "+T.ac+"40",borderRadius:10,padding:14,background:T.sf}}>
+          {renderEditMode(null,[])}
+          <div style={{display:"flex",gap:6,marginTop:10}}>
+            <button onClick={saveNew} disabled={!(draft&&draft.nm&&draft.nm.trim())} style={{padding:"7px 18px",borderRadius:6,border:"none",background:(draft&&draft.nm&&draft.nm.trim())?T.ac:"#AAA",color:"#FFF",fontSize:12,fontWeight:600,cursor:(draft&&draft.nm&&draft.nm.trim())?"pointer":"not-allowed",fontFamily:"inherit"}}>Create Set</button>
+            <button onClick={cancelWiz} style={{padding:"7px 18px",borderRadius:6,border:"1px solid "+T.bd,background:T.bg,color:T.tx,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>Cancel</button>
+          </div>
         </div>
       </div>
     );
@@ -450,6 +523,9 @@ export default function CapabilitySetsPage(p){
     );
   }
 
+  /* ——— Wizard view ——— */
+  if(wizStep){return renderWizard();}
+
   /* ——— List view with swimlanes ——— */
   return (
     <div style={{maxWidth:900,margin:"0 auto",padding:"32px 24px"}}>
@@ -462,9 +538,6 @@ export default function CapabilitySetsPage(p){
         </div>
         <button onClick={function(){startAdd("");}} style={{padding:"7px 16px",borderRadius:8,border:"none",background:T.ac,color:"#FFF",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"inherit"}}>+ New Set</button>
       </div>
-
-      {/* Add new form at top when adding without a specific lane */}
-      {adding&&editId&&draft&&draft._isNew&&!draft.lane&&renderAddForm()}
 
       {/* Swimlanes */}
       {laneGroups.map(function(group){
@@ -491,9 +564,6 @@ export default function CapabilitySetsPage(p){
             {!isCollapsed&&(
               <div style={{border:"1px solid "+T.bd,borderTop:"none",borderRadius:"0 0 10px 10px",padding:"10px 10px 4px",background:T.bg}}>
                 {group.sets.map(function(cs){return renderCard(cs);})}
-
-                {/* Add new within this lane */}
-                {adding&&editId&&draft&&draft._isNew&&draft.lane===ln.id&&renderAddForm()}
 
                 <button onClick={function(){startAdd(ln.id);}} style={{padding:"6px 14px",borderRadius:6,border:"1px dashed "+T.bd,background:"transparent",cursor:"pointer",color:T.td,fontSize:10,fontFamily:"inherit",width:"100%",marginBottom:6}}>+ Add to {ln.nm}</button>
               </div>
