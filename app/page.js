@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { ThemeCtx, TH } from "@/lib/theme";
-import { mkIni, mkDepts, mkCircles, mkJobProfiles, LAYOUT_TEMPLATES, CAPABILITY_SETS, CAPABILITY_LANES, JOB_PROFILE_SKILLS, hydrateIni } from "@/lib/data";
+import { mkIni, mkDepts, mkCircles, mkJobProfiles, LAYOUT_TEMPLATES, CAPABILITY_SETS, CAPABILITY_LANES, FUNCTION_PRESETS, JOB_PROFILE_SKILLS, hydrateIni } from "@/lib/data";
 import useIsMobile from "@/lib/useIsMobile";
 import OverviewPage from "@/components/OverviewPage";
 import DetailPage from "@/components/DetailPage";
@@ -100,7 +100,7 @@ export default function App() {
         {view === "detail" && selIni && <DetailPage ini={selIni} onBack={function() { sSel(null); sView("overview"); }} onDelete={function(id) { sIni(function(pr) { return pr.filter(function(x) { return x.id !== id; }); }); sSel(null); sView("overview"); showToast("Deleted"); }} initTab={cap.tab} />}
         {view === "wizard" && <WizardPage onClose={function() { sView("overview"); }} onDone={handleCreate} deptTree={deptTree} setDT={sDT} circlesList={circles} setCL={sCL} jobProfilesList={jobProfiles} setJP={sJP} layoutTemplates={layoutTemplates} setLT={setLT} capSets={capSets} setCS={setCS} initStep={cap.step} />}
         {view === "report" && <ReportPage ini={hydratedInis} onBack={function() { sView("overview"); }} />}
-        {view === "capsets" && <CapabilitySetsPage capSets={capSets} setCS={setCS} lanes={lanes} setLanes={setLanes} initiatives={hydratedInis} jpSkills={JOB_PROFILE_SKILLS} onBack={function() { sView("overview"); }} onToast={showToast} />}
+        {view === "capsets" && <CapabilitySetsPage capSets={capSets} setCS={setCS} lanes={lanes} setLanes={setLanes} presets={FUNCTION_PRESETS} initiatives={hydratedInis} jpSkills={JOB_PROFILE_SKILLS} onBack={function() { sView("overview"); }} onToast={showToast} />}
 
         {toast && <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", padding:"10px 20px", borderRadius:10, background:T.gn, color:"#FFFFFF", fontSize:13, fontWeight:600, zIndex:100 }}>{toast}</div>}
       </div>
