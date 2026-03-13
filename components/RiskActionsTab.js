@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useT } from "@/lib/theme";
-import { fmt, fD, rc, cc2, cw, ic2 } from "@/lib/utils";
-import { allRoles, wRd, staffRd, skillRd, certRd } from "@/lib/readiness";
+import { fmt, fD, rc, cc2, cw } from "@/lib/utils";
+import { allRoles, wRd, staffRd, skillRd, certRd, deptRd } from "@/lib/readiness";
 import { genActions, matchContent } from "@/lib/actions";
 import { LIBRARY, FITS } from "@/lib/data";
 import Badge from "./Badge";
@@ -11,13 +11,31 @@ import Gauge from "./Gauge";
 import MiniGauge from "./MiniGauge";
 import TabBar from "./TabBar";
 import Overlay from "./Overlay";
+import useIsMobile from "@/lib/useIsMobile";
 
 export default function RiskActionsTab(p){
-  var T=useT();
-  var ini=p.ini,acts=p.acts,crd=p.crd;
+  var T=useT();var mob=useIsMobile();
+  var ini=p.ini,acts=p.acts,crd=p.crd,selLoc=p.selLoc,sSelLoc=p.sSelLoc;
+
+  /* Location-aware filtering */
+  var hasAreas=ini.depts.some(function(d){return d.areas;});
+  var areaDepts=ini.depts.filter(function(d){return d.areas;});
+  var riskDept=(function(){
+    if(!hasAreas)return null;
+    var locId=selLoc||areaDepts[0]&&areaDepts[0].did;
+    return areaDepts.find(function(d){return d.did===locId;})||areaDepts[0]||null;
+  })();
 
   /* === RISK FORECAST DATA === */
-  var ar=allRoles(ini);
+  var ar;
+  if(riskDept&&riskDept.areas){
+    ar=[];
+    riskDept.areas.forEach(function(a){
+      (a.roles||[]).forEach(function(r){ar.push({cn:r.cn,cr:r.cr,rq:r.rq,ql:r.ql,gp:r.gp,area:a.anm});});
+    });
+  }else{
+    ar=allRoles(ini);
+  }
   var totalRequired=0,totalGaps=0;
   var essentialGaps=[],importantGaps=[];
   ar.forEach(function(r){
@@ -38,29 +56,28 @@ export default function RiskActionsTab(p){
   var certPct60=totalCerts>0?Math.round((validNow-te30-te60)/totalCerts*100):100;
   var certPct90=totalCerts>0?Math.round((validNow-te30-te60-te90)/totalCerts*100):100;
 
-  /* Skill gaps sorted by impact */
+  /* Skill gaps sorted by people affected (largest first) */
   var sortedSkillGaps=(ini.sg||[]).slice().sort(function(a,b){
-    var order={Critical:4,High:3,Medium:2,Low:1};
-    return (order[b.i]||0)-(order[a.i]||0);
+    return b.n-a.n;
   });
 
   /* Content matches for quick wins */
   var quickWins=[];
   (ini.sg||[]).forEach(function(g){
     var found=LIBRARY.filter(function(l){return l.sk===g.s;});
-    if(found.length>0) quickWins.push({gap:g.s,impact:g.i,n:g.n,content:found[0],type:"skill"});
+    if(found.length>0) quickWins.push({gap:g.s,n:g.n,content:found[0],type:"skill"});
   });
   (ini.cg||[]).forEach(function(g){
     if(g.c==="All certs")return;
     var found=LIBRARY.filter(function(l){return l.ct&&(l.ct.indexOf(g.c.split(" ")[0])!==-1||l.ct===g.c);});
-    if(found.length>0) quickWins.push({gap:g.c,impact:g.i,n:g.n,content:found[0],type:"cert"});
+    if(found.length>0) quickWins.push({gap:g.c,n:g.n,content:found[0],type:"cert"});
   });
 
   /* Content gaps — no matching content exists */
   var contentGaps=[];
   (ini.sg||[]).forEach(function(g){
     var found=LIBRARY.filter(function(l){return l.sk===g.s;});
-    if(found.length===0) contentGaps.push({gap:g.s,impact:g.i,n:g.n});
+    if(found.length===0) contentGaps.push({gap:g.s,n:g.n});
   });
 
   /* Overall risk level */
@@ -68,14 +85,28 @@ export default function RiskActionsTab(p){
   riskScore+=essentialGaps.reduce(function(s,r){return s+r.gp*3;},0);
   riskScore+=importantGaps.reduce(function(s,r){return s+r.gp;},0);
   riskScore+=te30*2;
-  riskScore+=sortedSkillGaps.filter(function(g){return g.i==="Critical";}).length*3;
+  riskScore+=sortedSkillGaps.filter(function(g){return g.n>=10;}).length*3;
   var riskLevel=riskScore>=10?"Critical":riskScore>=5?"High":riskScore>=2?"Medium":"Low";
   var riskColor=riskLevel==="Critical"?T.rd:riskLevel==="High"?T.am:riskLevel==="Medium"?T.ac:T.gn;
 
   return (
     <div>
+      {/* Location selector for area-based */}
+      {hasAreas&&areaDepts.length>0&&(
+        <div style={{marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
+          <div style={{position:"relative",flex:1,maxWidth:320}}>
+            <select value={riskDept?riskDept.did:""} onChange={function(e){sSelLoc(e.target.value);}} style={{width:"100%",padding:"10px 36px 10px 14px",borderRadius:10,border:"1px solid "+T.bd,background:T.sf,color:T.tx,fontSize:14,fontWeight:600,appearance:"none",WebkitAppearance:"none",cursor:"pointer",outline:"none",letterSpacing:0.3}}>
+              {areaDepts.map(function(d){
+                var dr=deptRd(d);
+                return <option key={d.did} value={d.did}>{d.dn+" "+String.fromCharCode(183)+" "+dr+"% ready"}</option>;
+              })}
+            </select>
+            <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",pointerEvents:"none",fontSize:10,color:T.tm}}>{String.fromCharCode(9660)}</div>
+          </div>
+        </div>
+      )}
       {/* Risk level banner */}
-      <div style={{padding:16,borderRadius:14,border:"1px solid "+riskColor+"30",background:riskColor+"10",marginBottom:16,display:"flex",alignItems:"center",gap:16}}>
+      <div style={{padding:mob?12:16,borderRadius:14,border:"1px solid "+riskColor+"30",background:riskColor+"10",marginBottom:16,display:"flex",alignItems:mob?"flex-start":"center",gap:mob?12:16,flexWrap:mob?"wrap":"nowrap"}}>
         <div style={{width:56,height:56,borderRadius:14,background:riskColor+"20",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
           <span style={{fontSize:24}}>{riskLevel==="Critical"?"!!":riskLevel==="High"?"!":riskLevel==="Medium"?"~":"OK"}</span>
         </div>
@@ -102,7 +133,7 @@ export default function RiskActionsTab(p){
         <h3 style={{fontSize:14,fontWeight:700,margin:"0 0 12px"}}>Risk Forecast</h3>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14,marginBottom:20}}>
         {/* Cert expiry timeline */}
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
@@ -140,7 +171,7 @@ export default function RiskActionsTab(p){
         {/* Essential role exposure */}
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden"}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
-            <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Staffing Exposure</h4>
+            <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Staffing Exposure{riskDept?" \u2014 "+riskDept.dn:""}</h4>
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Unfilled positions by criticality</p>
           </div>
           {totalGaps===0?(
@@ -154,7 +185,7 @@ export default function RiskActionsTab(p){
                     var pct=r.rq>0?Math.round(r.ql/r.rq*100):100;
                     return (
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}</span>
+                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}{r.area?<span style={{fontSize:10,color:T.tm,fontWeight:400,marginLeft:4}}>{r.area}</span>:null}</span>
                         <span style={{fontSize:11,color:T.rd,fontWeight:600}}>{r.gp} missing</span>
                         <span style={{fontSize:10,color:T.td}}>{r.ql}/{r.rq}</span>
                         <div style={{width:40}}><ProgressBar v={pct} h={3}/></div>
@@ -170,7 +201,7 @@ export default function RiskActionsTab(p){
                     var pct=r.rq>0?Math.round(r.ql/r.rq*100):100;
                     return (
                       <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}</span>
+                        <span style={{fontSize:12,fontWeight:500,flex:1}}>{r.cn}{r.area?<span style={{fontSize:10,color:T.tm,fontWeight:400,marginLeft:4}}>{r.area}</span>:null}</span>
                         <span style={{fontSize:11,color:T.am,fontWeight:600}}>{r.gp} missing</span>
                         <span style={{fontSize:10,color:T.td}}>{r.ql}/{r.rq}</span>
                         <div style={{width:40}}><ProgressBar v={pct} h={3}/></div>
@@ -187,21 +218,21 @@ export default function RiskActionsTab(p){
         </div>
       </div>
 
-      {/* Skill gaps by criticality */}
+      {/* Skill Gap Exposure */}
       {sortedSkillGaps.length>0&&(
         <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"hidden",marginBottom:20}}>
           <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}>
             <h4 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gap Exposure ({sortedSkillGaps.length})</h4>
-            <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by impact</p>
+            <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>Skills not meeting target levels, ranked by people affected</p>
           </div>
           {sortedSkillGaps.map(function(g,i){
             var hasContent=LIBRARY.some(function(l){return l.sk===g.s;});
+            var sevClr=g.n>=10?T.rd:g.n>=5?T.am:T.ac;
             return (
               <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                <div style={{width:22,height:22,borderRadius:6,background:ic2(g.i,T)+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:ic2(g.i,T),flexShrink:0}}>{i+1}</div>
+                <div style={{width:22,height:22,borderRadius:6,background:sevClr+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:sevClr,flexShrink:0}}>{i+1}</div>
                 <span style={{fontSize:12,fontWeight:500,flex:1}}>{g.s}</span>
-                <span style={{fontSize:11,color:T.tm}}>{g.n} people</span>
-                <Badge c={ic2(g.i,T)} b={ic2(g.i,T)+"15"}>{g.i}</Badge>
+                <span style={{fontSize:11,fontWeight:600,color:sevClr}}>{g.n} people</span>
                 <Badge c={hasContent?T.gn:T.am} b={hasContent?T.gd:T.amd}>{hasContent?"Content available":"No content"}</Badge>
               </div>
             );
@@ -223,6 +254,7 @@ export default function RiskActionsTab(p){
             <p style={{fontSize:10,color:T.tm,margin:"2px 0 0"}}>These gaps can be closed using content already in your library</p>
           </div>
           {quickWins.map(function(w,i){
+            var wClr=w.n>=10?T.rd:w.n>=5?T.am:T.ac;
             return (
               <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 16px",borderBottom:"1px solid "+T.gn+"10"}}>
                 <div style={{width:28,height:28,borderRadius:7,background:w.type==="skill"?T.ac+"20":T.pu+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:w.type==="skill"?T.ac:T.pu,flexShrink:0}}>{w.type==="skill"?"S":"C"}</div>
@@ -230,7 +262,7 @@ export default function RiskActionsTab(p){
                   <div style={{fontSize:12,fontWeight:500}}>Assign "{w.content.nm}" to {w.n} people</div>
                   <div style={{fontSize:10,color:T.tm}}>Closes {w.type} gap: {w.gap} | Duration: {w.content.dur}</div>
                 </div>
-                <Badge c={ic2(w.impact,T)} b={ic2(w.impact,T)+"15"}>{w.impact}</Badge>
+                <span style={{fontSize:12,fontWeight:600,color:wClr}}>{w.n} ppl</span>
               </div>
             );
           })}
@@ -276,7 +308,7 @@ export default function RiskActionsTab(p){
                   <div style={{fontSize:12,fontWeight:500}}>{g.gap}</div>
                   <div style={{fontSize:10,color:T.tm}}>{g.n} people need this skill — no content available to assign</div>
                 </div>
-                <Badge c={ic2(g.impact,T)} b={ic2(g.impact,T)+"15"}>{g.impact}</Badge>
+                <span style={{fontSize:12,fontWeight:600,color:T.am}}>{g.n} ppl</span>
               </div>
             );
           })}

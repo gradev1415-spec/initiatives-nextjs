@@ -19,7 +19,7 @@ export default function HeatmapView(p){
   });
   var roles=Object.keys(roleMap);
   return (
-    <div style={{borderRadius:14,border:"1px solid "+T.bd,overflow:"auto"}}>
+    <div style={{borderRadius:8,border:"1px solid "+T.bd,overflow:"auto"}}>
       <div style={{padding:"14px 20px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:14,fontWeight:600,margin:0}}>Readiness Heatmap</h3><p style={{fontSize:11,color:T.tm,margin:"4px 0 0"}}>Roles x Locations - color = readiness %</p></div>
       <div style={{overflowX:"auto",padding:12}}>
         <table style={{borderCollapse:"collapse",minWidth:"100%"}}>
