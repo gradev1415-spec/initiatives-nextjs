@@ -347,6 +347,7 @@ export default function DetailPage(p){
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
                           <div style={{display:"flex",alignItems:"center",gap:10}}>
                             <span style={{fontSize:14,fontWeight:600}}>{area.anm}</span>
+                            {area._capSetNm&&<span style={{fontSize:9,padding:"2px 8px",borderRadius:5,background:T.ac+"12",border:"1px solid "+T.ac+"20",color:T.ac,fontWeight:600}}>{area._capSetNm}</span>}
                             <span style={{fontSize:12,fontWeight:700,color:statusClr(aR),fontFamily:"monospace"}}>{aR}% ready</span>
                             <span style={{fontSize:10,color:T.tm,fontFamily:"monospace"}}>{aFillD}/{aReqD} filled{aGapD>0?" "+String.fromCharCode(183)+" "+aGapD+" gap"+(aGapD!==1?"s":""):""}</span>
                           </div>
@@ -501,7 +502,7 @@ export default function DetailPage(p){
         var areaGaps=[];
         if(gapDept&&gapDept.areas){
           gapDept.areas.forEach(function(a){
-            var aGap={anm:a.anm,skills:a.skillReqs||[],certs:a.certReqs||[],staffGap:0,totalReq:0};
+            var aGap={anm:a.anm,capSetNm:a._capSetNm||null,skills:a.skillReqs||[],certs:a.certReqs||[],staffGap:0,totalReq:0};
             (a.roles||[]).forEach(function(r){aGap.staffGap+=r.gp;aGap.totalReq+=r.rq;});
             areaGaps.push(aGap);
           });
@@ -531,7 +532,7 @@ export default function DetailPage(p){
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Skill Gaps by Area</h3></div>
                 {areaGaps.some(function(ag){return ag.skills.length>0;})?areaGaps.map(function(ag,i){return ag.skills.length>0?(
                   <div key={i} style={{padding:"8px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.ac,marginBottom:4}}>{ag.anm}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><span style={{fontSize:11,fontWeight:600,color:T.ac}}>{ag.anm}</span>{ag.capSetNm&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:T.ac+"10",color:T.ac}}>{ag.capSetNm}</span>}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                       {ag.skills.map(function(sk){
                         var skName=typeof sk==="string"?sk:sk.s;
@@ -552,7 +553,7 @@ export default function DetailPage(p){
                 <div style={{padding:"12px 16px",borderBottom:"1px solid "+T.bd}}><h3 style={{fontSize:13,fontWeight:600,margin:0}}>Certificate Gaps by Area</h3></div>
                 {areaGaps.some(function(ag){return ag.certs.length>0;})?areaGaps.map(function(ag,i){return ag.certs.length>0?(
                   <div key={i} style={{padding:"8px 16px",borderBottom:"1px solid "+T.bd+"08"}}>
-                    <div style={{fontSize:11,fontWeight:600,color:T.ac,marginBottom:4}}>{ag.anm}</div>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}><span style={{fontSize:11,fontWeight:600,color:T.ac}}>{ag.anm}</span>{ag.capSetNm&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:T.ac+"10",color:T.ac}}>{ag.capSetNm}</span>}</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
                       {ag.certs.map(function(ct){
                         var ctName=typeof ct==="string"?ct:ct.c;

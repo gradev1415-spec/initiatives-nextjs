@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useT } from "@/lib/theme";
 import { fD, rc, cc2, cw, pv } from "@/lib/utils";
-import { LIBRARY, JOB_PROFILE_SKILLS, ALL_SKILLS, ALL_CERTS, LAYOUT_TEMPLATES } from "@/lib/data";
+import { LIBRARY, JOB_PROFILE_SKILLS, ALL_SKILLS, ALL_CERTS, LAYOUT_TEMPLATES, resolveAreaReqs } from "@/lib/data";
 import Badge from "./Badge";
 import ProgressBar from "./ProgressBar";
 import Gauge from "./Gauge";
@@ -43,7 +43,7 @@ export default function WizardPage(p){
   var _nln=useState("");var newLayoutName=_nln[0],sNewLayoutName=_nln[1];
   var _nla=useState([]);var newAreas=_nla[0],sNewAreas=_nla[1];
   var _da=useState({});var deptAreas=_da[0],sDeptAreas=_da[1];
-  /* Area requirements: keyed by area aid -> {skills:[], certs:[]} */
+  /* Area requirements: keyed by area aid -> {capSetId:string|null, lvlAdj:number} */
   var _areq=useState({});var areaReqs=_areq[0],sAreaReqs=_areq[1];
   var _areqExp=useState({});var areaReqExp=_areqExp[0],sAreaReqExp=_areqExp[1];
   /* Roles step: dept expand/collapse — first dept open by default */
@@ -100,21 +100,24 @@ export default function WizardPage(p){
   function remNewArea(aid){
     sNewAreas(function(pr){return pr.filter(function(a){return a.aid!==aid;});});
   }
-  /* Area requirements helpers — skills are {s,lvl} objects, certs are strings */
-  function getAreaReqs(aid){return areaReqs[aid]||{skills:[],certs:[]};}
-  function addAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};if(cur.skills.some(function(x){return x.s===sk;}))return pr;n[aid]={skills:cur.skills.concat([{s:sk,lvl:1}]),certs:cur.certs};return n;});}
-  function remAreaSkill(aid,sk){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills.filter(function(x){return x.s!==sk;}),certs:cur.certs};return n;});}
-  function setAreaSkillLvl(aid,sk,lvl){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills.map(function(x){return x.s===sk?{s:x.s,lvl:lvl}:x;}),certs:cur.certs};return n;});}
-  function addAreaCert(aid,ct){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};if(cur.certs.indexOf(ct)>=0)return pr;n[aid]={skills:cur.skills,certs:cur.certs.concat([ct])};return n;});}
-  function remAreaCert(aid,ct){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{skills:[],certs:[]};n[aid]={skills:cur.skills,certs:cur.certs.filter(function(c){return c!==ct;})};return n;});}
+  /* Area requirements helpers — now uses capability set references */
+  function getAreaReqs(aid){return areaReqs[aid]||{capSetId:null,lvlAdj:0};}
+  function setAreaCapSet(aid,csId){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{capSetId:null,lvlAdj:0};n[aid]={capSetId:csId||null,lvlAdj:cur.lvlAdj||0};return n;});}
+  function setAreaLvlAdj(aid,adj){sAreaReqs(function(pr){var n={};for(var k in pr)n[k]=pr[k];var cur=pr[aid]||{capSetId:null,lvlAdj:0};n[aid]={capSetId:cur.capSetId,lvlAdj:adj};return n;});}
+  /* Resolve an area's requirements using the capability set */
+  function resolveReqs(aid){
+    var ar=getAreaReqs(aid);
+    if(!ar.capSetId)return {skillReqs:[],certReqs:[]};
+    return resolveAreaReqs({capSetId:ar.capSetId,lvlAdj:ar.lvlAdj||0},p.capSets||[]);
+  }
   function togAreaReqExp(aid){sAreaReqExp(function(pr){var n={};for(var k in pr)n[k]=pr[k];n[aid]=!pr[aid];return n;});}
   function loadTemplateReqs(tmplId){
     var tmpl=(p.layoutTemplates||[]).find(function(t){return t.id===tmplId;});
     if(!tmpl)return;
     var reqs={};
     tmpl.areas.forEach(function(a){
-      if((a.skillReqs&&a.skillReqs.length>0)||(a.certReqs&&a.certReqs.length>0)){
-        reqs[a.aid]={skills:(a.skillReqs||[]).map(function(sk){return typeof sk==="string"?{s:sk,lvl:1}:sk;}),certs:(a.certReqs||[]).map(function(ct){return typeof ct==="string"?ct:ct.c||ct;})};
+      if(a.capSetId){
+        reqs[a.aid]={capSetId:a.capSetId,lvlAdj:a.lvlAdj||0};
       }
     });
     sAreaReqs(reqs);
@@ -413,7 +416,7 @@ export default function WizardPage(p){
   function getHint(){
     if(step===1){if(!name.trim())return "Name your initiative to begin workforce analysis.";if(!desc.trim())return "A description helps stakeholders understand the objective.";return "The system will connect "+type.toLowerCase()+" workforce data to this initiative.";}
     if(step===2){if(selD.length===0)return "Select locations to scan their employee records.";return "~"+(selD.length*22)+" employee records across "+selD.length+" location"+(selD.length>1?"s":"")+" will be cross-referenced.";}
-    if(step===25){if(useLayout===null)return "Choose how your locations are structured.";if(useLayout===false)return "Uniform structure. Roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose a saved layout or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";var reqCount=0;la.forEach(function(a){var r=getAreaReqs(a.aid);reqCount+=r.skills.length+r.certs.length;});return la.length+" area"+(la.length!==1?"s":"")+" ready"+(reqCount>0?" with "+reqCount+" requirement"+(reqCount!==1?"s":"")+". Expand any area to configure.":".");}
+    if(step===25){if(useLayout===null)return "Choose how your locations are structured.";if(useLayout===false)return "Uniform structure. Roles will be assigned directly per location.";var la=getLayoutAreas();if(!selLayout)return "Choose a saved layout or create a new one.";if(selLayout==="new"&&la.length===0)return "Add areas to define how your locations are organized.";var csCount=0;la.forEach(function(a){var ar=getAreaReqs(a.aid);if(ar.capSetId)csCount++;});return la.length+" area"+(la.length!==1?"s":"")+" ready"+(csCount>0?" with "+csCount+" capability set"+(csCount!==1?"s":"")+". Expand any area to configure.":".");}
     if(step===3){var t=countTotals();if(t.totalPeople===0)return "Add roles to define workforce requirements.";if(roleSrc==="jobprofile")return "Tracking "+t.totalPeople+" positions. Next step: define skill & certificate targets.";return "Tracking "+t.totalPeople+" positions. Estimated readiness: "+calcRd()+"%.";}
     if(step===4&&roleSrc==="jobprofile"){var ts=targetSummary();if(ts.skills===0&&ts.certs===0)return "Select skills and certificates to define what readiness means for each profile.";return ts.skills+" skill"+(ts.skills!==1?"s":"")+" and "+ts.certs+" certificate"+(ts.certs!==1?"s":"")+" targeted. Adjust levels and coverage as needed.";}
     if(step===timelineN){if(!sq&&!tq)return "Set a timeline to enable progress tracking and deadline alerts.";if(sq&&tq&&rev)return "Financial context linked. Opportunity cost will track against readiness.";if(sq&&tq)return "Timeline locked. Quarterly snapshots will track progress.";return "Select both quarters to define the tracking window.";}
@@ -480,10 +483,9 @@ export default function WizardPage(p){
             var key=dept.id+"__"+aId;
             var dc=dCirc[key]||[];
             var area=layoutAreas.find(function(a){return a.aid===aId;});
-            var reqs=getAreaReqs(aId);
+            var areq=getAreaReqs(aId);
             var aObj={aid:aId,anm:area?area.anm:aId,roles:dc.map(buildRole)};
-            if(reqs.skills.length>0)aObj.skillReqs=reqs.skills.map(function(sk){return {s:sk.s,lvl:sk.lvl};});
-            if(reqs.certs.length>0)aObj.certReqs=reqs.certs;
+            if(areq.capSetId){aObj.capSetId=areq.capSetId;if(areq.lvlAdj)aObj.lvlAdj=areq.lvlAdj;}
             return aObj;
           }).filter(function(a){return a.roles.length>0;});
           if(areas.length>0)return {did:dept.id,dn:dept.nm,layout:selLayout,areas:areas};
@@ -494,10 +496,9 @@ export default function WizardPage(p){
     /* Save new layout template */
     if(useLayout&&selLayout==="new"&&newLayoutName.trim()&&newAreas.length>0){
       var validAreas=newAreas.filter(function(a){return a.anm.trim();}).map(function(a){
-        var reqs=getAreaReqs(a.aid);
+        var areq=getAreaReqs(a.aid);
         var aObj={aid:a.aid,anm:a.anm};
-        if(reqs.skills.length>0)aObj.skillReqs=reqs.skills.map(function(sk){return {s:sk.s,lvl:sk.lvl};});
-        if(reqs.certs.length>0)aObj.certReqs=reqs.certs;
+        if(areq.capSetId){aObj.capSetId=areq.capSetId;if(areq.lvlAdj)aObj.lvlAdj=areq.lvlAdj;}
         return aObj;
       });
       if(validAreas.length>0){
@@ -698,10 +699,12 @@ export default function WizardPage(p){
               </div>)}
               {/* Areas detail: requirements + per-location customization combined */}
               {selLayout&&getLayoutAreas().length>0&&(<div style={{animation:"wizFadeUp 0.3s ease"}}>
-                {/* Area cards — each shows requirements inline + location toggles */}
+                {/* Area cards — each shows capability set + location toggles */}
                 {getLayoutAreas().map(function(area,ai){
-                  var reqs=getAreaReqs(area.aid);
-                  var hasReqs=reqs.skills.length>0||reqs.certs.length>0;
+                  var areq=getAreaReqs(area.aid);
+                  var resolved=resolveReqs(area.aid);
+                  var hasReqs=resolved.skillReqs.length>0||resolved.certReqs.length>0;
+                  var csName=areq.capSetId?(p.capSets||[]).find(function(cs){return cs.id===areq.capSetId;}):null;
                   var isExp=!!areaReqExp[area.aid];
                   /* Which locations have this area active */
                   var locStatus=selD.map(function(dept){var active=getDeptActiveAreas(dept.id);return {id:dept.id,nm:dept.nm,on:active.indexOf(area.aid)>=0};});
@@ -713,50 +716,52 @@ export default function WizardPage(p){
                       <span style={{fontSize:13,fontWeight:600,color:isExp?T.ac:T.tx}}>{area.anm}</span>
                       {/* Inline summary pills */}
                       <div style={{display:"flex",alignItems:"center",gap:4,flex:1,flexWrap:"wrap"}}>
-                        {hasReqs&&reqs.skills.map(function(sk){return (<span key={sk.s} style={{padding:"1px 6px",borderRadius:4,background:T.ac+"12",fontSize:9,color:T.ac}}>{sk.s} <span style={{opacity:0.6}}>L{sk.lvl}</span></span>);})}
-                        {hasReqs&&reqs.certs.map(function(ct){return (<span key={ct} style={{padding:"1px 6px",borderRadius:4,background:T.am+"12",fontSize:9,color:T.am}}>{ct}</span>);})}
+                        {csName&&<span style={{padding:"1px 6px",borderRadius:4,background:T.ac+"12",fontSize:9,color:T.ac,fontWeight:600}}>{csName.nm}{areq.lvlAdj?(" +"+ areq.lvlAdj):""}</span>}
+                        {hasReqs&&resolved.skillReqs.map(function(sk){return (<span key={sk.s} style={{padding:"1px 6px",borderRadius:4,background:T.ac+"08",fontSize:9,color:T.td}}>{sk.s} L{sk.lvl}</span>);})}
+                        {hasReqs&&resolved.certReqs.map(function(ct){return (<span key={ct.c} style={{padding:"1px 6px",borderRadius:4,background:T.am+"08",fontSize:9,color:T.td}}>{ct.c}</span>);})}
                       </div>
                       {!allOn&&<span style={{fontSize:9,color:T.am,padding:"1px 6px",borderRadius:4,background:T.amd}}>{locStatus.filter(function(l){return l.on;}).length}/{selD.length} locations</span>}
-                      {!hasReqs&&!isExp&&<span style={{fontSize:10,color:T.td,opacity:0.6}}>click to configure</span>}
+                      {!areq.capSetId&&!isExp&&<span style={{fontSize:10,color:T.td,opacity:0.6}}>click to configure</span>}
                     </div>
-                    {/* Expanded: requirements + locations */}
+                    {/* Expanded: capability set picker + locations */}
                     {isExp&&(<div style={{padding:"0 14px 14px",borderTop:"1px solid "+T.bd+"20"}}>
-                      {/* Requirements row */}
+                      {/* Capability Set picker */}
                       <div style={{marginTop:10,marginBottom:10}}>
                         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:8}}>
                           <div style={{display:"flex",alignItems:"center",gap:6,flex:1}}>
-                            <span style={{fontSize:10,color:T.td,fontWeight:600}}>REQUIRES</span>
-                            <select value="" onChange={function(e){if(e.target.value)addAreaSkill(area.aid,e.target.value);}} style={{padding:"2px 6px",borderRadius:5,border:"1px solid "+T.ac+"30",background:"transparent",color:T.ac,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
-                              <option value="">+ skill</option>
-                              {ALL_SKILLS.filter(function(sk){return !reqs.skills.some(function(x){return x.s===sk;});}).map(function(sk){return <option key={sk} value={sk}>{sk}</option>;})}
+                            <span style={{fontSize:10,color:T.td,fontWeight:600}}>CAPABILITY SET</span>
+                            <select value={areq.capSetId||""} onChange={function(e){setAreaCapSet(area.aid,e.target.value);}} style={{padding:"4px 8px",borderRadius:6,border:"1px solid "+T.ac+"40",background:T.bg,color:T.tx,fontSize:11,fontFamily:"inherit",cursor:"pointer",minWidth:160}}>
+                              <option value="">None</option>
+                              {(p.capSets||[]).map(function(cs){return <option key={cs.id} value={cs.id}>{cs.nm}</option>;})}
                             </select>
-                            <select value="" onChange={function(e){if(e.target.value)addAreaCert(area.aid,e.target.value);}} style={{padding:"2px 6px",borderRadius:5,border:"1px solid "+T.am+"30",background:"transparent",color:T.am,fontSize:10,fontFamily:"inherit",cursor:"pointer"}}>
-                              <option value="">+ cert</option>
-                              {ALL_CERTS.filter(function(ct){return reqs.certs.indexOf(ct)<0;}).map(function(ct){return <option key={ct} value={ct}>{ct}</option>;})}
-                            </select>
+                            {areq.capSetId&&(<div style={{display:"flex",alignItems:"center",gap:4,marginLeft:8}}>
+                              <span style={{fontSize:10,color:T.td}}>Level adjust:</span>
+                              <button onClick={function(e){e.stopPropagation();setAreaLvlAdj(area.aid,Math.max(-2,(areq.lvlAdj||0)-1));}} style={{width:20,height:20,borderRadius:4,border:"1px solid "+T.bd,background:T.bg,cursor:"pointer",color:T.tx,fontSize:12,fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>-</button>
+                              <span style={{fontSize:11,fontWeight:600,minWidth:24,textAlign:"center",color:(areq.lvlAdj||0)>0?T.gn:(areq.lvlAdj||0)<0?T.rd:T.td}}>{(areq.lvlAdj||0)>0?"+":""}{areq.lvlAdj||0}</span>
+                              <button onClick={function(e){e.stopPropagation();setAreaLvlAdj(area.aid,Math.min(2,(areq.lvlAdj||0)+1));}} style={{width:20,height:20,borderRadius:4,border:"1px solid "+T.bd,background:T.bg,cursor:"pointer",color:T.tx,fontSize:12,fontFamily:"inherit",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>+</button>
+                            </div>)}
                           </div>
                         </div>
+                        {/* Read-only resolved requirements */}
                         {hasReqs&&(<div style={{display:"flex",flexWrap:"wrap",gap:4}}>
-                          {reqs.skills.map(function(sk){return (
+                          {resolved.skillReqs.map(function(sk){return (
                             <div key={sk.s} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.ac+"12",border:"1px solid "+T.ac+"20",fontSize:10,color:T.ac}}>
                               {sk.s}
-                              {/* Level pips — click to set level 1-5 */}
                               <div style={{display:"inline-flex",gap:2,marginLeft:2}}>
                                 {[1,2,3,4,5].map(function(lv){return (
-                                  <div key={lv} onClick={function(e){e.stopPropagation();setAreaSkillLvl(area.aid,sk.s,lv);}} style={{width:5,height:5,borderRadius:3,background:lv<=sk.lvl?T.ac:T.ac+"25",cursor:"pointer",transition:"background 0.2s"}}/>
+                                  <div key={lv} style={{width:5,height:5,borderRadius:3,background:lv<=sk.lvl?T.ac:T.ac+"25"}}/>
                                 );})}
                               </div>
-                              <span onClick={function(e){e.stopPropagation();remAreaSkill(area.aid,sk.s);}} style={{cursor:"pointer",opacity:0.5,fontSize:11}}>{CROSS}</span>
+                              <span style={{fontSize:9,opacity:0.7}}>L{sk.lvl}</span>
                             </div>
                           );})}
-                          {reqs.certs.map(function(ct){return (
-                            <div key={ct} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.am+"12",border:"1px solid "+T.am+"20",fontSize:10,color:T.am}}>
-                              {ct}
-                              <span onClick={function(e){e.stopPropagation();remAreaCert(area.aid,ct);}} style={{cursor:"pointer",opacity:0.5,fontSize:11}}>{CROSS}</span>
+                          {resolved.certReqs.map(function(ct){return (
+                            <div key={ct.c} style={{display:"inline-flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:5,background:T.am+"12",border:"1px solid "+T.am+"20",fontSize:10,color:T.am}}>
+                              {ct.c}
                             </div>
                           );})}
                         </div>)}
-                        {!hasReqs&&<div style={{fontSize:10,color:T.td,opacity:0.6,fontStyle:"italic"}}>No area-specific requirements yet. Anyone placed here will only need their role skills.</div>}
+                        {!areq.capSetId&&<div style={{fontSize:10,color:T.td,opacity:0.6,fontStyle:"italic"}}>No capability set selected. Pick one to define area-specific skill and certification requirements.</div>}
                       </div>
                       {/* Locations for this area */}
                       {selD.length>1&&(<div style={{paddingTop:8,borderTop:"1px solid "+T.bd+"20"}}>
