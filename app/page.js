@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { ThemeCtx, TH } from "@/lib/theme";
-import { mkIni, mkDepts, mkCircles, mkJobProfiles, LAYOUT_TEMPLATES, CAPABILITY_SETS, JOB_PROFILE_SKILLS, hydrateIni } from "@/lib/data";
+import { mkIni, mkDepts, mkCircles, mkJobProfiles, LAYOUT_TEMPLATES, CAPABILITY_SETS, CAPABILITY_LANES, JOB_PROFILE_SKILLS, hydrateIni } from "@/lib/data";
 import useIsMobile from "@/lib/useIsMobile";
 import OverviewPage from "@/components/OverviewPage";
 import DetailPage from "@/components/DetailPage";
@@ -18,6 +18,11 @@ function loadCS() {
   if (typeof window === "undefined") return CAPABILITY_SETS;
   try { var s = localStorage.getItem("lb_cs"); if (s) return JSON.parse(s); } catch (e) {}
   return CAPABILITY_SETS;
+}
+function loadLanes() {
+  if (typeof window === "undefined") return CAPABILITY_LANES;
+  try { var s = localStorage.getItem("lb_lanes"); if (s) return JSON.parse(s); } catch (e) {}
+  return CAPABILITY_LANES;
 }
 
 /* Parse URL search params for Figma capture routing */
@@ -47,10 +52,13 @@ export default function App() {
   var _jp = useState(mkJobProfiles); var jobProfiles = _jp[0], sJP = _jp[1];
   var _lt = useState(loadLT); var layoutTemplates = _lt[0], setLT = _lt[1];
   var _cs = useState(loadCS); var capSets = _cs[0], setCS = _cs[1];
+  var _ln = useState(loadLanes); var lanes = _ln[0], setLanes = _ln[1];
   /* Persist layout templates (with role presets) to localStorage */
   useEffect(function() { try { localStorage.setItem("lb_lt", JSON.stringify(layoutTemplates)); } catch (e) {} }, [layoutTemplates]);
   /* Persist capability sets to localStorage */
   useEffect(function() { try { localStorage.setItem("lb_cs", JSON.stringify(capSets)); } catch (e) {} }, [capSets]);
+  /* Persist lanes to localStorage */
+  useEffect(function() { try { localStorage.setItem("lb_lanes", JSON.stringify(lanes)); } catch (e) {} }, [lanes]);
   /* Hydrate initiatives: resolve capSetId references into inline skillReqs/certReqs */
   var hydratedInis = useMemo(function() { return initiatives.map(function(ini) { return hydrateIni(ini, capSets); }); }, [initiatives, capSets]);
   /* Set selected initiative from URL param */
@@ -92,7 +100,7 @@ export default function App() {
         {view === "detail" && selIni && <DetailPage ini={selIni} onBack={function() { sSel(null); sView("overview"); }} onDelete={function(id) { sIni(function(pr) { return pr.filter(function(x) { return x.id !== id; }); }); sSel(null); sView("overview"); showToast("Deleted"); }} initTab={cap.tab} />}
         {view === "wizard" && <WizardPage onClose={function() { sView("overview"); }} onDone={handleCreate} deptTree={deptTree} setDT={sDT} circlesList={circles} setCL={sCL} jobProfilesList={jobProfiles} setJP={sJP} layoutTemplates={layoutTemplates} setLT={setLT} capSets={capSets} setCS={setCS} initStep={cap.step} />}
         {view === "report" && <ReportPage ini={hydratedInis} onBack={function() { sView("overview"); }} />}
-        {view === "capsets" && <CapabilitySetsPage capSets={capSets} setCS={setCS} initiatives={hydratedInis} jpSkills={JOB_PROFILE_SKILLS} onBack={function() { sView("overview"); }} onToast={showToast} />}
+        {view === "capsets" && <CapabilitySetsPage capSets={capSets} setCS={setCS} lanes={lanes} setLanes={setLanes} initiatives={hydratedInis} jpSkills={JOB_PROFILE_SKILLS} onBack={function() { sView("overview"); }} onToast={showToast} />}
 
         {toast && <div style={{ position:"fixed", bottom:24, left:"50%", transform:"translateX(-50%)", padding:"10px 20px", borderRadius:10, background:T.gn, color:"#FFFFFF", fontSize:13, fontWeight:600, zIndex:100 }}>{toast}</div>}
       </div>
